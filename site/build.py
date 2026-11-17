@@ -50,7 +50,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("out")
     ap.add_argument("--release")
-    ap.add_argument("--base-url", default="https://pcanilho.github.io/edge-cockpit/")
+    ap.add_argument("--base-url", default="https://edge-cockpit.canilho.net/")
     args = ap.parse_args()
     out = Path(args.out)
     shutil.rmtree(out, ignore_errors=True)
