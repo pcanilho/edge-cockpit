@@ -34,7 +34,7 @@ export function init(root, c) {
   // Long press on a title strip enters edit mode.
   let timer = null;
   root.addEventListener('pointerdown', e => {
-    if (editing || !e.target.closest('.plate[data-slot] :is(.title, .rtitle)')) return;
+    if (editing || root.closest('.stacked') || !e.target.closest('.plate[data-slot] :is(.title, .rtitle)')) return;
     timer = setTimeout(() => { timer = null; start(root); }, HOLD_MS);
   });
   const cancel = () => { clearTimeout(timer); timer = null; };

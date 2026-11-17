@@ -194,6 +194,31 @@ else {
   await page.evaluate(() => { for (const k of Object.keys(localStorage)) if (k.startsWith('xfd-slot:')) localStorage.removeItem(k); window.xfd.show('mining'); });
 }
 
+// On a 4:3 screen the console stacks in two rows: bigger than one row, every plate on screen, none overlapping.
+await page.setViewportSize({ width: 1600, height: 1200 });
+await page.waitForTimeout(100);
+for (const id of ['light-fighter', 'onfoot', 'emotes', 'downed']) {
+  const r = await page.evaluate(id => {
+    window.xfd.show(id);
+    const st = document.getElementById('stage');
+    const boxes = [...document.querySelectorAll('#stage > .plate, #console > .plate')].map(p => p.getBoundingClientRect());
+    const out = boxes.filter(b => b.left < -1 || b.top < -1 || b.right > innerWidth + 1 || b.bottom > innerHeight + 1).length;
+    let hit = 0;
+    for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+      const a = boxes[i], b = boxes[j];
+      if (a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1) hit++;
+    }
+    return { stacked: st.classList.contains('stacked'), out, hit };
+  }, id);
+  if (!r.stacked) problems.push(`${id} at 1600x1200 is not in two rows`);
+  if (r.out) problems.push(`${id} at 1600x1200: ${r.out} plates off screen`);
+  if (r.hit) problems.push(`${id} at 1600x1200: ${r.hit} plates overlap`);
+}
+await page.setViewportSize({ width: 2560, height: 720 });
+await page.waitForTimeout(100);
+if (await page.evaluate(() => document.getElementById('stage').classList.contains('stacked'))) problems.push('the console stays in two rows at 2560x720');
+await page.evaluate(() => window.xfd.show('mining'));
+
 // With the game's default binds, every key the console uses can be pressed and none collide.
 const health = await page.evaluate(() => window.xfd.bindHealth());
 if (health.missing.length) problems.push(`keys with no default keyboard bind: ${health.missing.join(', ')}`);
