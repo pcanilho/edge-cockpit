@@ -23,11 +23,13 @@ Unofficial fan project, not affiliated with Cloud Imperium Games.
    Windows SmartScreen warns because the app is not code signed: click **More info**, then **Run anyway**. Each release lists SHA-256 checksums and a VirusTotal scan, and carries a build provenance attestation ([how to verify](SECURITY.md#verifying-a-download)).
 2. In game, open **Options > Keybindings > Advanced Controls Customization > Control Profiles**, pick **xeneon** and tick only **Keyboard**. This gives the console's actions that have no default key a free key. Your own binds stay as they are.
 
-That's all. Edge Cockpit starts with Windows and waits in the tray with its screen dark. It wakes when Star Citizen starts and turns the screen off again when you quit. It updates itself from these releases and shows you what's new.
+That's all. Edge Cockpit starts with Windows and waits in the tray with its screen dark. It wakes when Star Citizen starts and turns the screen off again when you quit. When a new release is out it asks you, with the release notes, and only while you're not playing.
+
+It finds the touchscreen by itself (or pick one in **Settings > Screen**), and has a night mode: on, off, or automatic from 20:00 to 07:00.
 
 ## The console
 
-Every ship page has a power plate, a module for your ship's role, a flight plate and a gear plate. The role module is a target dial for fighters, a laser power knob for mining, a beam head for salvage, a tractor beam slider for cargo, and so on. Swipe it sideways to see the others. To rearrange the plates, long-press a plate's title, drag the plates and tap **Done**. The order is saved for each role. On foot you get a weapon wheel, your suit and comms. Downed, a big revive button.
+Every ship page has a power plate with a big **Flight Ready** button, a module for your ship's role, a flight plate and a gear plate. The role module is a target dial for fighters, a laser power knob for mining, a beam head for salvage, a tractor beam slider for cargo, and so on. Swipe it sideways or tap the arrows to see the others. No key appears twice on a page. To rearrange the plates, long-press a plate's title, drag the plates and tap **Done**. The order is saved for each role. On foot you get a weapon wheel, your suit and comms. Downed, a big revive button.
 
 | | |
 | --- | --- |
@@ -40,22 +42,24 @@ Every ship page has a power plate, a module for your ship's role, a flight plate
 
 | Control | How it works |
 | --- | --- |
-| Keycap | Tap. A light on top means it toggles something |
+| Keycap | Tap. Most switches are push-buttons, because the game doesn't say whether they're on |
 | HOLD tag | The key stays down while you hold it |
 | LONG or 2× tag | Long press or double tap for a second action |
-| MACRO (cut corners) | One tap runs a sequence, such as Startup |
+| MACRO (cut corners) | One tap runs a sequence, such as Ready & ATC or Battle stations |
 | Switch, knob | Tap or turn |
 | Lever, slider | Drag |
 | Red cover | Tap to lift it, then tap again within 3 seconds |
 
 ## It follows the game
 
-- Opens the page for what you are doing: your ship's role page when you sit down, On foot, Downed.
-- Takes your ship maker's colours and shows its outline, role and quantum target. Outlines come from [FleetYards.net](https://fleetyards.net) the first time a ship is seen and are kept on your PC.
-- Shows your mission, location, kills this session and the game build.
-- Reads your `actionmaps.xml`, so keys you rebound in game just work.
+- Opens the page for what you are doing: your ship's role page when you board, On foot when you leave, Downed when you go down.
+- Takes your ship maker's colours and shows its outline, role and quantum target. Outlines come from [FleetYards.net](https://fleetyards.net) the first time a ship is seen and are kept on your PC. On foot it shows the ship you last flew.
+- Shows where you are ("Keeger · Nyx", "Asteroid base · Ungoverned") on a line of the system's planets.
+- Shows your mission: the objective, the contract with its rewards as chips, and where the objective's marker points. Game colour tags, and those of StarStrings and SmartCitizen, are read rather than shown. The game logs no distances, so there are none.
+- Lights a red frame only for a CrimeStat or your ship disabled. Unmonitored or ungoverned space is an amber note.
+- Reads your `actionmaps.xml`, so keys you rebound in game just work. **Settings > Keybinds** lists any key the console can't press.
 
-The game doesn't report gear, power, gimbals or missiles, so those show what you last pressed.
+The game doesn't report gear, power, doors, lights or most switches, so those are push-buttons (doors get separate Open and Close keys), and the gear lever and missiles show what you last pressed. Hold the EDGE COCKPIT title for 2 seconds to see frame rate, CPU, memory and touch-to-key latency.
 
 No telemetry. The only network calls are ship outlines from FleetYards and the update check against these releases.
 
@@ -106,7 +110,7 @@ npx tauri dev          # run it (Windows)
 
 Open `app/ui/index.html?demo=ship` from a local web server to preview the console in a browser (also `demo=armistice`, `demo=alert`, `demo=downed`, or `page=mining`). Run `node scripts/sync.mjs` in `app` first.
 
-After a game patch, take `defaultProfile.xml` from `Data.p4k` and run `scripts/check_patch.py`, `scripts/build_layout.py` and `scripts/build_binds.py` on it. The ship list refreshes itself each month.
+After a game patch, take `defaultProfile.xml` from `Data.p4k` (or a current dump such as [Boxxy-Binder's AllBinds.xml](https://github.com/BoxximusPrime/Boxxy-Binder)) and run `scripts/check_patch.py`, `scripts/build_layout.py` and `scripts/build_binds.py` on it. The ship list refreshes itself each month.
 
 To release, add a section for the version to [CHANGELOG.md](CHANGELOG.md), set the version in `app/src-tauri/tauri.conf.json`, and run the **App** workflow with **release** ticked.
 

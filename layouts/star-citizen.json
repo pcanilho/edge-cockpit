@@ -9690,6 +9690,55 @@
      ]
     }
    ]
+  },
+  {
+   "id": "extras",
+   "keys": [
+    {
+     "label": "Open doors",
+     "action": "v_open_all_doors",
+     "actionmap": "spaceship_general",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "door",
+     "role": "action"
+    },
+    {
+     "label": "Close doors",
+     "action": "v_close_all_doors",
+     "actionmap": "spaceship_general",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "door",
+     "role": "action"
+    },
+    {
+     "label": "Chat window",
+     "action": "toggle_chat",
+     "actionmap": "default",
+     "defaultKey": "f12",
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": false,
+     "icon": "chat",
+     "role": "action"
+    },
+    {
+     "label": "Push to talk",
+     "action": "foip_pushtotalk",
+     "actionmap": "player_input_optical_tracking",
+     "defaultKey": "np_add",
+     "activation": "hold",
+     "press": "hold",
+     "needsKeyboardBind": false,
+     "icon": "chat",
+     "role": "hold"
+    }
+   ]
   }
  ],
  "roles": [

@@ -54,6 +54,7 @@ def deck_actions():
     keys = [k for k in next(d for d in data['decks'] if d['id'] == 'rail')['keys'] if k.get('action')]
     for page in next(d for d in data['decks'] if d['id'] == 'main')['pages']:
         keys += [s for row in page['rows'] for k in row if k for s in sub_keys(k)]
+    keys += next((d['keys'] for d in data['decks'] if d['id'] == 'extras'), [])
     seen, out = set(), []
     for k in keys:
         if k['needsKeyboardBind'] and k['action'] not in seen:

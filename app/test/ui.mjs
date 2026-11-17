@@ -94,6 +94,19 @@ for (const id of ids) {
   const ms = await page.evaluate(id => { const t = performance.now(); window.xfd.show(id); document.body.offsetHeight; return performance.now() - t; }, id);
   worstBuild = Math.max(worstBuild, ms);
   await checkLabels(id);
+  // The page title, counter and arrows sit on their own strip: nothing on the plate may run under them.
+  const under = await page.evaluate(() => {
+    const plate = document.querySelector('.rolemod');
+    if (!plate) return [];
+    const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+    // 4 px of clearance, plus the arrows' 3 px drop shadow.
+    const bars = [plate.querySelector('.pager'), plate.querySelector('.rtitle')].map(e => e.getBoundingClientRect())
+      .map(r => ({ left: r.left - 4, top: r.top - 4, right: r.right + 4, bottom: r.bottom + 7 }));
+    return [...plate.querySelectorAll('.well, .dialw, .placard, .rotary, .slider, .round, .screen, .screw, .quantum, .hz')]
+      .filter(e => bars.some(b => hit(b, e.getBoundingClientRect())))
+      .map(e => e.textContent.trim().replace(/\s+/g, ' ').slice(0, 30) || e.className);
+  });
+  for (const u of under) problems.push(`${id}: "${u}" is under the page title or arrows`);
   if (shots) await page.screenshot({ path: join(shots, `${id}.png`) });
 }
 for (const id of ['mining', 'light-fighter', 'onfoot', 'downed']) {

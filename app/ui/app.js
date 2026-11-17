@@ -555,7 +555,21 @@ function paintUpdate() {
   $('upd-state').textContent = update ? `Version ${update.version} is ready. What's new:` : notes ? `What's new in ${prefs.version}:` : 'Up to date. Checks while you are not playing.';
   $('upd-notes').hidden = !notes;
   $('upd-notes').innerHTML = notesHtml(notes);
+  paintPrompt();
 }
+/** Asks once per version, with its notes, and only while the game isn't running. Later waits for the next version. */
+function paintPrompt() {
+  const ask = !!update && !info.running && store.get('upd-later', null) !== update.version;
+  const el = $('upd-prompt');
+  if (ask && el.hidden) {
+    $('upd-p-title').textContent = `Edge Cockpit ${update.version}`;
+    $('upd-p-notes').innerHTML = notesHtml(update.notes) || '<p>Fixes and improvements.</p>';
+    tick('tap');
+  }
+  el.hidden = !ask;
+}
+controls.pressable($('upd-later'), { up: () => { tick('tap'); store.set('upd-later', update?.version); paintPrompt(); } });
+controls.pressable($('upd-now'), { up: () => { tick('tap'); $('upd-prompt').hidden = true; installUpdate(); } });
 async function checkUpdate() {
   if (!bridge.inApp || info.running) return;
   try { update = await bridge.checkUpdate(); } catch { update = null; }
@@ -656,14 +670,22 @@ function paintStatus() {
   $('build').hidden = !odd;
   $('build').querySelector('span').textContent = odd ? `Untested build ${version(game.build.branch)}` : '';
   $('qt').hidden = !game.qtTarget;
-  $('qt-name').textContent = (game.qtTarget || '').replace(/_/g, ' ');
+  $('qt-name').textContent = game.qtTarget ? `Quantum to ${game.qtTarget.replace(/_/g, ' ')}` : '';
 
+  const esc = controls.esc;
   const m = game.mission, card = $('mission');
   card.hidden = !m || (!m.contract && !m.objective);
   if (m) {
     card.className = 'mission' + (m.status === 'complete' ? ' done' : m.status === 'failed' || m.status === 'withdrawn' ? ' failed' : '');
-    $('mission-kind').textContent = m.status === 'active' ? (m.objective ? 'Objective' : 'Mission') : 'Mission ' + m.status;
-    $('mission-text').textContent = [m.objective, m.contract].filter(Boolean).join(' · ');
+    $('mission-kind').textContent = m.status === 'active' ? 'Mission' : 'Mission ' + m.status;
+    $('mission-obj').textContent = m.status === 'active' ? m.objective || '' : '';
+    // Where the objective's marker points. The game logs no distance, so only whether you're there.
+    const here = m.target && place(game.location).name.toLowerCase().includes(m.target.toLowerCase());
+    $('mission-at').innerHTML = m.target && m.status === 'active' ? `→ ${esc(m.target)}${here ? ' <em>· you are here</em>' : ''}` : '';
+    $('mission-text').innerHTML = m.runs?.length
+      ? m.runs.map(r => r.em === null ? esc(r.text) : `<span class="em${r.em}">${esc(r.text)}</span>`).join('')
+      : esc(m.contract || '');
+    $('mission-tags').innerHTML = (m.tags || []).map(t => `<span class="${/^bp$/i.test(t) ? 'bp' : ''}">${esc(/^bp$/i.test(t) ? 'Blueprint' : t)}</span>`).join('');
     if (m.seq !== lastSeq && lastSeq) { card.classList.add('flash'); setTimeout(() => card.classList.remove('flash'), 3000); }
     lastSeq = m.seq;
   }
@@ -751,6 +773,7 @@ async function poll() {
   paintChannel();
   $('act-admin').hidden = info.elevated;
   if (!info.running && !game.menu) { game = { ...EMPTY, me: game.me }; follow(false); }
+  paintPrompt();
   paintStatus();
 }
 
