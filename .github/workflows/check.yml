@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   check:
-    name: Layout, Game.log reader and UI
+    name: check
     runs-on: ubuntu-latest
     permissions:
       contents: read

@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   cargo-deny:
-    name: Rust advisories and licences
+    name: cargo-deny
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -32,7 +32,7 @@ jobs:
           command: check advisories licenses bans sources
 
   zizmor:
-    name: Workflow security
+    name: zizmor
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -46,7 +46,7 @@ jobs:
           advanced-security: false
 
   gitleaks:
-    name: Secrets in the history
+    name: gitleaks
     runs-on: ubuntu-latest
     permissions:
       contents: read

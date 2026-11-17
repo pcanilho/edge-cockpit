@@ -5,8 +5,7 @@ name: App
 # with notes from CHANGELOG.md, SHA-256 checksums, build provenance, the self-update
 # manifest and, when a VirusTotal key is set, a scan of each exe.
 on:
-  pull_request:
-    paths-ignore: ['**.md', 'docs/**', '.github/ISSUE_TEMPLATE/**']
+  pull_request:   # always runs, because Build is a required check on main
   push:
     branches: [main]
     paths-ignore: ['**.md', 'docs/**', '.github/ISSUE_TEMPLATE/**']
