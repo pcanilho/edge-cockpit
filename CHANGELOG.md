@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- "Auto pages" is now called "Follow game", on the status screen chip and in Settings.
 - The Settings key lights up while Settings is open, and tapping a page key closes Settings.
 - The VirusTotal badge shows the latest release's real result (engines that flag it), and the release notes give the result next to each exe's report link.
 - Profiles: save your settings, plate order, ship roles and keyboard binds to Documents\Edge Cockpit\profile.json, and load them on another PC. Loading adds the binds to the game's Control Profiles as "edge-cockpit-profile".
