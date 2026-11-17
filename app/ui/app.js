@@ -1,7 +1,7 @@
 // Edge Cockpit: builds the cockpit console, turns touches into key presses and
 // follows Game.log for the status display, the moods and the pages.
 import { GLYPHS } from './lib/glyphs.js';
-import { parseLine, reduce, lawless, EMPTY, version, untested, placeName } from './lib/gamelog.js';
+import { parseLine, reduce, lawless, EMPTY, version, untested, place } from './lib/gamelog.js';
 import { pageFor, pageById } from './lib/pages.js';
 import { lookup } from './lib/ships.js';
 import * as bridge from './bridge.js';
@@ -9,6 +9,7 @@ import * as controls from './controls.js';
 import { scene, init as initScenes, SWIPE, moduleOf } from './scenes.js';
 import { outline } from './outlines.js';
 import * as arrange from './arrange.js';
+import * as perf from './perf.js';
 
 const $ = id => document.getElementById(id);
 const stage = $('stage');
@@ -51,7 +52,10 @@ const store = {
   get(k, d) { try { const v = JSON.parse(localStorage.getItem('xfd-' + k)); return v ?? d; } catch { return d; } },
   set(k, v) { try { localStorage.setItem('xfd-' + k, JSON.stringify(v)); } catch { /* private mode */ } },
 };
-const opts = { night: store.get('night', false), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), anywhere: store.get('anywhere', false) };
+// Night mode is off, on, or auto (dark from 20:00 to 07:00 by this PC's clock). Older builds stored a boolean.
+const NIGHT_FROM = 20, NIGHT_TO = 7;
+const nightMode = v => (v === true ? 'on' : ['on', 'auto'].includes(v) ? v : 'off');
+const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), anywhere: store.get('anywhere', false) };
 
 // ---------- binds: the player's actionmaps.xml, then our Xeneon profile, then the defaults ----------
 function parseActionmaps(text) {
@@ -281,13 +285,28 @@ function bind(node, k, { label } = {}) {
   });
 }
 
-// ---------- toggle state (the game doesn't report these, so they show what you last pressed) ----------
+// ---------- switch state ----------
+// The game doesn't report what a toggle key leaves on or off (G-safe, doors, lights), and
+// it can change in game without the panel, so a toggle shows no state: it flicks and springs
+// back. Keys that set one state (gimbals locked) and the gear lever, which needs a side to
+// sit on, show the last one sent.
 const states = { gear: true };
-const isOn = st => st.kind === 'set' ? states[st.key] === st.value : !!states[st.key];
-function flip(st) { states[st.key] = st.kind === 'set' ? st.value : !states[st.key]; repaint(); }
+const TRACKED = new Set(['gear']);
+const tracked = st => st.kind === 'set' || TRACKED.has(st.key);
+const isOn = st => st.kind === 'set' ? states[st.key] === st.value : TRACKED.has(st.key) && !!states[st.key];
+function flip(st) {
+  if (tracked(st)) { states[st.key] = st.kind === 'set' ? st.value : !states[st.key]; repaint(); return; }
+  for (const node of document.querySelectorAll(`#console [data-state]`)) {
+    if (JSON.parse(node.dataset.state).key !== st.key) continue;
+    node.classList.add('on');
+    setTimeout(() => node.classList.remove('on'), 350);
+  }
+}
 function repaint() {
   for (const node of document.querySelectorAll('#console [data-state]')) {
-    const st = JSON.parse(node.dataset.state), on = isOn(st);
+    const st = JSON.parse(node.dataset.state);
+    if (!tracked(st)) continue;
+    const on = isOn(st);
     node.classList.toggle('on', on);
     const s = node.querySelector(':scope > .cap > .st, :scope > .st');
     if (s && st.labels) s.textContent = st.labels[on ? 0 : 1];
@@ -373,16 +392,42 @@ const APP_OPTS = ['autostart', 'screen_off'];
 function setOpt(name, v) {
   opts[name] = v;
   if (APP_OPTS.includes(name)) bridge.setPref(name, v); else store.set(name, v);
-  stage.classList.toggle('night', opts.night);
-  document.querySelectorAll('.opt').forEach(o => o.classList.toggle('on', !!opts[o.dataset.opt]));
+  paintNight();
+  document.querySelectorAll('.opt[data-opt]').forEach(o => o.classList.toggle('on', !!opts[o.dataset.opt]));
   $('auto').classList.toggle('on', opts.auto);
   if (name === 'anywhere') paintIdle();
   if (name === 'auto' && v) follow(true);
 }
+const isNight = (d = new Date()) => opts.night === 'on' || (opts.night === 'auto' && (d.getHours() >= NIGHT_FROM || d.getHours() < NIGHT_TO));
+function paintNight() {
+  stage.classList.toggle('night', isNight());
+  document.querySelectorAll('#night-seg button').forEach(b => b.classList.toggle('cur', b.dataset.v === opts.night));
+  const hh = h => `${String(h).padStart(2, '0')}:00`;
+  $('night-note').textContent = opts.night === 'auto' ? `Dims from ${hh(NIGHT_FROM)} to ${hh(NIGHT_TO)}, now ${isNight() ? 'dimmed' : 'bright'}` : 'Dims the console for dark rooms';
+}
+// ---------- display: which screen the console lives on ----------
+async function paintDisplays() {
+  const d = await bridge.displays().catch(() => null);
+  const box = $('displays');
+  if (!d) { box.innerHTML = ''; return; }
+  const cur = d.list.find(x => x.id === d.current);
+  const card = (id, name, note) => `<button class="disp${(d.picked ?? null) === id ? ' cur' : ''}" data-id="${controls.esc(id ?? '')}"><b>${controls.esc(name)}</b><small>${controls.esc(note)}</small></button>`;
+  box.innerHTML = card(null, 'Automatic', cur ? `Now ${cur.name}` : 'Finds the touchscreen') +
+    d.list.map(x => card(x.id, x.name, [`${x.width} × ${x.height}`, x.touch && 'touch', x.primary && 'main'].filter(Boolean).join(' · '))).join('');
+  box.querySelectorAll('.disp').forEach(b => controls.pressable(b, { up: async () => {
+    tick('toggle');
+    await bridge.setDisplay(b.dataset.id || null);
+    paintDisplays();
+  } }));
+  $('touch-health').hidden = d.touch_ok;
+  $('touch-chip').hidden = d.touch_ok;
+}
+bridge.onDisplays(() => paintDisplays());
 const TAB_ICONS = { general: 'cog', screen: 'bulb', feedback: 'pulse', binds: 'list', profile: 'person', about: 'download' };
 function showSection(sec) {
   document.querySelectorAll('.tab[data-sec]').forEach(t => t.classList.toggle('cur', t.dataset.sec === sec));
   document.querySelectorAll('.pane').forEach(p => { p.hidden = p.dataset.sec !== sec; });
+  if (sec === 'screen') paintDisplays();
 }
 function openSheet(open, sec) { if (sec) showSection(sec); $('sheet').hidden = !open; paintSoftkeys(); }
 document.querySelectorAll('.tab[data-sec]').forEach(t => {
@@ -390,7 +435,8 @@ document.querySelectorAll('.tab[data-sec]').forEach(t => {
   controls.pressable(t, { up: () => { tick('page'); showSection(t.dataset.sec); } });
 });
 showSection('general');
-document.querySelectorAll('.opt').forEach(o => controls.pressable(o, { up: () => { tick('toggle'); setOpt(o.dataset.opt, !opts[o.dataset.opt]); } }));
+document.querySelectorAll('.opt[data-opt]').forEach(o => controls.pressable(o, { up: () => { tick('toggle'); setOpt(o.dataset.opt, !opts[o.dataset.opt]); } }));
+document.querySelectorAll('#night-seg button').forEach(b => controls.pressable(b, { up: () => { tick('toggle'); setOpt('night', b.dataset.v); } }));
 controls.pressable($('sheet-close'), { up: () => openSheet(false) });
 controls.pressable($('auto'), { up: () => { tick('toggle'); setOpt('auto', !opts.auto); } });
 async function installBinds() {
@@ -399,7 +445,7 @@ async function installBinds() {
 }
 const acts = { 'act-binds': [() => reloadBinds().then(() => toast('Binds reloaded')), 'reload'], 'act-install': [installBinds, 'layers'],
   'act-admin': [bridge.runAsAdmin, 'shield'], 'act-sleep': [() => { openSheet(false); bridge.sleepScreen(); }, 'moon'],
-  'act-update': [installUpdate, 'download'], 'act-save': [saveProfile, 'download'], 'act-load': [loadProfile, 'reload'], 'act-quit': [bridge.quit, 'power'] };
+  'act-update': [installUpdate, 'download'], 'act-touch': [() => bridge.fixTouch().then(ok => ok || toast('Windows did not open its touchscreen setup. Open Tablet PC Settings, then Setup.')), 'hand'], 'act-save': [saveProfile, 'download'], 'act-load': [loadProfile, 'reload'], 'act-quit': [bridge.quit, 'power'] };
 for (const [id, [run, icon]] of Object.entries(acts)) {
   $(id).querySelector('svg').innerHTML = GLYPHS[icon] || '';
   controls.pressable($(id), { up: () => { tick('tap'); run(); } });
@@ -444,7 +490,7 @@ async function saveProfile() {
   const binds = await bridge.readBinds().catch(() => null);
   const profile = {
     app: 'edge-cockpit', format: 1, version: prefs.version, saved: new Date().toISOString(),
-    settings: Object.fromEntries(PROFILE_OPTS.map(k => [k, !!opts[k]])),
+    settings: Object.fromEntries(PROFILE_OPTS.map(k => [k, k === 'night' ? opts.night : !!opts[k]])),
     plates,
     ships: (() => { try { return ships ? JSON.parse(ships) : null; } catch { return null; } })(),
     binds: binds ? bindsProfile(binds) : null,
@@ -456,7 +502,11 @@ async function loadProfile() {
   let p = null;
   try { p = JSON.parse(await bridge.loadProfile() || 'null'); } catch { /* not JSON */ }
   if (p?.app !== 'edge-cockpit') { toast('No profile found. Put a profile.json in Documents\\Edge Cockpit, then load it.'); return; }
-  for (const k of PROFILE_OPTS) if (typeof p.settings?.[k] === 'boolean') setOpt(k, p.settings[k]);
+  for (const k of PROFILE_OPTS) {
+    const v = p.settings?.[k];
+    if (k === 'night' && v !== undefined) setOpt(k, nightMode(v));
+    else if (typeof v === 'boolean') setOpt(k, v);
+  }
   for (const [role, order] of Object.entries(p.plates || {})) if (Array.isArray(order)) store.set(`order:${role}`, order);
   if (p.ships && typeof p.ships === 'object') await bridge.saveUserShips(JSON.stringify(p.ships, null, 2)).catch(() => {});
   let note = 'Profile loaded.';
@@ -520,6 +570,8 @@ async function installUpdate() {
 }
 controls.pressable($('update'), { up: () => { tick('tap'); openSheet(true, 'about'); } });
 controls.pressable($('binds-chip'), { up: () => { tick('tap'); openSheet(true, 'binds'); } });
+controls.pressable($('touch-chip'), { up: () => { tick('tap'); openSheet(true, 'screen'); } });
+$('touch-chip').querySelector('span').textContent = 'Touch on another display';
 $('toast-act').addEventListener('pointerdown', e => e.stopPropagation());
 
 // ---------- game state ----------
@@ -553,7 +605,17 @@ function paintStatus() {
     const r = layout.roles.find(x => x.id === ship?.role);
     role = (r ? r.name : 'Ship') + ' · pilot seat';
     paintFigure(fig, game.ship, glyph(theme(pageById(layout, current)).glyph || 'ship'));
-  } else { name = game.me?.name || 'On foot'; role = game.me ? 'On foot' : 'In the verse'; figureFor = null; fig.innerHTML = glyph('helmet'); }
+  } else {
+    name = game.me?.name || 'On foot';
+    // On foot, the ship you last flew stays in view, dimmed.
+    const last = store.get('last-ship', null);
+    const lastName = last && (lookup(shipsDb.ships, overrides.ships, last)?.name || last.replace(/^[A-Z]{3,5}_/, '').replace(/_/g, ' '));
+    role = last ? `On foot · last flew ${lastName}` : game.me ? 'On foot' : 'In the verse';
+    if (last) { paintFigure(fig, last, glyph('helmet')); fig.classList.add('parked'); }
+    else { figureFor = null; fig.innerHTML = glyph('helmet'); }
+  }
+  fig.classList.toggle('parked', !game.seated && !game.menu && !game.down && !!store.get('last-ship', null));
+  if (game.seated && game.ship && store.get('last-ship', null) !== game.ship) store.set('last-ship', game.ship);
   const maker = game.seated && game.ship ? MAKERS[game.ship.split('_')[0]] : null;
   makerAccent = maker;
   applyAccent();
@@ -562,23 +624,31 @@ function paintStatus() {
   $('ship-name').textContent = name;
   $('ship-role').textContent = role;
 
-  // Law: red for CrimeStat or comms down, amber in lawless space, green in armistice.
+  // Law: red for CrimeStat; amber outside monitored space, with comms down or in lawless
+  // space (calls for help go nowhere); green in armistice.
   const law = $('law');
   let lawText = null, lawCls = '';
   if (game.crime > 0) { lawText = `CrimeStat ${game.crime}`; lawCls = 'bad'; }
-  else if (game.monitored === 'down') { lawText = 'Comms down'; lawCls = 'bad'; }
-  else if (lawless(game)) { lawText = 'Lawless'; lawCls = 'warn'; }
+  else if (game.monitored === 'down') { lawText = 'Comms down'; lawCls = 'warn'; }
+  else if (game.monitored === 'no') { lawText = 'Unmonitored'; lawCls = 'warn'; }
+  else if (lawless(game) && !game.jurisdiction) { lawText = 'Lawless'; lawCls = 'warn'; }
   else if (game.armistice) { lawText = 'Armistice'; lawCls = 'ok'; }
   else if (game.monitored === 'yes') { lawText = 'Monitored'; lawCls = 'info'; }
   law.hidden = !lawText || game.menu;
   law.className = 'chip ' + lawCls;
   law.querySelector('span').textContent = lawText || '';
-  const zone = $('zone');
-  zone.hidden = !game.jurisdiction || game.menu;
-  zone.querySelector('span').textContent = (game.jurisdiction || '').replace(/ Jurisdiction$/, '');
+  // Where: the place you last opened an inventory at, then its kind, system and jurisdiction.
+  const at = game.location ? place(game.location) : null;
+  const juris = (game.jurisdiction || '').replace(/ Jurisdiction$/, '');
+  const ungoverned = /ungoverned|lawless|unclaimed/i.test(juris);
+  $('where').hidden = game.menu || (!at && !juris);
+  $('where-name').textContent = at ? [at.name, at.system].filter(Boolean).join(' · ') : juris;
+  $('where-note').innerHTML = [at?.kind, at && juris].filter(Boolean).map(t => controls.esc(t)).join(' · ')
+    .replace(controls.esc(juris), ungoverned && at ? `<em>${controls.esc(juris)}</em>` : controls.esc(juris));
+  $('where').classList.toggle('lawless', ungoverned && !at);
+  paintOrrery(at);
 
   const chip = (id, text, cls = '') => { const c = $(id); c.hidden = !text || game.menu; c.className = 'chip ' + cls; c.querySelector('span').textContent = text || ''; };
-  chip('place', game.location && placeName(game.location));
   chip('kills', game.kills ? `Kills ${game.kills}` : null, 'info');
   chip('wreck', game.wrecked && game.seated ? (game.wrecked > 1 ? 'Ship destroyed' : 'Ship disabled') : null, 'bad');
   // A game build of another major version than the panel knows: say so, and carry on.
@@ -602,9 +672,41 @@ function paintStatus() {
   const inWorld = !game.menu;
   stage.classList.toggle('standby', !info.running || game.menu);
   stage.classList.toggle('armistice', inWorld && game.armistice && !game.down);
-  stage.classList.toggle('alert', inWorld && (game.crime > 0 || lawless(game) || (game.seated && game.wrecked > 0)));
+  // The red frame is for what needs you now: a CrimeStat, or the ship you're in disabled.
+  // Unmonitored or lawless space is only a note on the law chip.
+  stage.classList.toggle('alert', inWorld && (game.crime > 0 || (game.seated && game.wrecked > 0)));
   stage.classList.toggle('downed', inWorld && game.down);
   paintQuantum();
+}
+// ---------- the system you are in, as a line of its planets from the star out ----------
+// Drawn here, not fetched: planets in order, belts as dotted marks, where you are ringed.
+const SYSTEMS_MAP = {
+  Stanton: [['Hurston'], ['Crusader'], ['ArcCorp'], ['microTech']],
+  Pyro: [['Pyro I'], ['Monox'], ['Bloom'], ['Pyro IV'], ['Pyro V'], ['Terminus']],
+  Nyx: [['Nyx I'], ['Nyx II'], ['Glaciem', 'belt'], ['Nyx III'], ['Keeger', 'belt']],
+};
+let orreryFor = null;
+function paintOrrery(at) {
+  const svg = $('orrery'), sys = at?.system && SYSTEMS_MAP[at.system];
+  svg.toggleAttribute('hidden', !sys || game.menu);
+  if (!sys) { orreryFor = null; return; }
+  const name = at.name.toLowerCase();
+  let here = sys.findIndex(([n, kind]) => kind === 'belt' && name.startsWith(n.toLowerCase()));
+  if (here < 0 && at.body) here = sys.map((b, i) => b[1] === 'belt' ? -1 : i).filter(i => i >= 0)[at.body - 1] ?? -1;
+  const key = `${at.system}:${here}`;
+  if (key === orreryFor) return;
+  orreryFor = key;
+  const x0 = 34, x1 = 290, step = (x1 - x0) / Math.max(1, sys.length - 1), y = 22;
+  const parts = [`<circle cx="10" cy="${y}" r="7" class="star"/><line x1="18" y1="${y}" x2="${x1}" y2="${y}" class="track"/>`,
+    `<text x="0" y="50" class="sys">${controls.esc(at.system.toUpperCase())}</text>`];
+  sys.forEach(([n, kind], i) => {
+    const x = x0 + i * step, cur = i === here;
+    parts.push(kind === 'belt'
+      ? `<line x1="${x}" y1="${y - 9}" x2="${x}" y2="${y + 9}" class="belt${cur ? ' cur' : ''}"/>`
+      : `<circle cx="${x}" cy="${y}" r="${cur ? 5 : 3.5}" class="body${cur ? ' cur' : ''}"/>`);
+    if (cur) parts.push(`<circle cx="${x}" cy="${y}" r="10" class="ring"/><text x="${Math.min(x, x1 - 2)}" y="50" text-anchor="${x > x1 - 40 ? 'end' : 'middle'}" class="here">${controls.esc(n)}</text>`);
+  });
+  svg.innerHTML = parts.join('');
 }
 function paintQuantum() {
   const ready = !game.menu && game.seated && !!game.qtTarget;
@@ -653,7 +755,10 @@ async function poll() {
 }
 
 // ---------- clock and scale ----------
-function clock() { $('clock').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }); }
+function clock() {
+  $('clock').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  if (opts.night === 'auto') paintNight();
+}
 function fit() { stage.style.transform = `scale(${K.scale()})`; }
 addEventListener('resize', fit);
 // Lifting a finger outside the panel, or the panel hiding, must never leave a key down.
@@ -670,6 +775,8 @@ arrange.init($('console'), {
   store, tick, scale: K.scale, role: () => moduleOf(current), roleName: () => ROLE_NAMES[moduleOf(current)] || 'ship',
   onDone: () => toast('Layout saved for this role'),
 });
+perf.init({ hold: document.querySelector('#mfd .brand'), parent: $('mfd'), perf: bridge.perf, tick });
+bridge.onKeySent(perf.keySent);
 const prefs = await bridge.getPrefs().catch(() => ({ autostart: false, screen_off: false, backlight: null, version: '' }));
 opts.autostart = prefs.autostart; opts.screen_off = prefs.screen_off;
 $('version').textContent = prefs.version;
@@ -680,6 +787,7 @@ if (fresh?.fresh && fresh.version === prefs.version) {
   setTimeout(() => toast(`Updated to ${prefs.version}`, { label: "What's new", run: () => openSheet(true, 'about') }), 1500);
 }
 paintUpdate();
+paintDisplays();
 setTimeout(() => { checkUpdate(); setInterval(checkUpdate, 6 * 3600_000); }, 20_000);
 setOpt('night', opts.night);
 render();
@@ -688,5 +796,5 @@ poll(); setInterval(poll, 2000);
 paintStatus();
 if (demo) { opts.auto = false; show(demo); }
 stage.classList.remove('booting');
-window.xfd = { show, bindHealth, bindsProfile, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
+window.xfd = { show, perf: perf.toggle, showSection, bindHealth, bindsProfile, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
 document.body.dataset.ready = '1';

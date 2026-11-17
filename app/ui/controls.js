@@ -80,10 +80,10 @@ export function keycap(x, y, w, ht, l, o = {}) {
   const bind = K.bindText(k);
   const el = h(`<div class="well key ${K.isWeapon(k) ? 'weapon' : ''} ${o.cut ? 'cut' : ''} ${w < 100 ? 'narrow' : ''}" style="${box(x, y, w, ht)};--lc:${o.lc || 'var(--accent)'};${o.r ? `--r:${o.r}px` : ''}">
     <div class="cap ${o.lit ? 'lit' : ''}">
-      ${tog && !o.noLed ? '<span class="led"></span>' : ''}
+      ${tog && !o.noLed && k.state?.kind === 'set' ? '<span class="led"></span>' : ''}
       ${o.icon === false ? '' : icon(o.icon || k.icon, o.is || 22)}
       <span class="lg" style="${o.fs ? `font-size:${o.fs}px` : ''}">${lbl(k, o.label)}</span>
-      ${k.state?.labels || o.sub ? `<span class="st">${esc(o.sub || '')}</span>` : ''}
+      ${(k.state?.kind === 'set' && k.state.labels) || o.sub ? `<span class="st">${esc(o.sub || '')}</span>` : ''}
       ${bind ? `<span class="kb">${esc(bind)}</span>` : ''}${tag ? `<span class="tg">${tag}</span>` : ''}
       <span class="bar"><i></i></span>
     </div></div>`);
@@ -110,6 +110,13 @@ export function toggle(x, y, l, o = {}) {
   const k = keyOf(l);
   const w = o.w || 84;
   if (!k) return h(`<div class="tgl" style="${box(x, y, w, 196)}"></div>`);
+  // The game doesn't report what a toggle key leaves on or off, so it is a push-button:
+  // it lights when pressed and claims no state. Only a key that sets one state is a switch.
+  if (k.state?.kind !== 'set') {
+    const b = keycap(x, y, w, 188, l, { fs: w < 110 ? 11 : 12, is: 24, noLed: true, label: o.label });
+    if (o.guard) b.classList.add('guarded');
+    return b;
+  }
   const nut = [0, 60, 120, 180, 240, 300].map(a => polar(42, 84, 17, a + 30).join(',')).join(' ');
   const el = h(`<div class="tgl ${o.guard ? 'guarded' : ''} ${K.isWeapon(k) ? 'weapon' : ''}" style="${box(x, y, w, 196)}">
     <svg viewBox="0 0 84 150" class="sw">

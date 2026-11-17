@@ -1,7 +1,7 @@
 // The pages of the console. A ship page is four plates: power, the role module, flight
 // and gear. On foot, map and downed pages use the whole width for their own plates.
 import { plate, placard, label, keycap, rocker, toggle, rotary, wheelKnob, slider, slideConfirm, guard, gearLever, quantum,
-  roundButton, dial, powerTriangle, missileRack, screen, icon, esc, h } from './controls.js';
+  roundButton, dial, missileRack, screen, icon, esc, h, pressable } from './controls.js';
 
 let K;
 export const init = ctx => { K = ctx; };
@@ -29,7 +29,11 @@ function powerPlate() {
   return add(p,
     toggle(16, 44, 'Power', { guard: true, w: 100 }), toggle(122, 44, 'Thrusters', { w: 100 }),
     toggle(228, 44, 'Shields', { w: 100 }), toggle(334, 44, 'Weapons', { w: 100 }),
-    powerTriangle(18, 262, 414, 426));
+    keycap(18, 262, 414, 196, 'Flight ready', { fs: 24, is: 40, lc: 'var(--ok)', lit: true }),
+    placard(18, 470, 'Power assignment'),
+    keycap(18, 496, 134, 92, 'Weapons +', { fs: 12 }), keycap(158, 496, 134, 92, 'Engines +', { fs: 12 }),
+    keycap(298, 496, 134, 92, 'Shields +', { fs: 12 }),
+    keycap(18, 596, 414, 90, 'Power reset', { fs: 13 }));
 }
 
 function flightPlate() {
@@ -40,7 +44,7 @@ function flightPlate() {
     rotary(150, 52, 116, [{ label: 'SCM', angle: -40 }, { label: 'NAV', angle: 40 }], { cycle: 'NAV / SCM', stateKey: 'navmode', title: 'Flight mode', pointer: 'var(--cyan)', radius: 92 }),
     quantum(372, 44, 220, 'Quantum'),
     keycap(150, 276, 140, 90, 'Decoupled', { fs: 13 }),
-    keycap(296, 276, 140, 90, 'Flight ready', { fs: 13, lc: 'var(--ok)' }),
+    keycap(296, 276, 140, 90, 'Freelook', { fs: 13 }),
     keycap(442, 276, 150, 90, 'Startup', { fs: 13, ...cut }),
     keycap(150, 374, 218, 78, 'Decoy', { fs: 13 }), keycap(374, 374, 218, 78, 'Noise', { fs: 13 }),
   );
@@ -69,7 +73,7 @@ function fighter() {
       rings: [
         { r0: 94, r1: 188, keys: [{ label: 'Lock 1', a0: -88, a1: -2 }, { label: 'Lock 2', a0: 2, a1: 88 }, { label: 'Lock 3', a0: 92, a1: 178 }, { label: 'Unlock', a0: 182, a1: 268 }] },
         { r0: 196, r1: 238, keys: [{ label: 'Look ahead', a0: -64, a1: -22 }, { label: 'Ping', a0: -20, a1: 20 }, { label: 'Scan mode', a0: 22, a1: 64 },
-          { label: 'Look behind', a0: 136, a1: 178 }, { label: 'Freelook', a0: 182, a1: 224 }] },
+          { label: 'Look behind', a0: 136, a1: 178 }, { label: 'Gimbal mode', text: 'Cycle gimbal', a0: 182, a1: 224 }] },
       ],
     }),
     placard(20, 54, 'Missiles'), missileRack(20, 80, 128, 148),
@@ -173,7 +177,7 @@ function ground() {
     dial(296, 364, {
       bezel: 250, centreR: 82, centre: 'Third person',
       rings: [
-        { r0: 94, r1: 190, keys: [{ label: 'Lock 1', a0: -88, a1: -2 }, { label: 'Unlock', a0: 2, a1: 88 }, { label: 'Look behind', a0: 92, a1: 178 }, { label: 'Freelook', a0: 182, a1: 268 }] },
+        { r0: 94, r1: 190, keys: [{ label: 'Lock 1', a0: -88, a1: -2 }, { label: 'Unlock', a0: 2, a1: 88 }, { label: 'Look behind', a0: 92, a1: 178 }, { label: 'Gimbal mode', text: 'Cycle gimbal', a0: 182, a1: 268 }] },
         { r0: 198, r1: 236, keys: [{ label: 'Scan mode', a0: -40, a1: -2 }, { label: 'Ping', a0: 2, a1: 40 }] },
       ],
     }),
@@ -199,13 +203,26 @@ function systems() {
 
 const MODULES = { fighter, crew, mining, salvage, cargo, medical, ground, systems };
 
+/** Page n of the ship pages, with arrows to step through them as well as swiping. */
+function pager(i) {
+  const el = h(`<div class="pager"><button class="pg prev" aria-label="Previous ship page">${icon('left', 18)}</button>
+    <span><b>${i + 1}</b> / ${SWIPE.length}</span><button class="pg next" aria-label="Next ship page">${icon('right', 18)}</button></div>`);
+  for (const [sel, dir] of [['.prev', -1], ['.next', 1]]) {
+    const b = el.querySelector(sel);
+    pressable(b, { up: () => K.swipe(dir) });
+    // A tap on an arrow is not the start of a swipe.
+    b.addEventListener('pointerdown', e => e.stopPropagation());
+  }
+  return el;
+}
+
 function rolePlate(page) {
   const p = plate(X.role, W.role, '', { cls: 'rolemod' });
   const id = page.id;
   const i = SWIPE.findIndex(s => id.startsWith(s));
   add(p, h(`<div class="rtitle">${icon(K.theme(page).glyph, 18)}<span>${esc(page.name)}</span></div>`),
-    h(`<div class="dots">${SWIPE.map((_, j) => `<i class="${j === i ? 'on' : ''}"></i>`).join('')}</div>`),
-    h('<div class="swipe-hint lab">‹ swipe for other ships ›</div>'));
+    pager(i),
+    h('<div class="swipe-hint lab">‹ swipe or tap the arrows for other ships ›</div>'));
   add(p, MODULES[moduleOf(id)]());
   // Swipe sideways anywhere on the plate between controls to step through the role modules.
   let x0 = null;

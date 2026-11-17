@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { EMPTY, parseLine, reduce, shipName, version, untested, placeName } from '../ui/lib/gamelog.js';
+import { EMPTY, parseLine, reduce, shipName, shipClass, version, untested, placeName, place } from '../ui/lib/gamelog.js';
 import { pageFor } from '../ui/lib/pages.js';
 import { lookup } from '../ui/lib/ships.js';
 import { slugsOf } from '../ui/outlines.js';
@@ -114,8 +114,30 @@ test('reads the build, kills, a wrecked ship and the location', () => {
   assert.equal(s.kills, 1);
   assert.equal(s.wrecked, 1);
   assert.equal(placeName(s.location), 'Lorville');
+  assert.deepEqual(place('Stanton1_Lorville'), { name: 'Lorville', kind: '', system: 'Stanton', body: 1 });
+  assert.deepEqual(place('AsteroidClusterBase_Nyx_Social_Keeger_001'), { name: 'Keeger', kind: 'Asteroid base', system: 'Nyx', body: null });
+  assert.deepEqual(place('Stanton2b_RestStop_Daymar'), { name: 'Daymar', kind: 'Rest stop', system: 'Stanton', body: 2 });
   // Being killed counts as going down, not as a kill.
   const dead = reduce(s, parseLine("<Actor Death> CActor::Kill: 'pilot' [2001] in zone 'x' killed by 'PU_Pilot_Enemy_78' [78] using 'gun'"));
   assert.equal(dead.down, true);
   assert.equal(dead.kills, 1);
 });
+
+test('4.10: boarding by crew channel, the ship from navigation, leaving', () => {
+  const lines = [
+    "<2026-11-17T17:57:33.479Z> [Notice] <SHUDEvent_OnNotification> Added notification \"You have joined channel 'Aegis Sabre Firebird : Argoneth'.",
+    "<2026-11-17T17:57:33.629Z> [Notice] <Failed to get starmap route data!> [ItemNavigation][CL][31556] | NOT AUTH | AEGS_Sabre_Firebird_932943782879[932943782879]|CSCItemNavigation::GetStarmapRouteSegmentData|No Route loaded! [Team_CGP4][QuantumTravel]",
+  ];
+  let s = lines.map(parseLine).filter(Boolean).reduce(reduce, { ...EMPTY, menu: false });
+  assert.equal(s.seated, true);
+  assert.equal(s.ship, 'AEGS_Sabre_Firebird');
+  s = reduce(s, parseLine("<2026-11-17T18:10:08.285Z> [Notice] <Vehicle Control Flow> CVehicleMovementBase::ClearDriver: Local client node [204717092667] releasing control token for 'AEGS_Sabre_Firebird_932943782879' [932943782879] [Team_CGP4][Vehicle]"));
+  assert.equal(s.seated, false);
+  // Walking out of the ship after leaving the seat changes nothing more.
+  s = reduce(s, parseLine("<2026-11-17T18:11:14.749Z> [Notice] <SHUDEvent_OnNotification> Added notification \"You have left the channel 'Aegis Sabre Firebird : Argoneth'."));
+  assert.equal(s.seated, false);
+  // Another ship's route lines (not ours) do not seat us.
+  assert.equal(parseLine("<x> [Notice] <Local Route Guard - Server Rerouted> [ItemNavigation][CL][31556] | NOT AUTH | RSI_Constellation_Taurus_GS_938366176068[938366176068]|CSCItemNavigation::PostInitialize::<lambda_1>::operator ()|FinalStop=0"), null);
+  assert.equal(shipClass('Consolidated Outland Mustang Alpha'), 'CNOU_Mustang_Alpha');
+});
+

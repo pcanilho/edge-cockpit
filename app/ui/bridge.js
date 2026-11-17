@@ -5,10 +5,18 @@ const tauri = window.__TAURI__;
 
 export const inApp = !!tauri;
 
+let sent = null;
+/** f(now) once each key has gone down, for the performance overlay. */
+export const onKeySent = f => { sent = f; };
+
 export async function sendKey(spec, mode, ms, anywhere) {
-  if (!tauri) { (window.__keys ||= []).push({ spec, mode, t: performance.now() }); return; }
-  return tauri.core.invoke('key', { spec, mode, ms: ms ?? null, anywhere });
+  if (!tauri) { (window.__keys ||= []).push({ spec, mode, t: performance.now() }); sent?.(performance.now()); return; }
+  await tauri.core.invoke('key', { spec, mode, ms: ms ?? null, anywhere });
+  // A tap answers after its key is back up: take the hold (as the app clamps it) off to time the press.
+  sent?.(performance.now() - (mode === 'tap' ? Math.min(5000, Math.max(30, ms ?? 60)) : 0));
 }
+// Outside the app (UI tests, mocks) a page may supply its own readings.
+export const perf = () => tauri ? tauri.core.invoke('perf') : window.xfdTestPerf ? Promise.resolve(window.xfdTestPerf) : Promise.reject(new Error('Only in the app'));
 
 export async function wheel(clicks, anywhere) {
   if (!tauri) { (window.__keys ||= []).push({ wheel: clicks, t: performance.now() }); return; }
@@ -34,6 +42,12 @@ export const wakeScreen = () => tauri?.core.invoke('wake_screen');
 export const sleepScreen = () => tauri?.core.invoke('sleep_screen');
 export const checkUpdate = () => tauri ? tauri.core.invoke('check_update') : Promise.resolve(null);
 export const installUpdate = () => tauri.core.invoke('install_update');
+// Outside the app (UI tests, mocks) a page may supply its own displays.
+export const displays = () => tauri ? tauri.core.invoke('displays') : Promise.resolve(window.xfdTestDisplays ?? { list: [], picked: null, current: null, touch_ok: true });
+export const setDisplay = id => tauri ? tauri.core.invoke('set_display', { id }) : Promise.resolve(window.xfdTestDisplays && (window.xfdTestDisplays.picked = id));
+export const fixTouch = () => tauri ? tauri.core.invoke('fix_touch') : onlyInApp();
+/** f() when displays are added, removed or change resolution. */
+export const onDisplays = f => tauri?.event.listen('displays', () => f());
 /** onScreen(dark) when the screen goes off or wakes. */
 export const onScreen = f => tauri?.event.listen('screen', e => f(e.payload));
 export const quit = () => tauri ? tauri.core.invoke('quit') : window.close();
@@ -58,6 +72,9 @@ const DEMO = {
     "<Actor Death> CActor::Kill: 'PU_Pilot_Enemy_77' [77] in zone 'space' killed by 'pilot' [2001] using 'AEGS_Gladius_123456' [Class unknown]",
   ],
   foot: ['<Context Establisher Done>', 'Entering Armistice Zone'],
+  nyx: ['<AccountLoginCharacterStatus_Character> Character: createdAt 1 - updatedAt 1 - geid 2001 - accountId 1 - name Argoneth - state STATE_CURRENT',
+    '<Context Establisher Done>', 'Added notification "Entered Ungoverned Jurisdiction: " [1]',
+    '<RequestLocationInventory> Player[Argoneth] requested inventory for Location[AsteroidClusterBase_Nyx_Social_Keeger_001]'],
   armistice: ['<Context Establisher Done>', "CVehicleMovementBase::SetDriver: Local client node [1] granted control token for 'DRAK_Cutlass_Black_1' [1]", 'Entering Armistice Zone',
     'Added notification "Entered Stanton Jurisdiction: " [1]'],
   alert: ['<Context Establisher Done>', "CVehicleMovementBase::SetDriver: Local client node [1] granted control token for 'ANVL_Hornet_F7C_Mk2_1' [1]",
