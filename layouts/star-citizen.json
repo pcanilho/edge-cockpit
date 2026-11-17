@@ -535,7 +535,20 @@
         "press": "tap",
         "needsKeyboardBind": false,
         "icon": "flare",
-        "role": "action"
+        "role": "action",
+        "more": {
+         "hold": {
+          "label": "Panic decoy",
+          "action": "v_weapon_countermeasure_decoy_launch_panic",
+          "actionmap": "spaceship_defensive",
+          "defaultKey": null,
+          "activation": "press",
+          "press": "tap",
+          "needsKeyboardBind": true,
+          "icon": "flare",
+          "role": "action"
+         }
+        }
        },
        {
         "label": "Noise",
@@ -984,7 +997,20 @@
         "press": "tap",
         "needsKeyboardBind": false,
         "icon": "flare",
-        "role": "action"
+        "role": "action",
+        "more": {
+         "hold": {
+          "label": "Panic decoy",
+          "action": "v_weapon_countermeasure_decoy_launch_panic",
+          "actionmap": "spaceship_defensive",
+          "defaultKey": null,
+          "activation": "press",
+          "press": "tap",
+          "needsKeyboardBind": true,
+          "icon": "flare",
+          "role": "action"
+         }
+        }
        },
        {
         "label": "Noise",
@@ -1446,7 +1472,20 @@
            "press": "tap",
            "needsKeyboardBind": false,
            "icon": "flare",
-           "role": "action"
+           "role": "action",
+           "more": {
+            "hold": {
+             "label": "Panic decoy",
+             "action": "v_weapon_countermeasure_decoy_launch_panic",
+             "actionmap": "spaceship_defensive",
+             "defaultKey": null,
+             "activation": "press",
+             "press": "tap",
+             "needsKeyboardBind": true,
+             "icon": "flare",
+             "role": "action"
+            }
+           }
           }
          },
          {
@@ -1547,7 +1586,20 @@
         "press": "tap",
         "needsKeyboardBind": false,
         "icon": "flare",
-        "role": "action"
+        "role": "action",
+        "more": {
+         "hold": {
+          "label": "Panic decoy",
+          "action": "v_weapon_countermeasure_decoy_launch_panic",
+          "actionmap": "spaceship_defensive",
+          "defaultKey": null,
+          "activation": "press",
+          "press": "tap",
+          "needsKeyboardBind": true,
+          "icon": "flare",
+          "role": "action"
+         }
+        }
        },
        {
         "label": "Noise",
@@ -1617,7 +1669,7 @@
       [
        {
         "label": "Mining mode",
-        "action": "v_cycle_industrial_mode",
+        "action": "v_toggle_mining_mode",
         "actionmap": "seat_general",
         "defaultKey": "m",
         "activation": "press",
@@ -1724,7 +1776,7 @@
       [
        {
         "label": "Salvage mode",
-        "action": "v_cycle_industrial_mode",
+        "action": "v_toggle_salvage_mode",
         "actionmap": "seat_general",
         "defaultKey": "m",
         "activation": "press",
@@ -1901,7 +1953,20 @@
         "press": "tap",
         "needsKeyboardBind": false,
         "icon": "flare",
-        "role": "action"
+        "role": "action",
+        "more": {
+         "hold": {
+          "label": "Panic decoy",
+          "action": "v_weapon_countermeasure_decoy_launch_panic",
+          "actionmap": "spaceship_defensive",
+          "defaultKey": null,
+          "activation": "press",
+          "press": "tap",
+          "needsKeyboardBind": true,
+          "icon": "flare",
+          "role": "action"
+         }
+        }
        },
        {
         "label": "Noise",
@@ -2254,7 +2319,20 @@
         "press": "tap",
         "needsKeyboardBind": false,
         "icon": "flare",
-        "role": "action"
+        "role": "action",
+        "more": {
+         "hold": {
+          "label": "Panic decoy",
+          "action": "v_weapon_countermeasure_decoy_launch_panic",
+          "actionmap": "spaceship_defensive",
+          "defaultKey": null,
+          "activation": "press",
+          "press": "tap",
+          "needsKeyboardBind": true,
+          "icon": "flare",
+          "role": "action"
+         }
+        }
        },
        {
         "label": "Noise",
@@ -2656,7 +2734,20 @@
         "press": "tap",
         "needsKeyboardBind": false,
         "icon": "flare",
-        "role": "action"
+        "role": "action",
+        "more": {
+         "hold": {
+          "label": "Panic decoy",
+          "action": "v_weapon_countermeasure_decoy_launch_panic",
+          "actionmap": "spaceship_defensive",
+          "defaultKey": null,
+          "activation": "press",
+          "press": "tap",
+          "needsKeyboardBind": true,
+          "icon": "flare",
+          "role": "action"
+         }
+        }
        },
        {
         "label": "Noise",
@@ -3029,7 +3120,20 @@
         "press": "tap",
         "needsKeyboardBind": false,
         "icon": "flare",
-        "role": "action"
+        "role": "action",
+        "more": {
+         "hold": {
+          "label": "Panic decoy",
+          "action": "v_weapon_countermeasure_decoy_launch_panic",
+          "actionmap": "spaceship_defensive",
+          "defaultKey": null,
+          "activation": "press",
+          "press": "tap",
+          "needsKeyboardBind": true,
+          "icon": "flare",
+          "role": "action"
+         }
+        }
        },
        {
         "label": "Noise",
@@ -3476,7 +3580,20 @@
         "press": "tap",
         "needsKeyboardBind": false,
         "icon": "flare",
-        "role": "action"
+        "role": "action",
+        "more": {
+         "hold": {
+          "label": "Panic decoy",
+          "action": "v_weapon_countermeasure_decoy_launch_panic",
+          "actionmap": "spaceship_defensive",
+          "defaultKey": null,
+          "activation": "press",
+          "press": "tap",
+          "needsKeyboardBind": true,
+          "icon": "flare",
+          "role": "action"
+         }
+        }
        },
        {
         "label": "Noise",
@@ -3902,7 +4019,20 @@
         "press": "tap",
         "needsKeyboardBind": false,
         "icon": "flare",
-        "role": "action"
+        "role": "action",
+        "more": {
+         "hold": {
+          "label": "Panic decoy",
+          "action": "v_weapon_countermeasure_decoy_launch_panic",
+          "actionmap": "spaceship_defensive",
+          "defaultKey": null,
+          "activation": "press",
+          "press": "tap",
+          "needsKeyboardBind": true,
+          "icon": "flare",
+          "role": "action"
+         }
+        }
        },
        {
         "label": "Noise",
@@ -4320,7 +4450,20 @@
         "press": "tap",
         "needsKeyboardBind": false,
         "icon": "flare",
-        "role": "action"
+        "role": "action",
+        "more": {
+         "hold": {
+          "label": "Panic decoy",
+          "action": "v_weapon_countermeasure_decoy_launch_panic",
+          "actionmap": "spaceship_defensive",
+          "defaultKey": null,
+          "activation": "press",
+          "press": "tap",
+          "needsKeyboardBind": true,
+          "icon": "flare",
+          "role": "action"
+         }
+        }
        },
        {
         "label": "Noise",
@@ -4730,7 +4873,20 @@
         "press": "tap",
         "needsKeyboardBind": false,
         "icon": "flare",
-        "role": "action"
+        "role": "action",
+        "more": {
+         "hold": {
+          "label": "Panic decoy",
+          "action": "v_weapon_countermeasure_decoy_launch_panic",
+          "actionmap": "spaceship_defensive",
+          "defaultKey": null,
+          "activation": "press",
+          "press": "tap",
+          "needsKeyboardBind": true,
+          "icon": "flare",
+          "role": "action"
+         }
+        }
        },
        {
         "label": "Noise",
@@ -5140,7 +5296,20 @@
         "press": "tap",
         "needsKeyboardBind": false,
         "icon": "flare",
-        "role": "action"
+        "role": "action",
+        "more": {
+         "hold": {
+          "label": "Panic decoy",
+          "action": "v_weapon_countermeasure_decoy_launch_panic",
+          "actionmap": "spaceship_defensive",
+          "defaultKey": null,
+          "activation": "press",
+          "press": "tap",
+          "needsKeyboardBind": true,
+          "icon": "flare",
+          "role": "action"
+         }
+        }
        },
        {
         "label": "Noise",
@@ -5541,7 +5710,20 @@
         "press": "tap",
         "needsKeyboardBind": false,
         "icon": "flare",
-        "role": "action"
+        "role": "action",
+        "more": {
+         "hold": {
+          "label": "Panic decoy",
+          "action": "v_weapon_countermeasure_decoy_launch_panic",
+          "actionmap": "spaceship_defensive",
+          "defaultKey": null,
+          "activation": "press",
+          "press": "tap",
+          "needsKeyboardBind": true,
+          "icon": "flare",
+          "role": "action"
+         }
+        }
        },
        {
         "label": "Noise",
@@ -5929,7 +6111,20 @@
         "press": "tap",
         "needsKeyboardBind": false,
         "icon": "flare",
-        "role": "action"
+        "role": "action",
+        "more": {
+         "hold": {
+          "label": "Panic decoy",
+          "action": "v_weapon_countermeasure_decoy_launch_panic",
+          "actionmap": "spaceship_defensive",
+          "defaultKey": null,
+          "activation": "press",
+          "press": "tap",
+          "needsKeyboardBind": true,
+          "icon": "flare",
+          "role": "action"
+         }
+        }
        },
        {
         "label": "Noise",
@@ -6386,7 +6581,20 @@
         "press": "tap",
         "needsKeyboardBind": false,
         "icon": "flare",
-        "role": "action"
+        "role": "action",
+        "more": {
+         "hold": {
+          "label": "Panic decoy",
+          "action": "v_weapon_countermeasure_decoy_launch_panic",
+          "actionmap": "spaceship_defensive",
+          "defaultKey": null,
+          "activation": "press",
+          "press": "tap",
+          "needsKeyboardBind": true,
+          "icon": "flare",
+          "role": "action"
+         }
+        }
        },
        {
         "label": "Noise",
@@ -6822,7 +7030,20 @@
         "press": "tap",
         "needsKeyboardBind": false,
         "icon": "flare",
-        "role": "action"
+        "role": "action",
+        "more": {
+         "hold": {
+          "label": "Panic decoy",
+          "action": "v_weapon_countermeasure_decoy_launch_panic",
+          "actionmap": "spaceship_defensive",
+          "defaultKey": null,
+          "activation": "press",
+          "press": "tap",
+          "needsKeyboardBind": true,
+          "icon": "flare",
+          "role": "action"
+         }
+        }
        },
        {
         "label": "Noise",
@@ -6897,7 +7118,7 @@
       [
        {
         "label": "Mining mode",
-        "action": "v_cycle_industrial_mode",
+        "action": "v_toggle_mining_mode",
         "actionmap": "seat_general",
         "defaultKey": "m",
         "activation": "press",
@@ -7236,7 +7457,20 @@
         "press": "tap",
         "needsKeyboardBind": false,
         "icon": "flare",
-        "role": "action"
+        "role": "action",
+        "more": {
+         "hold": {
+          "label": "Panic decoy",
+          "action": "v_weapon_countermeasure_decoy_launch_panic",
+          "actionmap": "spaceship_defensive",
+          "defaultKey": null,
+          "activation": "press",
+          "press": "tap",
+          "needsKeyboardBind": true,
+          "icon": "flare",
+          "role": "action"
+         }
+        }
        },
        {
         "label": "Noise",
@@ -7311,7 +7545,7 @@
       [
        {
         "label": "Salvage mode",
-        "action": "v_cycle_industrial_mode",
+        "action": "v_toggle_salvage_mode",
         "actionmap": "seat_general",
         "defaultKey": "m",
         "activation": "press",
@@ -7629,7 +7863,20 @@
         "press": "tap",
         "needsKeyboardBind": false,
         "icon": "flare",
-        "role": "action"
+        "role": "action",
+        "more": {
+         "hold": {
+          "label": "Panic decoy",
+          "action": "v_weapon_countermeasure_decoy_launch_panic",
+          "actionmap": "spaceship_defensive",
+          "defaultKey": null,
+          "activation": "press",
+          "press": "tap",
+          "needsKeyboardBind": true,
+          "icon": "flare",
+          "role": "action"
+         }
+        }
        },
        {
         "label": "Noise",
@@ -8042,7 +8289,20 @@
         "press": "tap",
         "needsKeyboardBind": false,
         "icon": "flare",
-        "role": "action"
+        "role": "action",
+        "more": {
+         "hold": {
+          "label": "Panic decoy",
+          "action": "v_weapon_countermeasure_decoy_launch_panic",
+          "actionmap": "spaceship_defensive",
+          "defaultKey": null,
+          "activation": "press",
+          "press": "tap",
+          "needsKeyboardBind": true,
+          "icon": "flare",
+          "role": "action"
+         }
+        }
        },
        {
         "label": "Noise",
@@ -8469,7 +8729,20 @@
         "press": "tap",
         "needsKeyboardBind": false,
         "icon": "flare",
-        "role": "action"
+        "role": "action",
+        "more": {
+         "hold": {
+          "label": "Panic decoy",
+          "action": "v_weapon_countermeasure_decoy_launch_panic",
+          "actionmap": "spaceship_defensive",
+          "defaultKey": null,
+          "activation": "press",
+          "press": "tap",
+          "needsKeyboardBind": true,
+          "icon": "flare",
+          "role": "action"
+         }
+        }
        },
        {
         "label": "Noise",
@@ -8900,7 +9173,20 @@
         "press": "tap",
         "needsKeyboardBind": false,
         "icon": "flare",
-        "role": "action"
+        "role": "action",
+        "more": {
+         "hold": {
+          "label": "Panic decoy",
+          "action": "v_weapon_countermeasure_decoy_launch_panic",
+          "actionmap": "spaceship_defensive",
+          "defaultKey": null,
+          "activation": "press",
+          "press": "tap",
+          "needsKeyboardBind": true,
+          "icon": "flare",
+          "role": "action"
+         }
+        }
        },
        {
         "label": "Noise",
@@ -9668,7 +9954,20 @@
            "press": "tap",
            "needsKeyboardBind": false,
            "icon": "flare",
-           "role": "action"
+           "role": "action",
+           "more": {
+            "hold": {
+             "label": "Panic decoy",
+             "action": "v_weapon_countermeasure_decoy_launch_panic",
+             "actionmap": "spaceship_defensive",
+             "defaultKey": null,
+             "activation": "press",
+             "press": "tap",
+             "needsKeyboardBind": true,
+             "icon": "flare",
+             "role": "action"
+            }
+           }
           }
          },
          {
@@ -9737,6 +10036,737 @@
      "needsKeyboardBind": false,
      "icon": "chat",
      "role": "hold"
+    },
+    {
+     "label": "Power on",
+     "action": "v_power_set_on",
+     "actionmap": "spaceship_power",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "power",
+     "state": {
+      "key": "power",
+      "kind": "set",
+      "value": true,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "Power off",
+     "action": "v_power_set_off",
+     "actionmap": "spaceship_power",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "power",
+     "state": {
+      "key": "power",
+      "kind": "set",
+      "value": false,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "Thrusters on",
+     "action": "v_power_set_thrusters_on",
+     "actionmap": "spaceship_power",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "flame",
+     "state": {
+      "key": "pwr_thr",
+      "kind": "set",
+      "value": true,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "Thrusters off",
+     "action": "v_power_set_thrusters_off",
+     "actionmap": "spaceship_power",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "flame",
+     "state": {
+      "key": "pwr_thr",
+      "kind": "set",
+      "value": false,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "Shields on",
+     "action": "v_power_set_shields_on",
+     "actionmap": "spaceship_power",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "shield",
+     "state": {
+      "key": "pwr_shd",
+      "kind": "set",
+      "value": true,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "Shields off",
+     "action": "v_power_set_shields_off",
+     "actionmap": "spaceship_power",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "shield",
+     "state": {
+      "key": "pwr_shd",
+      "kind": "set",
+      "value": false,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "Weapons on",
+     "action": "v_power_set_weapons_on",
+     "actionmap": "spaceship_power",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "crosshair",
+     "state": {
+      "key": "pwr_wpn",
+      "kind": "set",
+      "value": true,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "Weapons off",
+     "action": "v_power_set_weapons_off",
+     "actionmap": "spaceship_power",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "crosshair",
+     "state": {
+      "key": "pwr_wpn",
+      "kind": "set",
+      "value": false,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "Lights on",
+     "action": "v_lights_on",
+     "actionmap": "lights_controller",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "bulb",
+     "state": {
+      "key": "lights",
+      "kind": "set",
+      "value": true,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "Lights off",
+     "action": "v_lights_off",
+     "actionmap": "lights_controller",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "bulb",
+     "state": {
+      "key": "lights",
+      "kind": "set",
+      "value": false,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "VTOL on",
+     "action": "v_vtol_on",
+     "actionmap": "spaceship_movement",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "vtol",
+     "state": {
+      "key": "vtol",
+      "kind": "set",
+      "value": true,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "VTOL off",
+     "action": "v_vtol_off",
+     "actionmap": "spaceship_movement",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "vtol",
+     "state": {
+      "key": "vtol",
+      "kind": "set",
+      "value": false,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "Speed limiter on",
+     "action": "v_ifcs_speed_limiter_on",
+     "actionmap": "spaceship_movement",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "limiter",
+     "state": {
+      "key": "limiter",
+      "kind": "set",
+      "value": true,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "Speed limiter off",
+     "action": "v_ifcs_speed_limiter_off",
+     "actionmap": "spaceship_movement",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "limiter",
+     "state": {
+      "key": "limiter",
+      "kind": "set",
+      "value": false,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "Decoupled on",
+     "action": "v_ifcs_vector_decoupling_on",
+     "actionmap": "spaceship_movement",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "split",
+     "state": {
+      "key": "decoupled",
+      "kind": "set",
+      "value": true,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "Decoupled off",
+     "action": "v_ifcs_vector_decoupling_off",
+     "actionmap": "spaceship_movement",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "split",
+     "state": {
+      "key": "decoupled",
+      "kind": "set",
+      "value": false,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "G-safe on",
+     "action": "v_ifcs_gsafe_on",
+     "actionmap": "spaceship_movement",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "person",
+     "state": {
+      "key": "gsafe",
+      "kind": "set",
+      "value": true,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "G-safe off",
+     "action": "v_ifcs_gsafe_off",
+     "actionmap": "spaceship_movement",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "person",
+     "state": {
+      "key": "gsafe",
+      "kind": "set",
+      "value": false,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "Proximity assist on",
+     "action": "v_ifcs_proximity_assist_on",
+     "actionmap": "spaceship_movement",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "proximity",
+     "state": {
+      "key": "prox",
+      "kind": "set",
+      "value": true,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "Proximity assist off",
+     "action": "v_ifcs_proximity_assist_off",
+     "actionmap": "spaceship_movement",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "proximity",
+     "state": {
+      "key": "prox",
+      "kind": "set",
+      "value": false,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "Advanced HUD on",
+     "action": "v_flight_advanced_hud_on",
+     "actionmap": "spaceship_movement",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "layers",
+     "state": {
+      "key": "advhud",
+      "kind": "set",
+      "value": true,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "Advanced HUD off",
+     "action": "v_flight_advanced_hud_off",
+     "actionmap": "spaceship_movement",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "layers",
+     "state": {
+      "key": "advhud",
+      "kind": "set",
+      "value": false,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "Stability on",
+     "action": "v_ifcs_stability_on",
+     "actionmap": "spaceship_movement",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "assist",
+     "state": {
+      "key": "stability",
+      "kind": "set",
+      "value": true,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "Stability off",
+     "action": "v_ifcs_stability_off",
+     "actionmap": "spaceship_movement",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "assist",
+     "state": {
+      "key": "stability",
+      "kind": "set",
+      "value": false,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "Gravity comp on",
+     "action": "v_ifcs_gravity_compensation_on",
+     "actionmap": "spaceship_movement",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "gauge",
+     "state": {
+      "key": "gravcomp",
+      "kind": "set",
+      "value": true,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "Gravity comp off",
+     "action": "v_ifcs_gravity_compensation_off",
+     "actionmap": "spaceship_movement",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "gauge",
+     "state": {
+      "key": "gravcomp",
+      "kind": "set",
+      "value": false,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "Staggered fire on",
+     "action": "v_weapon_staggered_fire_on",
+     "actionmap": "spaceship_weapons",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "guns",
+     "state": {
+      "key": "stagger",
+      "kind": "set",
+      "value": true,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "Staggered fire off",
+     "action": "v_weapon_staggered_fire_off",
+     "actionmap": "spaceship_weapons",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "guns",
+     "state": {
+      "key": "stagger",
+      "kind": "set",
+      "value": false,
+      "labels": [
+       "ON",
+       "OFF"
+      ]
+     },
+     "role": "select"
+    },
+    {
+     "label": "Set NAV",
+     "action": "v_master_mode_set_nav",
+     "actionmap": "spaceship_movement",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "gauge",
+     "state": {
+      "key": "navmode",
+      "kind": "set",
+      "value": "nav"
+     },
+     "role": "select"
+    },
+    {
+     "label": "Set SCM",
+     "action": "v_master_mode_set_scm",
+     "actionmap": "spaceship_movement",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "gauge",
+     "state": {
+      "key": "navmode",
+      "kind": "set",
+      "value": "scm"
+     },
+     "role": "select"
+    },
+    {
+     "label": "Panic decoy",
+     "action": "v_weapon_countermeasure_decoy_launch_panic",
+     "actionmap": "spaceship_defensive",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "flare",
+     "role": "action"
+    },
+    {
+     "label": "Hail target",
+     "action": "v_target_hail",
+     "actionmap": "spaceship_target_hailing",
+     "defaultKey": "9",
+     "activation": "tap",
+     "press": "tap",
+     "needsKeyboardBind": false,
+     "icon": "chat",
+     "role": "action"
+    },
+    {
+     "label": "All systems on",
+     "action": null,
+     "actionmap": null,
+     "defaultKey": null,
+     "activation": "",
+     "press": "tap",
+     "needsKeyboardBind": false,
+     "icon": "power",
+     "role": "macro",
+     "steps": [
+      {
+       "key": {
+        "label": "Power on",
+        "action": "v_power_set_on",
+        "actionmap": "spaceship_power",
+        "defaultKey": null,
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": true,
+        "icon": "power",
+        "state": {
+         "key": "power",
+         "kind": "set",
+         "value": true,
+         "labels": [
+          "ON",
+          "OFF"
+         ]
+        },
+        "role": "select"
+       }
+      },
+      {
+       "key": {
+        "label": "Thrusters on",
+        "action": "v_power_set_thrusters_on",
+        "actionmap": "spaceship_power",
+        "defaultKey": null,
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": true,
+        "icon": "flame",
+        "state": {
+         "key": "pwr_thr",
+         "kind": "set",
+         "value": true,
+         "labels": [
+          "ON",
+          "OFF"
+         ]
+        },
+        "role": "select"
+       }
+      },
+      {
+       "key": {
+        "label": "Shields on",
+        "action": "v_power_set_shields_on",
+        "actionmap": "spaceship_power",
+        "defaultKey": null,
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": true,
+        "icon": "shield",
+        "state": {
+         "key": "pwr_shd",
+         "kind": "set",
+         "value": true,
+         "labels": [
+          "ON",
+          "OFF"
+         ]
+        },
+        "role": "select"
+       }
+      },
+      {
+       "key": {
+        "label": "Weapons on",
+        "action": "v_power_set_weapons_on",
+        "actionmap": "spaceship_power",
+        "defaultKey": null,
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": true,
+        "icon": "crosshair",
+        "state": {
+         "key": "pwr_wpn",
+         "kind": "set",
+         "value": true,
+         "labels": [
+          "ON",
+          "OFF"
+         ]
+        },
+        "role": "select"
+       }
+      },
+      {
+       "delay": 300
+      },
+      {
+       "key": {
+        "label": "Flight ready",
+        "action": "v_flightready",
+        "actionmap": "spaceship_general",
+        "defaultKey": "ralt+r",
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "ready",
+        "role": "action"
+       }
+      }
+     ]
     }
    ]
   }

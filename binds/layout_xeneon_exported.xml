@@ -44,6 +44,78 @@
   <action name="v_flight_advanced_hud_toggle">
    <rebind input="kb1_rctrl+rshift+f3"/>
   </action>
+  <!-- VTOL on -->
+  <action name="v_vtol_on">
+   <rebind input="kb1_rctrl+home"/>
+  </action>
+  <!-- VTOL off -->
+  <action name="v_vtol_off">
+   <rebind input="kb1_rctrl+pgup"/>
+  </action>
+  <!-- Speed limiter on -->
+  <action name="v_ifcs_speed_limiter_on">
+   <rebind input="kb1_rctrl+delete"/>
+  </action>
+  <!-- Speed limiter off -->
+  <action name="v_ifcs_speed_limiter_off">
+   <rebind input="kb1_rctrl+end"/>
+  </action>
+  <!-- Decoupled on -->
+  <action name="v_ifcs_vector_decoupling_on">
+   <rebind input="kb1_rctrl+pgdn"/>
+  </action>
+  <!-- Decoupled off -->
+  <action name="v_ifcs_vector_decoupling_off">
+   <rebind input="kb1_rctrl+np_0"/>
+  </action>
+  <!-- G-safe on -->
+  <action name="v_ifcs_gsafe_on">
+   <rebind input="kb1_rctrl+np_1"/>
+  </action>
+  <!-- G-safe off -->
+  <action name="v_ifcs_gsafe_off">
+   <rebind input="kb1_rctrl+np_2"/>
+  </action>
+  <!-- Proximity assist on -->
+  <action name="v_ifcs_proximity_assist_on">
+   <rebind input="kb1_rctrl+np_3"/>
+  </action>
+  <!-- Proximity assist off -->
+  <action name="v_ifcs_proximity_assist_off">
+   <rebind input="kb1_rctrl+np_4"/>
+  </action>
+  <!-- Advanced HUD on -->
+  <action name="v_flight_advanced_hud_on">
+   <rebind input="kb1_rctrl+np_5"/>
+  </action>
+  <!-- Advanced HUD off -->
+  <action name="v_flight_advanced_hud_off">
+   <rebind input="kb1_rctrl+np_6"/>
+  </action>
+  <!-- Stability on -->
+  <action name="v_ifcs_stability_on">
+   <rebind input="kb1_rctrl+np_7"/>
+  </action>
+  <!-- Stability off -->
+  <action name="v_ifcs_stability_off">
+   <rebind input="kb1_rctrl+np_8"/>
+  </action>
+  <!-- Gravity comp on -->
+  <action name="v_ifcs_gravity_compensation_on">
+   <rebind input="kb1_rctrl+np_9"/>
+  </action>
+  <!-- Gravity comp off -->
+  <action name="v_ifcs_gravity_compensation_off">
+   <rebind input="kb1_rctrl+np_divide"/>
+  </action>
+  <!-- Set NAV -->
+  <action name="v_master_mode_set_nav">
+   <rebind input="kb1_rctrl+np_period"/>
+  </action>
+  <!-- Set SCM -->
+  <action name="v_master_mode_set_scm">
+   <rebind input="kb1_rctrl+rshift+insert"/>
+  </action>
  </actionmap>
  <actionmap name="spaceship_quantum">
   <!-- Quantum -->
@@ -88,6 +160,14 @@
   <action name="v_weapon_preset_guns3">
    <rebind input="kb1_rctrl+f12"/>
   </action>
+  <!-- Staggered fire on -->
+  <action name="v_weapon_staggered_fire_on">
+   <rebind input="kb1_rctrl+np_multiply"/>
+  </action>
+  <!-- Staggered fire off -->
+  <action name="v_weapon_staggered_fire_off">
+   <rebind input="kb1_rctrl+np_subtract"/>
+  </action>
  </actionmap>
  <actionmap name="spaceship_mining">
   <!-- Laser type -->
@@ -129,6 +209,56 @@
   <!-- Beam farther -->
   <action name="tractor_beam_increase_distance">
    <rebind input="kb1_rctrl+rshift+f1"/>
+  </action>
+ </actionmap>
+ <actionmap name="spaceship_power">
+  <!-- Power on -->
+  <action name="v_power_set_on">
+   <rebind input="kb1_rshift+f3"/>
+  </action>
+  <!-- Power off -->
+  <action name="v_power_set_off">
+   <rebind input="kb1_rshift+f4"/>
+  </action>
+  <!-- Thrusters on -->
+  <action name="v_power_set_thrusters_on">
+   <rebind input="kb1_rctrl+rshift+f6"/>
+  </action>
+  <!-- Thrusters off -->
+  <action name="v_power_set_thrusters_off">
+   <rebind input="kb1_rctrl+rshift+f7"/>
+  </action>
+  <!-- Shields on -->
+  <action name="v_power_set_shields_on">
+   <rebind input="kb1_rctrl+rshift+f8"/>
+  </action>
+  <!-- Shields off -->
+  <action name="v_power_set_shields_off">
+   <rebind input="kb1_rctrl+rshift+f9"/>
+  </action>
+  <!-- Weapons on -->
+  <action name="v_power_set_weapons_on">
+   <rebind input="kb1_rctrl+rshift+f10"/>
+  </action>
+  <!-- Weapons off -->
+  <action name="v_power_set_weapons_off">
+   <rebind input="kb1_rctrl+rshift+f11"/>
+  </action>
+ </actionmap>
+ <actionmap name="lights_controller">
+  <!-- Lights on -->
+  <action name="v_lights_on">
+   <rebind input="kb1_rctrl+rshift+f12"/>
+  </action>
+  <!-- Lights off -->
+  <action name="v_lights_off">
+   <rebind input="kb1_rctrl+insert"/>
+  </action>
+ </actionmap>
+ <actionmap name="spaceship_defensive">
+  <!-- Panic decoy -->
+  <action name="v_weapon_countermeasure_decoy_launch_panic">
+   <rebind input="kb1_rctrl+rshift+home"/>
   </action>
  </actionmap>
 </ActionMaps>

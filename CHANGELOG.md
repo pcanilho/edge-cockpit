@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- ON/OFF switches for power (all, thrusters, shields, weapons), lights, VTOL, speed limiter, decoupled, G-safe, proximity assist, advanced HUD, stability, gravity compensation and staggered fire. They use the game's separate on and off binds, so a tap sets the state rather than flipping it. Unlit until set; reset when you leave the seat or change ship.
+- All systems on: one macro that powers everything up and runs Flight Ready.
+- The flight mode knob sets NAV or SCM directly.
+- Long-press Decoy for a panic decoy burst. Hail target on the comms plate.
+- Mining mode and Salvage mode use the game's 4.x actions (the old combined one is gone from 4.x). Checked every key against a full 4.x keybind list: all others exist.
+
 - Keys with modifiers (RCtrl+F2 for the speed limiter and others) press the modifier a moment before the key, so the game no longer reads them as the bare key (F2 opened the starmap).
 - Knows which ship you're in on 4.10 again: the game no longer logs taking the pilot seat, so boarding is read from the ship's crew channel and the ship from its navigation. The console follows you between ship and on-foot pages again, and picks the ship page by the ship.
 - Flight Ready is now a big button on the power plate, beside plain Weapons / Engines / Shields + and Power reset keys. The power triangle and its guessed pips are gone.

@@ -1,6 +1,6 @@
 // The pages of the console. A ship page is four plates: power, the role module, flight
 // and gear. On foot, map and downed pages use the whole width for their own plates.
-import { plate, placard, label, keycap, rocker, toggle, rotary, wheelKnob, slider, slideConfirm, guard, gearLever, quantum,
+import { plate, placard, label, keycap, rocker, toggle, onOff, onOffKey, rotary, wheelKnob, slider, slideConfirm, guard, gearLever, quantum,
   roundButton, dial, missileRack, screen, icon, esc, h, pressable } from './controls.js';
 
 let K;
@@ -29,9 +29,10 @@ const doors = (x, w) => [keycap(x, 44, w, 92, 'Open doors', { fs: 12, kb: w > 11
 function powerPlate() {
   const p = plate(X.power, W.power, 'Power');
   return add(p,
-    toggle(16, 44, 'Power', { guard: true, w: 100 }), toggle(122, 44, 'Thrusters', { w: 100 }),
-    toggle(228, 44, 'Shields', { w: 100 }), toggle(334, 44, 'Weapons', { w: 100 }),
-    keycap(18, 262, 414, 196, 'Flight ready', { fs: 24, is: 40, lc: 'var(--ok)', lit: true }),
+    onOff(16, 44, 'Power', { guard: true, w: 100 }), onOff(122, 44, 'Thrusters', { w: 100 }),
+    onOff(228, 44, 'Shields', { w: 100 }), onOff(334, 44, 'Weapons', { w: 100 }),
+    keycap(18, 262, 274, 196, 'Flight ready', { fs: 22, is: 40, lc: 'var(--ok)', lit: true }),
+    keycap(298, 262, 134, 196, 'All systems on', { label: 'All systems on', fs: 13, is: 28, ...cut }),
     placard(18, 470, 'Power assignment'),
     keycap(18, 496, 134, 92, 'Weapons +', { fs: 12 }), keycap(158, 496, 134, 92, 'Engines +', { fs: 12 }),
     keycap(298, 496, 134, 92, 'Shields +', { fs: 12 }),
@@ -42,10 +43,10 @@ function flightPlate() {
   const p = plate(X.flight, W.flight, 'Flight');
   add(p,
     slider(20, 62, 112, 480, { value: 'speed', title: 'Speed limit', onStep: s => K.wheel(s, p) }),
-    keycap(20, 590, 112, 96, 'Speed limiter', { fs: 11, icon: false }),
-    rotary(150, 52, 116, [{ label: 'SCM', angle: -40 }, { label: 'NAV', angle: 40 }], { cycle: 'NAV / SCM', stateKey: 'navmode', title: 'Flight mode', pointer: 'var(--cyan)', radius: 92 }),
+    onOffKey(20, 590, 112, 96, 'Speed limiter', { label: 'Limiter' }),
+    rotary(150, 52, 116, [{ label: 'SCM', angle: -40, key: 'Set SCM' }, { label: 'NAV', angle: 40, key: 'Set NAV' }], { title: 'Flight mode', pointer: 'var(--cyan)', radius: 92 }),
     quantum(372, 44, 220, 'Quantum'),
-    keycap(150, 276, 140, 90, 'Decoupled', { fs: 13 }),
+    onOffKey(150, 276, 140, 90, 'Decoupled'),
     keycap(296, 276, 140, 90, 'Freelook', { fs: 13 }),
     keycap(442, 276, 150, 90, 'Startup', { label: 'Ready & ATC', fs: 13, ...cut }),
     keycap(150, 374, 150, 78, 'Decoy', { fs: 13 }),
@@ -56,7 +57,7 @@ function flightPlate() {
   brake.appendChild(keycap(8, 8, 426, 94, 'Space brake', { fs: 20, is: 30, lc: 'var(--hold)', lit: true }));
   return add(p, brake,
     keycap(150, 580, 106, 106, 'ATC request', { fs: 11, is: 20 }), keycap(262, 580, 106, 106, 'Autoland', { fs: 11, is: 20 }),
-    keycap(374, 580, 106, 106, 'Lights', { fs: 11, is: 20 }), keycap(486, 580, 106, 106, 'VTOL', { fs: 11, is: 20 }));
+    onOffKey(374, 580, 106, 106, 'Lights'), onOffKey(486, 580, 106, 106, 'VTOL'));
 }
 
 function gearPlate() {
@@ -77,7 +78,7 @@ function fighter() {
       rings: [
         { r0: 94, r1: 188, keys: [{ label: 'Lock 1', a0: -88, a1: -2 }, { label: 'Lock 2', a0: 2, a1: 88 }, { label: 'Lock 3', a0: 92, a1: 178 }, { label: 'Unlock', a0: 182, a1: 268 }] },
         { r0: 196, r1: 238, keys: [{ label: 'Look ahead', a0: -64, a1: -22 }, { label: 'Ping', a0: -20, a1: 20 }, { label: 'Scan mode', a0: 22, a1: 64 },
-          { label: 'Clear pins', a0: 136, a1: 178 }, { label: 'Gimbal mode', text: 'Cycle gimbal', a0: 182, a1: 224 }] },
+          { label: 'Look behind', a0: 136, a1: 178 }, { label: 'Gimbal mode', text: 'Cycle gimbal', a0: 182, a1: 224 }] },
       ],
     }),
     placard(20, 54, 'Missiles'), missileRack(20, 80, 128, 148),
@@ -90,7 +91,7 @@ function fighter() {
     placard(670, 252, 'Gun groups'),
     keycap(670, 278, 62, 220, 'Guns group 1', { label: '1', fs: 26, r: 31, icon: 'guns' }),
     keycap(738, 278, 62, 220, 'Guns group 2', { label: '2', fs: 26, r: 31, icon: 'guns' }),
-    keycap(670, 508, 130, 84, 'Look behind', { fs: 12 }),
+    onOffKey(670, 508, 130, 84, 'Staggered fire', { label: 'Stagger' }),
     keycap(670, 600, 130, 86, 'Evade', { fs: 12, ...cut }),
   ];
 }
@@ -196,10 +197,11 @@ function ground() {
 function systems() {
   const row = (y, ht, labels, o = {}) => labels.map((l, i) => keycap(23 + i * 130, y, 122, ht, l, { fs: 11, is: 20, ...o }));
   return [
-    ...['G-safe', 'ESP', 'Proximity assist', 'Lock rotation', 'Advanced HUD', 'Door locks'].map((l, i) => toggle(19 + i * 112, 44, l, { w: 108 })),
+    ...['G-safe', 'ESP', 'Proximity assist', 'Lock rotation', 'Advanced HUD', 'Door locks'].map((l, i) => onOff(19 + i * 112, 44, l, { w: 108 })),
     ...doors(19 + 6 * 112, 108),
     ...row(258, 100, ['Cruise throttle', 'Loading area', 'Docking request', 'Scan mode', 'Ping', 'Starmap']),
-    ...row(366, 100, ['Look behind', 'Look ahead', 'Port locks', 'mobiGlas', 'Visor wipe', 'Chat window']),
+    ...row(366, 100, ['Look behind', 'Look ahead', 'Port locks', 'Chat window']),
+    onOffKey(23 + 4 * 130, 366, 122, 100, 'Stability'), onOffKey(23 + 5 * 130, 366, 122, 100, 'Gravity comp'),
     keycap(23, 476, 250, 98, 'Combat prep', { label: 'Battle stations', fs: 13, ...cut }), keycap(281, 476, 250, 98, 'Evade', { fs: 13, ...cut }),
     rocker(539, 476, 256, 98, 'Throttle −', 'Throttle +', { vertical: false }),
     keycap(23, 584, 250, 102, 'Weapons max', { fs: 13 }), keycap(281, 584, 250, 102, 'Shields max', { fs: 13 }), keycap(539, 584, 256, 102, 'Engines max', { fs: 13 }),
@@ -296,7 +298,7 @@ function mapPage() {
   add(c, ...[1, 2, 3, 4, 5].map(n => keycap(20, 50 + (n - 1) * 128, half, 120, `Reply ${n}`, { fs: 16, icon: 'chat' })),
     keycap(410, 50, half, 120, 'ATC request', { fs: 16 }), keycap(410, 178, half / 2 - 4, 120, 'Chat window', { label: 'Chat', fs: 15 }),
     keycap(414 + half / 2, 178, half / 2 - 4, 120, 'Push to talk', { fs: 14 }), keycap(410, 306, half, 120, 'Docking request', { fs: 16 }),
-    keycap(410, 434, half, 120, 'Third person', { fs: 16 }), keycap(410, 562, half, 116, 'Visor wipe', { fs: 16 }));
+    keycap(410, 434, half, 120, 'Hail target', { fs: 16 }), keycap(410, 562, half, 116, 'Visor wipe', { fs: 16 }));
   return [a, b, c];
 }
 
