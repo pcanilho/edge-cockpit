@@ -356,12 +356,16 @@ function buildSoftkeys() {
   const nav = $('softkeys');
   nav.replaceChildren(...SOFT.map(s => {
     const node = controls.h(`<div class="well"><div class="cap"><span class="led"></span>${controls.icon(s.icon, 18)}<span class="lg">${s.label}</span></div></div>`);
-    controls.pressable(node, { up: () => { tick('page'); if (s.go) show(s.go()); else openSheet(true); } });
+    controls.pressable(node, { up: () => { tick('page'); if (s.go) { openSheet(false); show(s.go()); } else openSheet(true); } });
     s.node = node;
     return node;
   }));
 }
-function paintSoftkeys() { for (const s of SOFT) s.node?.classList.toggle('cur', !!s.is?.(current)); }
+// The open Settings sheet takes the highlight from the page under it.
+function paintSoftkeys() {
+  const sheet = !$('sheet').hidden;
+  for (const s of SOFT) s.node?.classList.toggle('cur', sheet ? !s.go : !!s.is?.(current));
+}
 
 // ---------- settings sheet ----------
 // Start with Windows and Screen off live in the app, since they matter before the console loads.
@@ -380,7 +384,7 @@ function showSection(sec) {
   document.querySelectorAll('.tab[data-sec]').forEach(t => t.classList.toggle('cur', t.dataset.sec === sec));
   document.querySelectorAll('.pane').forEach(p => { p.hidden = p.dataset.sec !== sec; });
 }
-function openSheet(open, sec) { if (sec) showSection(sec); $('sheet').hidden = !open; }
+function openSheet(open, sec) { if (sec) showSection(sec); $('sheet').hidden = !open; paintSoftkeys(); }
 document.querySelectorAll('.tab[data-sec]').forEach(t => {
   t.querySelector('svg').innerHTML = GLYPHS[TAB_ICONS[t.dataset.sec]] || '';
   controls.pressable(t, { up: () => { tick('page'); showSection(t.dataset.sec); } });

@@ -27,7 +27,8 @@ for f in "$@"; do
   if [ -n "$stats" ] && [ "$stats" != null ]; then
     bad=$(jq '.malicious + .suspicious' <<<"$stats")
     n=$(jq '.malicious + .suspicious + .undetected + .harmless' <<<"$stats")
-    flagged=$((flagged + bad)); engines=$((n > engines ? n : engines))
+    # The badge shows the worst exe, not a sum across them.
+    flagged=$((bad > flagged ? bad : flagged)); engines=$((n > engines ? n : engines))
     echo "- [$name]($link): flagged by $bad of $n engines" >> "$out/virustotal.md"
   else
     echo "::warning::No VirusTotal result for $name yet"
@@ -37,6 +38,8 @@ done
 
 if [ "$engines" -eq 0 ]; then msg="scanned"; color=394EFF
 elif [ "$flagged" -eq 0 ]; then msg="clean · 0/$engines"; color=brightgreen
-else msg="$flagged/$engines flagged"; color=orange
+# A few heuristic hits are usual for unsigned installers; more is worth a look.
+elif [ "$flagged" -le 3 ]; then msg="$flagged/$engines engines"; color=yellowgreen
+else msg="$flagged/$engines engines"; color=orange
 fi
 jq -n --arg m "$msg" --arg c "$color" '{schemaVersion: 1, label: "VirusTotal", message: $m, color: $c, namedLogo: "virustotal", logoColor: "white"}' > "$out/virustotal.json"

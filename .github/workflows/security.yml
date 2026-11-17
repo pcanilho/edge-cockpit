@@ -1,8 +1,8 @@
 name: Security
 
 # Rust dependencies (advisories, licences, sources), workflow security, secrets in the
-# history, and dependency changes on pull requests. CodeQL is in codeql.yml and the
-# OpenSSF Scorecard in scorecard.yml.
+# history, dependency changes on pull requests, and fuzzing of the key bind parser.
+# CodeQL is in codeql.yml and the OpenSSF Scorecard in scorecard.yml.
 on:
   pull_request:
   push:
@@ -64,6 +64,24 @@ jobs:
           echo "${SHA256}  gitleaks.tgz" | sha256sum -c -
           tar xzf gitleaks.tgz gitleaks
           ./gitleaks git --redact --verbose --exit-code 1 .
+
+  fuzz:
+    name: fuzz
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Fuzz the key bind parser for two minutes
+        working-directory: app/src-tauri
+        env:
+          CARGO_FUZZ: 0.13.2
+        run: |
+          rustup toolchain install nightly --profile minimal
+          cargo install cargo-fuzz --version "$CARGO_FUZZ" --locked
+          cargo +nightly fuzz run key_chord -- -max_total_time=120
 
   dependency-review:
     name: dependency-review
