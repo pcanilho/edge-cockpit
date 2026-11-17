@@ -321,7 +321,8 @@ function repaint() {
 }
 
 // ---------- the console ----------
-const WEAPON = /spaceship_weapons|spaceship_missiles|spaceship_defensive|\b(rifle|pistol|knife|grenade)$/;
+// Ship weapon actionmaps, and on-foot weapons by their icon.
+const isWeapon = k => /^spaceship_(weapons|missiles|defensive)$/.test(k.actionmap || '') || /^(rifle|pistol|knife|grenade)$/.test(k.icon || '');
 const theme = page => page.theme || pageById(layout, page.role?.tab || page.tab || 'flight')?.theme || { accent: '#5cc8e6', glyph: 'ship' };
 let current = 'flight', rolePage = null, lastShip = 'flight', pageAccent = '#5cc8e6', makerAccent = null;
 const applyAccent = () => stage.style.setProperty('--accent', makerAccent || pageAccent);
@@ -333,7 +334,7 @@ const K = {
     return !lacks.some(kit => KIT_KEYS[kit]?.includes(k.label));
   },
   bindText: k => (k.role === 'macro' ? '' : mine.stick[k.action] ? 'STICK' : keyText(bindOf(k))),
-  isWeapon: k => WEAPON.test(`${k.actionmap} ${k.icon}`),
+  isWeapon,
   bind, fire, wheel, flip, isOn, local, tick, toast, theme,
   fired: node => { if (opts.flash) flash(node, 'fired'); },
   scale: () => Math.min(innerWidth / 2560, innerHeight / 720),
