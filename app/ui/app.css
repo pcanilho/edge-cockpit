@@ -256,9 +256,11 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: ro
 #mfd { left: 16px; top: 16px; width: 338px; height: 588px; }
 .brand { left: 18px; right: 16px; top: 16px; display: flex; align-items: center; gap: 6px; font: 700 12px/1 var(--hud); letter-spacing: .2em; color: var(--muted); }
 .brand b { color: var(--ink); }
-.link { margin-left: auto; display: flex; align-items: center; gap: 6px; font: 600 11px/1 var(--mono); letter-spacing: 0; }
+.link { margin-left: auto; display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 4px; border: 1px solid #ffffff1c; font: 600 11px/1 var(--mono); letter-spacing: 0; color: var(--muted); }
 .link i { width: 7px; height: 7px; border-radius: 50%; background: var(--dim); }
-.link.running i { background: var(--hold); } .link.focused i { background: var(--ok); }
+/* The game link: grey with no game, amber while it runs behind, green when it's in front. */
+.link.running { color: var(--hold); border-color: #ffb54766; } .link.running i { background: var(--hold); }
+.link.focused { color: var(--ok); border-color: #5fe0a066; } .link.focused i { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
 .clock { font: 600 12px/1 var(--mono); color: var(--muted); letter-spacing: 0; }
 .hero { left: 39px; top: 40px; width: 260px; height: 230px; }
 .hero .rings { position: absolute; left: 0; top: -15px; width: 260px; height: 260px; fill: none; stroke: var(--ship); stroke-opacity: .45; }
@@ -324,6 +326,7 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: ro
 .pane { height: 100%; display: flex; flex-direction: column; }
 .pane[hidden] { display: none; }
 .pane h3 { margin: 12px 0 28px 2px; font: 700 16px/1.4 var(--hud); letter-spacing: .24em; text-transform: uppercase; color: var(--muted); }
+.lead { max-width: 1100px; margin: -12px 0 24px 2px; font: 500 14px/1.5 var(--body); color: var(--muted); }
 .rows { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; align-content: start; }
 .about { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .fine { margin-top: auto; padding: 16px 4px 4px; font: 500 12px/1.4 var(--body); color: var(--muted); }
@@ -389,3 +392,6 @@ body.is-dark #stage { visibility: hidden; }
   border-radius: 12px; background: #0b0f14f2; box-shadow: 0 0 0 1px #ffffff22, 0 10px 30px #000; font: 700 14px/1 var(--hud); letter-spacing: .12em; text-transform: uppercase; color: var(--paint); }
 .arrange-bar button { padding: 14px 22px; border-radius: 8px; background: #232a32; font: 700 13px/1 var(--hud); letter-spacing: .12em; text-transform: uppercase; color: var(--ink); }
 .arrange-bar button.primary { background: var(--accent); color: #031016; }
+
+/* No game running: the controls grey out until Star Citizen starts. One static filter, no animation. */
+#stage.idle #console { filter: grayscale(1) brightness(.6); }

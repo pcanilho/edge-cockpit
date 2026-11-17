@@ -224,8 +224,44 @@ fn read_binds(app: State<'_, App>) -> Option<String> {
 /// The player's own ship roles, Documents\Edge Cockpit\ships.json, if there is one.
 #[tauri::command]
 fn user_ships(handle: AppHandle) -> Option<String> {
-    let dir = handle.path().document_dir().ok()?;
-    std::fs::read_to_string(dir.join("Edge Cockpit").join("ships.json")).ok()
+    std::fs::read_to_string(user_dir(&handle)?.join("ships.json")).ok()
+}
+
+/// Documents\Edge Cockpit, where the player's own files live.
+fn user_dir(handle: &AppHandle) -> Option<PathBuf> {
+    Some(handle.path().document_dir().ok()?.join("Edge Cockpit"))
+}
+
+/// Saves a profile (settings, plate order, ship roles and keyboard binds) as
+/// Documents\Edge Cockpit\profile.json. Returns the path.
+#[tauri::command]
+fn save_profile(handle: AppHandle, json: String) -> Result<String, String> {
+    let dir = user_dir(&handle).ok_or("No Documents folder")?;
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let path = dir.join("profile.json");
+    std::fs::write(&path, json).map_err(|e| e.to_string())?;
+    Ok(path.to_string_lossy().into_owned())
+}
+
+/// The saved profile, Documents\Edge Cockpit\profile.json, if there is one.
+#[tauri::command]
+fn load_profile(handle: AppHandle) -> Option<String> {
+    std::fs::read_to_string(user_dir(&handle)?.join("profile.json")).ok()
+}
+
+/// Writes ships.json from an imported profile.
+#[tauri::command]
+fn save_user_ships(handle: AppHandle, json: String) -> Result<(), String> {
+    let dir = user_dir(&handle).ok_or("No Documents folder")?;
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    std::fs::write(dir.join("ships.json"), json).map_err(|e| e.to_string())
+}
+
+/// Puts a profile's keyboard binds in the game's Control Profiles list.
+#[tauri::command]
+fn install_profile_binds(app: State<'_, App>, xml: String) -> Result<String, String> {
+    let channel = app.channel.lock().unwrap().clone().ok_or("Star Citizen not found")?;
+    game::install_profile_binds(&channel, &xml).map(|p| p.to_string_lossy().into_owned()).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -347,7 +383,28 @@ fn show_panel(handle: &AppHandle, on: bool) {
         let _ = w.show();
         place(&w);
     } else {
+        #[cfg(windows)]
+        win::hide_panel();
+        #[cfg(not(windows))]
         let _ = w.hide();
+    }
+    if let Some(item) = handle.try_state::<TrayToggle>() {
+        let _ = item.0.set_text(if on { "Hide the console" } else { "Show the console" });
+    }
+}
+
+/// The tray's one show/hide item, relabelled as the console comes and goes.
+struct TrayToggle(MenuItem<tauri::Wry>);
+
+/// Tray and left click: hide the console if it shows, otherwise show it.
+fn toggle_panel(handle: &AppHandle) {
+    let visible = handle.get_webview_window("main").and_then(|w| w.is_visible().ok()).unwrap_or(false);
+    let dark = handle.state::<App>().dark.load(Ordering::SeqCst);
+    if visible && !dark {
+        handle.state::<App>().wake_gen.fetch_add(1, Ordering::SeqCst);
+        show_panel(handle, false);
+    } else {
+        wake(handle);
     }
 }
 
@@ -530,11 +587,10 @@ fn watch_game(handle: AppHandle) {
 }
 
 fn tray(handle: &AppHandle) -> tauri::Result<()> {
-    let wake_item = MenuItem::with_id(handle, "wake", "Show the console", true, None::<&str>)?;
-    let hide = MenuItem::with_id(handle, "hide", "Hide the console", true, None::<&str>)?;
-    let admin = MenuItem::with_id(handle, "admin", "Run as administrator", true, None::<&str>)?;
+    let toggle = MenuItem::with_id(handle, "toggle", "Hide the console", true, None::<&str>)?;
     let quit_item = MenuItem::with_id(handle, "quit", "Quit", true, None::<&str>)?;
-    let menu = Menu::with_items(handle, &[&wake_item, &hide, &admin, &PredefinedMenuItem::separator(handle)?, &quit_item])?;
+    let menu = Menu::with_items(handle, &[&toggle, &PredefinedMenuItem::separator(handle)?, &quit_item])?;
+    handle.manage(TrayToggle(toggle));
     TrayIconBuilder::with_id("tray")
         .icon(handle.default_window_icon().cloned().ok_or(tauri::Error::InvalidIcon(std::io::Error::other("no icon")))?)
         .tooltip("Edge Cockpit")
@@ -542,19 +598,11 @@ fn tray(handle: &AppHandle) -> tauri::Result<()> {
         .show_menu_on_left_click(false)
         .on_tray_icon_event(|tray, ev| {
             if let tauri::tray::TrayIconEvent::Click { button: tauri::tray::MouseButton::Left, button_state: tauri::tray::MouseButtonState::Up, .. } = ev {
-                wake(tray.app_handle());
+                toggle_panel(tray.app_handle());
             }
         })
         .on_menu_event(move |app, ev| match ev.id().as_ref() {
-            "wake" => wake(app),
-            "hide" => {
-                app.state::<App>().wake_gen.fetch_add(1, Ordering::SeqCst);
-                set_dark(app, false);
-                show_panel(app, false);
-            }
-            "admin" => {
-                run_as_admin(app.clone());
-            }
+            "toggle" => toggle_panel(app),
             "quit" => quit(app.clone()),
             _ => {}
         })
@@ -570,6 +618,7 @@ fn main() {
         .manage(App::default())
         .invoke_handler(tauri::generate_handler![
             key, wheel, ui_ready, user_ships, release_keys, game_info, read_binds, install_binds, run_as_admin, quit,
+            save_profile, load_profile, save_user_ships, install_profile_binds,
             get_prefs, set_pref, wake_screen, sleep_screen, check_update, install_update
         ])
         .setup(|app| {

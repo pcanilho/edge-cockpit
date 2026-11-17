@@ -1,7 +1,7 @@
 name: VirusTotal
 
-# Scans the exes of a release that is already published and adds the VirusTotal
-# links to its notes. New releases are scanned by app.yml; this is for older ones.
+# Scans the exes of a release that is already published, puts the results in its
+# notes and updates the README badge. New releases are scanned by app.yml.
 on:
   workflow_dispatch:
     inputs:
@@ -18,20 +18,22 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Scan and link
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Scan, link and update the badge
         env:
           GH_TOKEN: ${{ github.token }}
           VT_API_KEY: ${{ secrets.VT_API_KEY }}
           TAG: ${{ inputs.tag }}
         run: |
           [ -n "$VT_API_KEY" ] || { echo "::error::VT_API_KEY is not set"; exit 1; }
+          mkdir -p out
           gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern '*.exe' --dir out
-          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body > notes.md
-          if grep -q '^### VirusTotal' notes.md; then echo "Already linked."; exit 0; fi
-          { echo; echo "### VirusTotal"; } >> notes.md
-          for f in out/*.exe; do
-            curl -sf --request POST https://www.virustotal.com/api/v3/files -H "x-apikey: $VT_API_KEY" --form file=@"$f" >/dev/null \
-              || echo "::warning::VirusTotal upload failed for $f"
-            echo "- [$(basename "$f")](https://www.virustotal.com/gui/file/$(sha256sum "$f" | cut -d' ' -f1))" >> notes.md
-          done
+          .github/scripts/virustotal.sh out out/*.exe
+          # Replace any earlier VirusTotal section (always the last one) with the new results.
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body | sed '/^### VirusTotal/,$d' > notes.md
+          sed -i -e :a -e '/^\n*$/{$d;N;ba' -e '}' notes.md
+          cat out/virustotal.md >> notes.md
           gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file notes.md
+          .github/scripts/publish-badge.sh out/virustotal.json

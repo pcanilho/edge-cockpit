@@ -22,6 +22,11 @@ export const userShips = () => tauri ? tauri.core.invoke('user_ships') : Promise
 // Outside the app (UI tests, mocks) a page may supply its own actionmaps.xml.
 export const readBinds = () => tauri ? tauri.core.invoke('read_binds') : Promise.resolve(window.xfdTestBinds ?? null);
 export const installBinds = () => tauri ? tauri.core.invoke('install_binds') : Promise.reject(new Error('Only in the app'));
+const onlyInApp = () => Promise.reject(new Error('Only in the app'));
+export const saveProfile = json => tauri ? tauri.core.invoke('save_profile', { json }) : onlyInApp();
+export const loadProfile = () => tauri ? tauri.core.invoke('load_profile') : Promise.resolve(null);
+export const saveUserShips = json => tauri ? tauri.core.invoke('save_user_ships', { json }) : onlyInApp();
+export const installProfileBinds = xml => tauri ? tauri.core.invoke('install_profile_binds', { xml }) : onlyInApp();
 export const runAsAdmin = () => tauri?.core.invoke('run_as_admin');
 export const getPrefs = () => tauri ? tauri.core.invoke('get_prefs') : Promise.resolve({ autostart: true, screen_off: true, backlight: null, version: '0.3.0' });
 export const setPref = (name, value) => tauri?.core.invoke('set_pref', { name, value });
