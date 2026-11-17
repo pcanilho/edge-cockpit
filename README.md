@@ -82,6 +82,7 @@ Only the Corsair Xeneon Edge (2560 x 720) is fully supported for now. If you wou
 ## Feedback
 
 Found a bug? Open a [bug report](../../issues/new?template=bug.yml). Have an idea? Open a [feature request](../../issues/new?template=feature.yml).
+Want to help with code? See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Support
 
