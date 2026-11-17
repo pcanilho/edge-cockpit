@@ -36,7 +36,7 @@ export const loadProfile = () => tauri ? tauri.core.invoke('load_profile') : Pro
 export const saveUserShips = json => tauri ? tauri.core.invoke('save_user_ships', { json }) : onlyInApp();
 export const installProfileBinds = xml => tauri ? tauri.core.invoke('install_profile_binds', { xml }) : onlyInApp();
 export const runAsAdmin = () => tauri?.core.invoke('run_as_admin');
-export const getPrefs = () => tauri ? tauri.core.invoke('get_prefs') : Promise.resolve({ autostart: true, screen_off: true, backlight: null, version: '0.3.0' });
+export const getPrefs = () => tauri ? tauri.core.invoke('get_prefs') : Promise.resolve({ autostart: true, screen_off: true, backlight: null, version: '0.4.0' });
 export const setPref = (name, value) => tauri?.core.invoke('set_pref', { name, value });
 export const wakeScreen = () => tauri?.core.invoke('wake_screen');
 export const sleepScreen = () => tauri?.core.invoke('sleep_screen');

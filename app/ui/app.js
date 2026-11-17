@@ -14,9 +14,9 @@ import * as perf from './perf.js';
 const $ = id => document.getElementById(id);
 const stage = $('stage');
 const load = async f => (await fetch('vendor/' + f)).json();
-const [layout, shipsDb, bundledOverrides, xeneonXml] = await Promise.all([
+const [layout, shipsDb, bundledOverrides, consoleXml] = await Promise.all([
   load('star-citizen.json'), load('ships.json'), load('ship-overrides.json'),
-  fetch('vendor/xeneon-binds.xml').then(r => r.text()),
+  fetch('vendor/binds.xml').then(r => r.text()),
 ]);
 
 // Brushed metal and grain, drawn once as small tiles.
@@ -74,7 +74,7 @@ function parseActionmaps(text) {
   });
   return { kb, stick };
 }
-const xeneon = parseActionmaps(xeneonXml).kb;
+const consoleBinds = parseActionmaps(consoleXml).kb;
 let mine = { kb: {}, stick: {} };
 function bindOf(k) {
   if (!k?.action) return null;
@@ -82,7 +82,7 @@ function bindOf(k) {
     const v = mine.kb[k.action];
     return v && !/mouse|mwheel|maxis/.test(v) ? v : null;
   }
-  return k.defaultKey || xeneon[k.action] || null;
+  return k.defaultKey || consoleBinds[k.action] || null;
 }
 async function reloadBinds() {
   const text = await bridge.readBinds().catch(() => null);
@@ -129,7 +129,7 @@ function paintBindHealth() {
   if (h.missing.length) lines.push(`No keyboard key: ${listOf(h.missing)}.`);
   if (h.stick.length) lines.push(`Joystick only: ${listOf(h.stick)}.`);
   if (h.shared.length) lines.push(`Sharing a key: ${listOf(h.shared, 2)}.`);
-  if (bad) lines.push('Add the console\'s binds, then pick "xeneon" in the game\'s Control Profiles.');
+  if (bad) lines.push('Add the console\'s binds, then pick "edge-cockpit" in the game\'s Control Profiles.');
   row.querySelector('p').textContent = lines.join('\n') || 'Checked when the console starts and whenever your binds change.';
   const chip = $('binds-chip');
   chip.hidden = !bad;
@@ -208,7 +208,7 @@ function failed(err, k, node) {
   tick('error');
   if (msg === 'no-game') toast('Star Citizen is not in front, so the key was not sent.', { label: 'Test mode', run: () => setOpt('anywhere', true) });
   else if (msg === 'blocked') toast('Windows blocked the key. The game runs as administrator, so the panel must too.', { label: 'Restart as admin', run: bridge.runAsAdmin });
-  else if (msg === 'unbound') toast(`${k.label} has no keyboard key. Pick "xeneon" in the game's Control Profiles.`, { label: 'Add binds', run: installBinds });
+  else if (msg === 'unbound') toast(`${k.label} has no keyboard key. Pick "edge-cockpit" in the game's Control Profiles.`, { label: 'Add binds', run: installBinds });
   else toast(msg);
 }
 
@@ -554,7 +554,7 @@ document.querySelectorAll('#night-seg button').forEach(b => controls.pressable(b
 controls.pressable($('sheet-close'), { up: () => openSheet(false) });
 controls.pressable($('auto'), { up: () => { tick('toggle'); setOpt('auto', !opts.auto); } });
 async function installBinds() {
-  try { await bridge.installBinds(); toast('Added. In game: Options, Keybindings, Control Profiles, pick "xeneon", tick Keyboard only.'); }
+  try { await bridge.installBinds(); toast('Added. In game: Options, Keybindings, Control Profiles, pick "edge-cockpit", tick Keyboard only.'); }
   catch (e) { toast(String(e?.message || e)); }
 }
 const acts = { 'act-binds': [() => reloadBinds().then(() => toast('Binds reloaded')), 'reload'], 'act-install': [installBinds, 'layers'],

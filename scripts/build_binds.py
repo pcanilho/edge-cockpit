@@ -5,7 +5,7 @@ Each gets a free key from a pool that Star Citizen leaves unused by default
 (right Ctrl / right Shift with F1-F12), so nothing you already use is overwritten.
 
 Usage:
-    python scripts/build_binds.py path/to/defaultProfile.xml > binds/layout_xeneon_exported.xml
+    python scripts/build_binds.py path/to/defaultProfile.xml > binds/layout_edge_cockpit_exported.xml
 
 Then copy the file to
     StarCitizen\\LIVE\\USER\\Client\\0\\Controls\\Mappings
@@ -20,7 +20,7 @@ from pathlib import Path
 from xml.sax.saxutils import quoteattr
 
 ROOT = Path(__file__).resolve().parent.parent
-PROFILE = 'xeneon'
+PROFILE = 'edge-cockpit'
 NAV = ['insert', 'home', 'pgup', 'delete', 'end', 'pgdn']
 NUMPAD = [f'np_{n}' for n in range(10)] + ['np_divide', 'np_multiply', 'np_subtract', 'np_period']
 # Right Ctrl / right Shift with F1-F12 first, then more right Ctrl chords. Shift is never paired with the
@@ -71,7 +71,7 @@ def deck_actions():
 
 def current_binds():
     """The keys the committed keybind file already gives, so a rebuild doesn't move them."""
-    path = ROOT / 'binds/layout_xeneon_exported.xml'
+    path = ROOT / 'binds/layout_edge_cockpit_exported.xml'
     if not path.exists():
         return {}
     out = {}

@@ -1,5 +1,5 @@
-<ActionMaps version="1" optionsVersion="2" rebindVersion="2" profileName="xeneon">
- <CustomisationUIHeader label="xeneon" description="Edge Cockpit: keys for console actions with no default keyboard bind" image="">
+<ActionMaps version="1" optionsVersion="2" rebindVersion="2" profileName="edge-cockpit">
+ <CustomisationUIHeader label="edge-cockpit" description="Edge Cockpit: keys for console actions with no default keyboard bind" image="">
   <devices>
    <keyboard instance="1"/>
   </devices>
