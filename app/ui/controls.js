@@ -438,20 +438,20 @@ export function powerTriangle(x, y, w, ht) {
     el.querySelectorAll('.cl').forEach(c => { c.textContent = `${sys[c.dataset.i][2] === 'WEP' ? 'Weapons' : sys[c.dataset.i][2] === 'ENG' ? 'Engines' : 'Shields'} ${p[c.dataset.i]}`; });
     el.querySelector('.pips').textContent = 'Last set';
   };
-  const add = async i => {
+  const add = async (i, b) => {
     const k = K.key(sys[i][0]);
-    if (k && await K.fire(k, el)) { const p = P(); p[i] = Math.min(10, p[i] + 1); const j = [0, 1, 2].filter(n => n !== i).sort((a, b) => p[b] - p[a])[0]; p[j] = Math.max(0, p[j] - 1); paint(); }
+    if (k && await K.fire(k, b)) { K.fired(b); const p = P(); p[i] = Math.min(10, p[i] + 1); const j = [0, 1, 2].filter(n => n !== i).sort((a, b) => p[b] - p[a])[0]; p[j] = Math.max(0, p[j] - 1); paint(); }
   };
-  const max = async i => {
+  const max = async (i, b) => {
     const k = K.key(sys[i][1]);
-    if (k && await K.fire(k, el)) { const p = P(); p[i] = 8; for (const j of [0, 1, 2]) if (j !== i) p[j] = 2; paint(); toast(k.label); }
+    if (k && await K.fire(k, b)) { K.fired(b); const p = P(); p[i] = 8; for (const j of [0, 1, 2]) if (j !== i) p[j] = 2; paint(); toast(k.label); }
   };
   const toast = t => K.toast(t);
   el.querySelectorAll('.corner').forEach(b => {
     let t, long = false;
     pressable(b, {
-      down: () => { long = false; t = setTimeout(() => { long = true; max(+b.dataset.i); }, 550); },
-      up: () => { clearTimeout(t); if (!long) { K.tick('tap'); add(+b.dataset.i); } },
+      down: () => { long = false; t = setTimeout(() => { long = true; max(+b.dataset.i, b); }, 550); },
+      up: () => { clearTimeout(t); if (!long) { K.tick('tap'); add(+b.dataset.i, b); } },
       cancel: () => clearTimeout(t),
     });
   });

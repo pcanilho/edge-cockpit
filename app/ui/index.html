@@ -23,8 +23,8 @@
       <div class="hero" id="hero"><svg class="rings" viewBox="0 0 260 260" aria-hidden="true">
         <circle cx="130" cy="130" r="124" stroke-dasharray="1 4"/><circle cx="130" cy="130" r="112" opacity=".4"/>
         <path d="M130 0v14M130 246v14M0 130h14M246 130h14"/></svg><div class="figure" id="figure"></div></div>
-      <div class="name" id="ship-name">Waiting for Star Citizen</div>
-      <div class="role" id="ship-role">The panel follows the game</div>
+      <div class="name" id="ship-name">Standing by</div>
+      <div class="role" id="ship-role">Waiting for Star Citizen</div>
       <div class="chips">
         <button class="chip" id="law" hidden><i></i><span></span></button>
         <button class="chip" id="zone" hidden><i></i><span></span></button>
@@ -44,33 +44,60 @@
   <div id="console"></div>
 
   <div class="sheet" id="sheet" hidden>
-    <div class="sheet-head"><h2>Settings</h2><button class="close" id="sheet-close" aria-label="Close">
-      <svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
-    <div class="sheet-body">
-      <div class="sheet-main">
-        <div class="opts">
-          <button class="opt" data-opt="night"><span class="knob"></span><span>Night mode<small>Dims the console for dark rooms</small></span></button>
-          <button class="opt" data-opt="sound"><span class="knob"></span><span>Click sounds<small>A short tick on every touch</small></span></button>
-          <button class="opt" data-opt="auto"><span class="knob"></span><span>Auto pages<small>Follow your seat, ship and status</small></span></button>
-          <button class="opt" data-opt="autostart" data-app><span class="knob"></span><span>Start with Windows<small>Waits in the tray until you play</small></span></button>
-          <button class="opt" data-opt="screen_off" data-app><span class="knob"></span><span>Screen off when not playing<small id="screen-note">Wakes when Star Citizen starts, or on a touch</small></span></button>
-          <button class="opt" data-opt="anywhere"><span class="knob"></span><span>Test mode<small>Send keys to any window, not just the game</small></span></button>
+    <nav class="tabs" id="tabs">
+      <h2>Settings</h2>
+      <button class="tab" data-sec="general"><svg class="i" viewBox="0 0 24 24"></svg><span>General</span></button>
+      <button class="tab" data-sec="screen"><svg class="i" viewBox="0 0 24 24"></svg><span>Screen</span></button>
+      <button class="tab" data-sec="feedback"><svg class="i" viewBox="0 0 24 24"></svg><span>Touch feedback</span></button>
+      <button class="tab" data-sec="binds"><svg class="i" viewBox="0 0 24 24"></svg><span>Keybinds</span></button>
+      <button class="tab" data-sec="about"><svg class="i" viewBox="0 0 24 24"></svg><span>About</span><i class="dot" id="tab-dot" hidden></i></button>
+      <button class="tab quit" id="act-quit"><svg class="i" viewBox="0 0 24 24"></svg><span>Quit</span></button>
+    </nav>
+    <div class="panes">
+      <button class="close" id="sheet-close" aria-label="Close"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <section class="pane" data-sec="general">
+        <h3>General</h3>
+        <div class="rows">
+          <button class="opt" data-opt="autostart" data-app><span class="txt">Start with Windows<small>Waits in the tray and shows itself when you play</small></span><span class="knob"></span></button>
+          <button class="opt" data-opt="auto"><span class="txt">Auto pages<small>Follow your seat, ship and status</small></span><span class="knob"></span></button>
+          <button class="opt" data-opt="anywhere"><span class="txt">Test mode<small>Send keys to any window, not just the game</small></span><span class="knob"></span></button>
         </div>
-        <div class="acts">
-          <button class="act" id="act-binds"><svg class="i" viewBox="0 0 24 24"></svg><span>Reload my binds<small id="binds-note">Default binds</small></span></button>
-          <button class="act" id="act-install"><svg class="i" viewBox="0 0 24 24"></svg><span>Add the console's binds to the game<small>Then pick "xeneon" in Control Profiles</small></span></button>
-          <button class="act" id="act-admin"><svg class="i" viewBox="0 0 24 24"></svg><span>Run as administrator<small>Only if the game runs as administrator</small></span></button>
-          <button class="act" id="act-sleep"><svg class="i" viewBox="0 0 24 24"></svg><span>Screen off now<small>Touch the screen to wake it</small></span></button>
-          <button class="act danger" id="act-quit"><svg class="i" viewBox="0 0 24 24"></svg><span>Quit<small>Close the console</small></span></button>
+      </section>
+      <section class="pane" data-sec="screen" hidden>
+        <h3>Screen</h3>
+        <div class="rows">
+          <button class="opt" data-opt="screen_off" data-app><span class="txt">Screen off when not playing<small id="screen-note">Wakes when Star Citizen starts, or on a touch</small></span><span class="knob"></span></button>
+          <button class="opt" data-opt="night"><span class="txt">Night mode<small>Dims the console for dark rooms</small></span><span class="knob"></span></button>
+          <button class="act" id="act-sleep"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Screen off now<small>Touch the screen to wake it</small></span></button>
         </div>
-        <p class="fine">Unofficial fan project, not affiliated with Cloud Imperium Games. Ship outlines from FleetYards.net. MIT License.</p>
-      </div>
-      <aside class="updates" id="updates">
-        <h3>Edge Cockpit <span id="version"></span></h3>
-        <p class="upd-state" id="upd-state">Checks for updates while you are not playing</p>
-        <div class="notes" id="upd-notes" hidden></div>
-        <button class="act" id="act-update" hidden><svg class="i" viewBox="0 0 24 24"></svg><span>Install and restart<small id="upd-size">Takes a few seconds</small></span></button>
-      </aside>
+      </section>
+      <section class="pane" data-sec="feedback" hidden>
+        <h3>Touch feedback</h3>
+        <div class="rows">
+          <button class="opt" data-opt="sound"><span class="txt">Click sounds<small>A short tick on every touch, pitched by the kind of control</small></span><span class="knob"></span></button>
+          <button class="opt" data-opt="flash"><span class="txt">Press flash<small>Lights a control when its key goes out</small></span><span class="knob"></span></button>
+        </div>
+      </section>
+      <section class="pane" data-sec="binds" hidden>
+        <h3>Keybinds</h3>
+        <div class="rows">
+          <button class="act" id="act-binds"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Reload my binds<small id="binds-note">Default binds</small></span></button>
+          <button class="act" id="act-install"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Add the console's binds to the game<small>Then pick "xeneon" in Control Profiles</small></span></button>
+          <button class="act" id="act-admin"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Run as administrator<small>Only if the game runs as administrator</small></span></button>
+        </div>
+      </section>
+      <section class="pane" data-sec="about" hidden>
+        <h3>About</h3>
+        <div class="about">
+          <aside class="updates" id="updates">
+            <h4>Edge Cockpit <span id="version"></span></h4>
+            <p class="upd-state" id="upd-state">Checks for updates while you are not playing</p>
+            <div class="notes" id="upd-notes" hidden></div>
+            <button class="act" id="act-update" hidden><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Install and restart<small id="upd-size">Takes a few seconds</small></span></button>
+          </aside>
+          <p class="fine">Unofficial fan project, not affiliated with Cloud Imperium Games. Ship outlines from FleetYards.net. MIT License.</p>
+        </div>
+      </section>
     </div>
   </div>
   <div class="toast" id="toast" role="status"><span id="toast-text"></span><button id="toast-act" hidden></button></div>

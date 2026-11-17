@@ -46,7 +46,7 @@ if (shots) await mkdir(shots, { recursive: true });
 async function checkLabels(where, sheet = false) {
   const found = await page.evaluate(sheet => {
     const out = [];
-    const FRAMES = '.cap, .placard, .screen, .rbtn, .qbtn, .corner, .chip, .under, .cover, .chan, .softkeys .well, .opt, .act, .plate, .updates, .sheet-head, .sheet-main';
+    const FRAMES = '.cap, .placard, .screen, .rbtn, .qbtn, .corner, .chip, .under, .cover, .chan, .softkeys .well, .opt, .act, .plate, .updates, .tab, .tabs, .pane';
     const inside = (r, f, m = -1) => r.left >= f.left + m && r.right <= f.right - m && r.top >= f.top + m && r.bottom <= f.bottom - m;
     const visible = el => { for (let e = el; e && e !== document.body; e = e.parentElement) { const s = getComputedStyle(e); if (s.display === 'none' || s.visibility === 'hidden' || e.hidden) return false; } return true; };
     const walker = document.createTreeWalker(document.getElementById('stage'), NodeFilter.SHOW_TEXT);
@@ -136,8 +136,15 @@ await page.evaluate(() => {
   n.hidden = false;
   n.innerHTML = '<h4>New</h4><li>Screen off when not playing</li><li>Start with Windows</li><p>Thanks for flying.</p>';
 });
-await checkLabels('settings', true);
-if (shots) await page.screenshot({ path: join(shots, 'settings.png') });
+// Every section of the sheet, one at a time.
+for (const sec of await page.evaluate(() => [...document.querySelectorAll('.tab[data-sec]')].map(t => t.dataset.sec))) {
+  await page.evaluate(sec => {
+    document.querySelectorAll('.pane').forEach(p => { p.hidden = p.dataset.sec !== sec; });
+    document.querySelectorAll('.tab[data-sec]').forEach(t => t.classList.toggle('cur', t.dataset.sec === sec));
+  }, sec);
+  await checkLabels(`settings: ${sec}`, true);
+  if (shots) await page.screenshot({ path: join(shots, `settings-${sec}.png`) });
+}
 await page.evaluate(() => { document.getElementById('sheet').hidden = true; });
 
 // Idle: nothing animates and no frames are asked for.
