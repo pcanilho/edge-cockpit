@@ -51,7 +51,7 @@ const store = {
   get(k, d) { try { const v = JSON.parse(localStorage.getItem('xfd-' + k)); return v ?? d; } catch { return d; } },
   set(k, v) { try { localStorage.setItem('xfd-' + k, JSON.stringify(v)); } catch { /* private mode */ } },
 };
-const opts = { night: store.get('night', false), sound: store.get('sound', true), auto: store.get('auto', true), anywhere: store.get('anywhere', false) };
+const opts = { night: store.get('night', false), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), anywhere: store.get('anywhere', false) };
 
 // ---------- binds: the player's actionmaps.xml, then our Xeneon profile, then the defaults ----------
 function parseActionmaps(text) {
@@ -174,7 +174,7 @@ async function wheel(clicks, node) {
  * `label` is a separate element that lights with the target (dial wedges).
  */
 function bind(node, k, { label } = {}) {
-  const fired = () => { flash(node, 'fired'); };
+  const fired = () => { if (opts.flash) flash(node, 'fired'); };
   const role = k.role;
   if (role === 'hold') {
     const min = holdMs(k);
@@ -266,6 +266,7 @@ const K = {
   bindText: k => (k.role === 'macro' ? '' : mine.stick[k.action] ? 'STICK' : keyText(bindOf(k))),
   isWeapon: k => WEAPON.test(`${k.actionmap} ${k.icon}`),
   bind, fire, wheel, flip, isOn, local, tick, toast, theme,
+  fired: node => { if (opts.flash) flash(node, 'fired'); },
   scale: () => Math.min(innerWidth / 2560, innerHeight / 720),
   swipe: dir => {
     const i = SWIPE.findIndex(s => current.startsWith(s));
@@ -416,7 +417,7 @@ function paintStatus() {
   fig.classList.remove('wait');
   let name, role;
   if (!info.running && game.menu) {
-    name = 'Waiting for Star Citizen'; role = 'The panel follows the game';
+    name = 'Standing by'; role = 'Waiting for Star Citizen';
     figureFor = null; fig.innerHTML = glyph('ship'); fig.classList.add('wait');
   } else if (game.menu) { name = 'Main menu'; role = 'Loading or between sessions'; figureFor = null; fig.innerHTML = glyph('layers'); fig.classList.add('wait'); }
   else if (game.down) { name = 'Downed'; role = 'Call for help or wait for medical'; figureFor = null; fig.innerHTML = glyph('medical'); }

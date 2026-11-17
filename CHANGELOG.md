@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Press flash: a control lights up for a moment when its key goes out, including the power corners. Turn it off in Settings.
+- Settings options sit four to a row, leaving room for more.
+- With no game running, the status screen reads "Standing by" instead of a title that wrapped over its subtitle.
+
 ## 0.3.0
 
 - **Edge Cockpit**: the console has a new name, logo and home.
