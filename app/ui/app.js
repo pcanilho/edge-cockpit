@@ -7,7 +7,7 @@ import { lookup } from './lib/ships.js';
 import * as bridge from './bridge.js';
 import * as controls from './controls.js';
 import { scene, init as initScenes, SWIPE, moduleOf } from './scenes.js';
-import { outline } from './outlines.js';
+import { outline, render as shipRender } from './outlines.js';
 import { ART } from './backdrops.js';
 import * as arrange from './arrange.js';
 import * as perf from './perf.js';
@@ -742,15 +742,48 @@ const MAKERS = { AEGS: '#ff6b5b', ANVL: '#7fb2ff', DRAK: '#ff9f43', MISC: '#5fe0
   CNOU: '#9be15d', ESPR: '#c49bff', KRIG: '#e0c070', BANU: '#d4a373', MRAI: '#ff7eb6', TMBL: '#f7d154', GRIN: '#b0e0a8', XIAN: '#7ef0ff', CRSD: '#6ec1ff', GAMA: '#c0d0e0' };
 const glyph = n => `<svg class="i" viewBox="0 0 24 24">${GLYPHS[n] || ''}</svg>`;
 
-// The maker's backdrop behind the status screen, drawn once per maker; a dark fade keeps text readable.
-let backdropFor = null;
-function paintBackdrop(maker) {
-  if (maker === backdropFor) return;
-  backdropFor = maker;
-  $('mfd').querySelector(':scope > .art')?.remove();
-  if (!maker) return;
-  const svg = controls.h(`<svg class="art" viewBox="0 0 338 588" preserveAspectRatio="none" aria-hidden="true">${ART[maker]()}<rect x="0" y="200" width="338" height="388" fill="url(#art-fade)"/></svg>`);
-  $('mfd').prepend(svg);
+// Maker names as plain text, for the large faint type behind the status screen.
+const MAKER_NAMES = { AEGS: ['Aegis', 'Dynamics'], ANVL: ['Anvil', 'Aerospace'], DRAK: ['Drake', 'Interplanetary'], MISC: ['MISC', 'Musashi Industrial'],
+  RSI: ['RSI', 'Roberts Space Industries'], ORIG: ['Origin', 'Jumpworks'], CRUS: ['Crusader', 'Industries'], CRSD: ['Crusader', 'Industries'],
+  ARGO: ['Argo', 'Astronautics'], CNOU: ['Consolidated', 'Outland'], ESPR: ['Esperia', ''], KRIG: ['Kruger', 'Intergalactic'], BANU: ['Banu', ''],
+  MRAI: ['Mirai', ''], TMBL: ['Tumbril', 'Land Systems'], GRIN: ['Greycat', 'Industrial'], XIAN: ['Aopoa', ''], GAMA: ['Gatac', 'Manufacture'] };
+
+// The backdrop behind the status screen: the ship's render from FleetYards (fetched once,
+// then kept), dimmed and faded, over the maker's name. Without a render (offline, or none),
+// themed makers get their line art instead. A dark fade keeps the text readable.
+let backdropKey = null;
+function paintBackdrop(cls, artMaker, nameMaker) {
+  const key = `${cls}|${artMaker}|${nameMaker}`;
+  if (key === backdropKey) return;
+  backdropKey = key;
+  const mfd = $('mfd');
+  mfd.querySelectorAll(':scope > .art, :scope > .shot, :scope > .mkname').forEach(e => e.remove());
+  mfd.classList.remove('rendered');
+  const art = () => {
+    if (!artMaker || mfd.querySelector(':scope > .art')) return;
+    mfd.prepend(controls.h(`<svg class="art" viewBox="0 0 338 588" preserveAspectRatio="none" aria-hidden="true">${ART[artMaker]()}<rect x="0" y="200" width="338" height="388" fill="url(#art-fade)"/></svg>`));
+  };
+  const words = MAKER_NAMES[nameMaker];
+  if (words) {
+    const t = document.createElement('div');
+    t.className = 'mkname';
+    t.setAttribute('aria-hidden', 'true');
+    const b = document.createElement('b'), s = document.createElement('small');
+    b.textContent = words[0]; s.textContent = words[1];
+    b.style.fontSize = Math.min(76, Math.floor(300 / (words[0].length * 0.62))) + 'px';
+    t.append(b, s);
+    mfd.append(t);
+    requestAnimationFrame(fitMakerName);
+  }
+  if (!cls) return art();
+  shipRender(cls).then(url => {
+    if (backdropKey !== key) return;
+    if (!url) return art();
+    const img = new Image();
+    img.className = 'shot'; img.alt = ''; img.decoding = 'async'; img.src = url;
+    mfd.prepend(img);
+    mfd.classList.add('rendered');
+  });
 }
 let figureFor = null; // the ship whose outline is showing or loading
 function paintFigure(fig, cls, fallback) {
@@ -796,7 +829,8 @@ function paintStatus() {
   const code = game.seated && game.ship ? game.ship.split('_')[0] : null;
   const themeCode = opts.makerTheme === 'auto' ? code : opts.makerTheme;
   if (THEMED.has(themeCode)) stage.dataset.maker = themeCode; else delete stage.dataset.maker;
-  paintBackdrop(THEMED.has(themeCode) ? themeCode : null);
+  const off = opts.makerTheme === 'off', artMaker = THEMED.has(themeCode) ? themeCode : null;
+  paintBackdrop(off ? null : game.seated && game.ship || null, artMaker, off ? null : code || artMaker);
   document.querySelectorAll('#theme-seg button').forEach(b => b.classList.toggle('cur', b.dataset.v === opts.makerTheme));
   paintIdle();
   $('ship-name').textContent = name;
@@ -877,6 +911,12 @@ function paintStatus() {
   stage.classList.toggle('wrecked', inWorld && game.seated && game.wrecked > 0);
   paintQuantum();
   paintLog();
+  requestAnimationFrame(fitMakerName);
+}
+// The maker's name only shows where the status text leaves room for it.
+function fitMakerName() {
+  const t = $('mfd').querySelector(':scope > .mkname');
+  if (t) t.classList.toggle('clash', document.querySelector('#mfd .facts').getBoundingClientRect().bottom > t.getBoundingClientRect().top - 8);
 }
 
 // ---------- the Log page: what the game log said this session ----------

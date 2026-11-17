@@ -1,7 +1,8 @@
-// Ship outlines for the status display, fetched from FleetYards.net the first time a
+// Ship outlines and renders for the status display, fetched from FleetYards.net the first time a
 // ship is seen and kept in the panel's storage after that. Nothing is bundled: the
 // fleet chart image (a top view on a transparent background) is turned nose left
-// and kept as a plain mask, which the panel paints in the maker's colour.
+// and kept as a plain mask, which the panel paints in the maker's colour; the angled
+// render is scaled down and kept for the dimmed backdrop.
 const API = 'https://api.fleetyards.net/v1/models';
 const RETRY_MS = 7 * 24 * 3600 * 1000; // try again weekly for ships with no outline
 const store = {
@@ -74,20 +75,34 @@ function mask(img) {
   return { url: out.toDataURL('image/png'), w: ow, h: oh };
 }
 
-async function fetchOutline(cls) {
+/** The first FleetYards model for a game class that pick() gets something from, or null. */
+async function fromModel(cls, pick) {
   const tried = new Set();
   const attempt = async slug => {
     if (!slug || tried.has(slug)) return null;
     tried.add(slug);
     const m = await json(`${API}/${slug}`);
-    const src = m?.media?.fleetchartImage;
-    return src ? mask(await image(src)) : null;
+    return m ? pick(m) : null;
   };
   for (const slug of slugsOf(cls)) { const s = await attempt(slug); if (s) return s; }
   const map = await bySc();
   const parts = cls.toLowerCase().split('_');
   for (let n = parts.length; n >= 2; n--) { const s = await attempt(map[parts.slice(0, n).join('_')]); if (s) return s; }
   return null;
+}
+const fetchOutline = cls => fromModel(cls, async m => (m.media?.fleetchartImage ? mask(await image(m.media.fleetchartImage)) : null));
+
+/** The ship's angled render (or store image), at most 560 px wide, as a WebP data URL. */
+async function shot(m) {
+  const v = m.media?.angledView || m.media?.storeImage;
+  const src = v?.mediumUrl || v?.url || (typeof v === 'string' ? v : null);
+  if (!src) return null;
+  const img = await image(src);
+  const scale = Math.min(1, 560 / img.naturalWidth);
+  const c = document.createElement('canvas');
+  c.width = Math.round(img.naturalWidth * scale); c.height = Math.round(img.naturalHeight * scale);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return c.toDataURL('image/webp', 0.8);
 }
 
 const pending = new Map();
@@ -106,4 +121,21 @@ export async function outline(cls) {
   }
   if (!shape) return null;
   return `<div class="ol" style="aspect-ratio:${shape.w}/${shape.h};-webkit-mask-image:url(${shape.url});mask-image:url(${shape.url})"></div>`;
+}
+
+const pendingShots = new Map();
+/** A data URL of the ship's render for the status backdrop, or null (offline, or none). Kept after the first fetch. */
+export async function render(cls) {
+  const key = 'xfd-render:' + cls;
+  const saved = store.get(key);
+  let url = saved?.url;
+  if (!saved || (!url && Date.now() - saved.at > RETRY_MS)) {
+    if (!navigator.onLine) return null;
+    if (!pendingShots.has(cls)) pendingShots.set(cls, fromModel(cls, shot).catch(() => undefined));
+    url = await pendingShots.get(cls);
+    pendingShots.delete(cls);
+    if (url === undefined) return null;
+    store.set(key, { at: Date.now(), url });
+  }
+  return url || null;
 }

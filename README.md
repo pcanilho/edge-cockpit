@@ -54,7 +54,7 @@ Every ship page has a power plate with a big **Flight Ready** button, a module f
 ## It follows the game
 
 - Opens the page for what you are doing: your ship's role page when you board, On foot when you leave, Downed when you go down.
-- Takes your ship maker's colours and shows its outline, role and quantum target. Outlines come from [FleetYards.net](https://fleetyards.net) the first time a ship is seen and are kept on your PC. On foot it shows the ship you last flew.
+- Takes your ship maker's colours and shows its outline, role and quantum target. Behind it sits a dimmed render of the ship over the maker's name. Outlines and renders come from [FleetYards.net](https://fleetyards.net) the first time a ship is seen and are kept on your PC. On foot it shows the ship you last flew.
 - Shows where you are ("Keeger · Nyx", "Asteroid base · Ungoverned") on a line of the system's planets.
 - Shows your mission: the objective, the contract with its rewards as chips, and where the objective's marker points. Game colour tags, and those of StarStrings and SmartCitizen, are read rather than shown. The game logs no distances, so there are none.
 - Lights a red frame only for a CrimeStat or your ship disabled. Unmonitored or ungoverned space is an amber note.
@@ -62,7 +62,7 @@ Every ship page has a power plate with a big **Flight Ready** button, a module f
 
 The game doesn't report gear, power, doors, lights or most switches. Where 4.x has separate on and off binds (power, lights, VTOL, limiter, decoupled, G-safe and others), the console uses an ON/OFF switch that sends exactly that state. It shows nothing until you set it, because the console can't know what the ship is doing. **All systems on** sets the main ones in one tap, so the switches match the ship. They go back to unknown when you leave the seat or change ship. Everything else is a push-button (doors get separate Open and Close keys), and the gear lever and missiles show what you last pressed. Hold the EDGE COCKPIT title for 2 seconds to see frame rate, CPU, memory and touch-to-key latency.
 
-No telemetry. The only network calls are ship outlines from FleetYards and the update check against these releases.
+No telemetry. The only network calls are ship outlines and renders from FleetYards and the update check against these releases.
 
 ## If keys do nothing
 
@@ -117,7 +117,7 @@ To release, add a section for the version to [CHANGELOG.md](CHANGELOG.md), set t
 
 ## Credits
 
-Ship roles come from the [Star Citizen Wiki API](https://api.star-citizen.wiki). Ship outlines are fetched at runtime from [FleetYards.net](https://fleetyards.net) and are not part of this repository. Star Citizen, its ships and its logos belong to Cloud Imperium Games.
+Ship roles come from the [Star Citizen Wiki API](https://api.star-citizen.wiki). Ship outlines and renders are fetched at runtime from [FleetYards.net](https://fleetyards.net) and are not part of this repository. Star Citizen, its ships and its logos belong to Cloud Imperium Games.
 
 ## License
 
