@@ -125,18 +125,18 @@ async fn key(app: State<'_, App>, spec: String, mode: String, ms: Option<u64>, a
         }
         match mode.as_str() {
             "down" => {
-                win::send(&chord, false)?;
+                press(&chord, false).await?;
                 app.held.lock().unwrap().insert(spec);
             }
             "up" => {
                 app.held.lock().unwrap().remove(&spec);
-                win::send(&chord, true)?;
+                press(&chord, true).await?;
             }
             _ => {
-                win::send(&chord, false)?;
+                press(&chord, false).await?;
                 // Star Citizen polls input once a frame, so a tap must last a few frames.
                 tokio_sleep(ms.unwrap_or(60).clamp(30, 5000)).await;
-                win::send(&chord, true)?;
+                press(&chord, true).await?;
             }
         }
         Ok(())
@@ -167,6 +167,27 @@ fn wheel(clicks: i32, anywhere: bool) -> Result<(), String> {
     {
         let _ = clicks;
         Err("not-windows".into())
+    }
+}
+
+/// Presses or releases a chord. Modifiers go down a moment before the key and come up a
+/// moment after it: the game reads input once a frame, and a modifier landing in the
+/// same frame as its key is missed (RCtrl+F2 then reads as F2, the starmap).
+#[cfg(windows)]
+async fn press(chord: &[keys::Key], up: bool) -> Result<(), String> {
+    const GAP_MS: u64 = 25;
+    let (mods, key) = chord.split_at(chord.len().saturating_sub(1));
+    if mods.is_empty() {
+        return win::send(key, up);
+    }
+    if up {
+        win::send(key, true)?;
+        tokio_sleep(GAP_MS).await;
+        win::send(mods, true)
+    } else {
+        win::send(mods, false)?;
+        tokio_sleep(GAP_MS).await;
+        win::send(key, false)
     }
 }
 
