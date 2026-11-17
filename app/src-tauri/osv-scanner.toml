@@ -1,0 +1,33 @@
+# Advisories in Cargo.lock that don't reach the app. Edge Cockpit only ships for
+# Windows; these crates come in through Tauri's Linux backend (GTK, D-Bus) or as
+# build-time tooling, and none of them is compiled into the Windows build
+# (`cargo tree --target x86_64-pc-windows-msvc -i <crate>` prints nothing).
+# cargo-deny checks the Windows target and flags anything that does reach it.
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0429"
+reason = "glib (GTK, Linux only): not in the Windows build. Tauri pins gtk-rs 0.18."
+
+[[IgnoredVulns]]
+id = "GHSA-wrw7-89jp-8q8g"
+reason = "Same glib advisory as RUSTSEC-2024-0429: Linux only, not in the Windows build."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2024-0370"
+reason = "proc-macro-error is unmaintained, not vulnerable; pulled in by the Linux GTK bindings only."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0371"
+reason = "zbus_names is unmaintained, not vulnerable; D-Bus on Linux only."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0370"
+reason = "zvariant is unmaintained, not vulnerable; D-Bus on Linux only."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0372"
+reason = "zvariant_derive is unmaintained, not vulnerable; D-Bus on Linux only."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0543"
+reason = "chrono is unmaintained, not vulnerable; not in the Windows build."
