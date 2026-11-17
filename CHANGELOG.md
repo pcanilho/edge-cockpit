@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fix: the app passed only part of Game.log to the console, so in the installed app it missed boarding a ship on 4.10, hangar status and the new Log page events (the browser demo was fine). Every line the console reads now gets through, and a test checks each one.
 - Log page (new Log soft key): who downed you last, with the weapon and the hospital you respawn at; region and shard; the last jump; a finished refinery job; ships stored or ejected from; and a timeline of the session from the game log.
 - Quantum: the destination comes from the route the drive plots as well as the marker, and shows "Arrived" once the drive drops out.
 - Disabled ship: Flight ready and All systems on become Self repair all and Emergency exit until the ship is back.
