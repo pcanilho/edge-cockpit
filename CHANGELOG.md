@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- The Settings key lights up while Settings is open, and tapping a page key closes Settings.
 - The VirusTotal badge shows the latest release's real result (engines that flag it), and the release notes give the result next to each exe's report link.
 - Profiles: save your settings, plate order, ship roles and keyboard binds to Documents\Edge Cockpit\profile.json, and load them on another PC. Loading adds the binds to the game's Control Profiles as "edge-cockpit-profile".
 - With no game running, the controls grey out, and the game link at the top of the status screen is now a clear pill: grey OFFLINE with no game, the game channel and version in amber while it runs behind, green when it's in front.
