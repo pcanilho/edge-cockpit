@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- The VirusTotal badge shows the latest release's real result (engines that flag it), and the release notes give the result next to each exe's report link.
+- Profiles: save your settings, plate order, ship roles and keyboard binds to Documents\Edge Cockpit\profile.json, and load them on another PC. Loading adds the binds to the game's Control Profiles as "edge-cockpit-profile".
+- With no game running, the controls grey out, and the game link at the top of the status screen is now a clear pill: grey OFFLINE with no game, the game channel and version in amber while it runs behind, green when it's in front.
+- The tray menu is down to one item that shows or hides the console, plus Quit, and a left click does the same. Show and hide now work reliably.
 - Keybind check: at start and whenever your binds change, the console checks every key it can send. Keys with no keyboard bind, joystick-only binds and two actions sharing a key show in Settings, Keybinds, and a chip on the status screen points there.
 - Press flash: a control lights up for a moment when its key goes out, including the power corners. Turn it off in Settings.
 - Settings are grouped into sections (General, Screen, Touch feedback, Keybinds, About) with room to grow. The update chip opens About.

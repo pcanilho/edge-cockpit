@@ -23,7 +23,7 @@ use windows::Win32::UI::Shell::{DefSubclassProc, IsUserAnAdmin, SetWindowSubclas
 use windows::Win32::UI::WindowsAndMessaging::{
     GetForegroundWindow, GetWindowLongPtrW, GetWindowThreadProcessId, IsWindow, SetForegroundWindow,
     SetWindowLongPtrW, SetWindowPos, ShowWindow, EVENT_SYSTEM_FOREGROUND, GWL_EXSTYLE, HWND_TOPMOST,
-    SWP_FRAMECHANGED, SWP_NOACTIVATE, SW_SHOWNOACTIVATE, SW_SHOWNORMAL, WINEVENT_OUTOFCONTEXT,
+    SWP_FRAMECHANGED, SWP_NOACTIVATE, SW_HIDE, SW_SHOWNOACTIVATE, SW_SHOWNORMAL, WINEVENT_OUTOFCONTEXT,
     WS_EX_APPWINDOW, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST,
 };
 
@@ -111,6 +111,17 @@ pub fn show_no_activate() {
     if raw != 0 {
         unsafe {
             let _ = ShowWindow(hwnd(raw), SW_SHOWNOACTIVATE);
+        }
+    }
+}
+
+/// Hides the panel. Showing and hiding both go straight to Windows, so the window
+/// library's own idea of visibility never fights them.
+pub fn hide_panel() {
+    let raw = PANEL.load(Ordering::SeqCst);
+    if raw != 0 {
+        unsafe {
+            let _ = ShowWindow(hwnd(raw), SW_HIDE);
         }
     }
 }
