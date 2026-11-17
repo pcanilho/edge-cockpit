@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0
 
 - Two rows on a screen that isn't ultra-wide: on a 16:10, 4:3 or portrait monitor or a tablet the console stacks into two rows when that makes the keys bigger (a third bigger on 4:3, half again on a portrait 1080p screen). On 16:9 one row is already as big, so it stays. Settings > Screen turns it off.
 - Spare slots: where a ship lacks the kit (no missiles, EMP or QED), hold the empty slot to put any tap key there, picked from a list by group. Hold it again to change or clear it. Kept per page and saved in profiles.
