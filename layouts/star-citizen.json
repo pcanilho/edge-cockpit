@@ -9730,9 +9730,9 @@
     {
      "label": "Push to talk",
      "action": "foip_pushtotalk",
-     "actionmap": "default",
+     "actionmap": "player_input_optical_tracking",
      "defaultKey": "np_add",
-     "activation": "press",
+     "activation": "hold",
      "press": "hold",
      "needsKeyboardBind": false,
      "icon": "chat",
