@@ -330,7 +330,17 @@ function setOpt(name, v) {
   $('auto').classList.toggle('on', opts.auto);
   if (name === 'auto' && v) follow(true);
 }
-function openSheet(open) { $('sheet').hidden = !open; }
+const TAB_ICONS = { general: 'cog', screen: 'bulb', feedback: 'pulse', binds: 'list', about: 'download' };
+function showSection(sec) {
+  document.querySelectorAll('.tab[data-sec]').forEach(t => t.classList.toggle('cur', t.dataset.sec === sec));
+  document.querySelectorAll('.pane').forEach(p => { p.hidden = p.dataset.sec !== sec; });
+}
+function openSheet(open, sec) { if (sec) showSection(sec); $('sheet').hidden = !open; }
+document.querySelectorAll('.tab[data-sec]').forEach(t => {
+  t.querySelector('svg').innerHTML = GLYPHS[TAB_ICONS[t.dataset.sec]] || '';
+  controls.pressable(t, { up: () => { tick('page'); showSection(t.dataset.sec); } });
+});
+showSection('general');
 document.querySelectorAll('.opt').forEach(o => controls.pressable(o, { up: () => { tick('toggle'); setOpt(o.dataset.opt, !opts[o.dataset.opt]); } }));
 controls.pressable($('sheet-close'), { up: () => openSheet(false) });
 controls.pressable($('auto'), { up: () => { tick('toggle'); setOpt('auto', !opts.auto); } });
@@ -376,6 +386,7 @@ function paintUpdate() {
   chip.hidden = !update;
   if (update) chip.querySelector('span').textContent = `Update ${update.version}`;
   $('act-update').hidden = !update;
+  $('tab-dot').hidden = !update;
   const seen = store.get('whats-new', null);
   const notes = update?.notes || (seen?.version === prefs.version ? seen.notes : '');
   $('upd-state').textContent = update ? `Version ${update.version} is ready. What's new:` : notes ? `What's new in ${prefs.version}:` : 'Up to date. Checks while you are not playing.';
@@ -394,7 +405,7 @@ async function installUpdate() {
   toast(`Installing ${update.version}. The console restarts in a few seconds.`);
   try { await bridge.installUpdate(); } catch (e) { toast(`The update failed: ${e?.message || e}`); }
 }
-controls.pressable($('update'), { up: () => { tick('tap'); openSheet(true); } });
+controls.pressable($('update'), { up: () => { tick('tap'); openSheet(true, 'about'); } });
 $('toast-act').addEventListener('pointerdown', e => e.stopPropagation());
 
 // ---------- game state ----------
@@ -547,7 +558,7 @@ if (prefs.backlight === false) $('screen-note').textContent = 'The Edge keeps it
 const fresh = store.get('whats-new', null);
 if (fresh?.fresh && fresh.version === prefs.version) {
   store.set('whats-new', { ...fresh, fresh: false });
-  setTimeout(() => toast(`Updated to ${prefs.version}`, { label: "What's new", run: () => openSheet(true) }), 1500);
+  setTimeout(() => toast(`Updated to ${prefs.version}`, { label: "What's new", run: () => openSheet(true, 'about') }), 1500);
 }
 paintUpdate();
 setTimeout(() => { checkUpdate(); setInterval(checkUpdate, 6 * 3600_000); }, 20_000);
