@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Maker themes: in a Drake, Aegis, Origin, MISC or Anvil ship, the plates and title trim take on that maker's style. Settings > Screen > Maker theme: Auto (follows your ship), Off, or one maker always.
 - When the game restarts and starts a new Game.log, the console starts over with it instead of keeping the last session's state.
 - Log page: this session's time played, kills, times downed, missions and ships flown above the timeline.
 - The layout and ship data load without whitespace (the layout drops from 300 KB to 190 KB).
@@ -16,7 +17,7 @@
 ## 0.4.0
 
 - The keybind profile in the game is now called **edge-cockpit**.
-- Two rows on a screen that isn't ultra-wide: on a 16:10, 4:3 or portrait monitor or a tablet the console stacks into two rows when that makes the keys bigger (a third bigger on 4:3, half again on a portrait 1080p screen). On 16:9 one row is already as big, so it stays. Settings > Screen turns it off.
+- Two rows on a screen that isn't ultra-wide: on a 16:10, 4:3 or portrait monitor or a tablet the console stacks into two rows when that makes the keys bigger (a third bigger on 4:3, half again on a portrait 1080p screen). On 16:9 one row is already as big, so it stays. Settings > Screen > Maker theme: Auto (follows your ship), Off, or one maker always.
 - Spare slots: where a ship lacks the kit (no missiles, EMP or QED), hold the empty slot to put any tap key there, picked from a list by group. Hold it again to change or clear it. Kept per page and saved in profiles.
 - Hangar status: a chip and an alert follow a ship you call at a fleet terminal (called, lift rising, ready, with the hangar size) and a landing hangar ATC assigns you. It clears when you board or leave the seat. The log says nothing about pads or hangar numbers, so neither is shown.
 - The weapon wheel and map dial are slightly smaller so their rims no longer run under the corner keys. A screen test now fails if any two controls or plates touch on any page.

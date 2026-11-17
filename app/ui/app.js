@@ -54,8 +54,11 @@ const store = {
 };
 // Night mode is off, on, or auto (dark from 20:00 to 07:00 by this PC's clock). Older builds stored a boolean.
 const NIGHT_FROM = 20, NIGHT_TO = 7;
+// Maker theme: auto (the ship's maker), off, or one maker's theme always. Older builds stored a boolean.
+const THEMED = new Set(['DRAK', 'AEGS', 'ORIG', 'MISC', 'ANVL']);
+const themeMode = v => (v === false ? 'off' : v === 'off' || THEMED.has(v) ? v : 'auto');
 const nightMode = v => (v === true ? 'on' : ['on', 'auto'].includes(v) ? v : 'off');
-const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), anywhere: store.get('anywhere', false), stack: store.get('stack', true) };
+const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), anywhere: store.get('anywhere', false), stack: store.get('stack', true), makerTheme: themeMode(store.get('makerTheme', 'auto')) };
 
 // ---------- binds: the player's actionmaps.xml, then our Xeneon profile, then the defaults ----------
 function parseActionmaps(text) {
@@ -511,6 +514,7 @@ function setOpt(name, v) {
   opts[name] = v;
   if (APP_OPTS.includes(name)) bridge.setPref(name, v); else store.set(name, v);
   if (name === 'stack') fit();
+  if (name === 'makerTheme') paintStatus();
   paintNight();
   document.querySelectorAll('.opt[data-opt]').forEach(o => o.classList.toggle('on', !!opts[o.dataset.opt]));
   $('auto').classList.toggle('on', opts.auto);
@@ -556,6 +560,7 @@ document.querySelectorAll('.tab[data-sec]').forEach(t => {
 showSection('general');
 document.querySelectorAll('.opt[data-opt]').forEach(o => controls.pressable(o, { up: () => { tick('toggle'); setOpt(o.dataset.opt, !opts[o.dataset.opt]); } }));
 document.querySelectorAll('#night-seg button').forEach(b => controls.pressable(b, { up: () => { tick('toggle'); setOpt('night', b.dataset.v); } }));
+document.querySelectorAll('#theme-seg button').forEach(b => controls.pressable(b, { up: () => { tick('toggle'); setOpt('makerTheme', b.dataset.v); } }));
 controls.pressable($('sheet-close'), { up: () => openSheet(false) });
 controls.pressable($('auto'), { up: () => { tick('toggle'); setOpt('auto', !opts.auto); } });
 async function installBinds() {
@@ -573,7 +578,7 @@ $('qt').querySelector('svg').innerHTML = GLYPHS.quantum;
 
 // ---------- profile: settings, plate order, ship roles and keyboard binds in one file ----------
 // Saved as Documents\Edge Cockpit\profile.json, to copy to another PC or keep as a backup.
-const PROFILE_OPTS = ['night', 'sound', 'flash', 'auto', 'recap', 'alertSound', 'anywhere', 'stack', 'autostart', 'screen_off'];
+const PROFILE_OPTS = ['night', 'sound', 'flash', 'auto', 'recap', 'alertSound', 'anywhere', 'stack', 'makerTheme', 'autostart', 'screen_off'];
 /** The keyboard binds in an actionmaps.xml, as a Control Profile the game can load. */
 function bindsProfile(text) {
   const doc = new DOMParser().parseFromString(text, 'application/xml');
@@ -610,7 +615,7 @@ async function saveProfile() {
   const binds = await bridge.readBinds().catch(() => null);
   const profile = {
     app: 'edge-cockpit', format: 1, version: prefs.version, saved: new Date().toISOString(),
-    settings: Object.fromEntries(PROFILE_OPTS.map(k => [k, k === 'night' ? opts.night : !!opts[k]])),
+    settings: Object.fromEntries(PROFILE_OPTS.map(k => [k, k === 'night' || k === 'makerTheme' ? opts[k] : !!opts[k]])),
     plates,
     slots,
     ships: (() => { try { return ships ? JSON.parse(ships) : null; } catch { return null; } })(),
@@ -626,6 +631,7 @@ async function loadProfile() {
   for (const k of PROFILE_OPTS) {
     const v = p.settings?.[k];
     if (k === 'night' && v !== undefined) setOpt(k, nightMode(v));
+    else if (k === 'makerTheme' && v !== undefined) setOpt(k, themeMode(v));
     else if (typeof v === 'boolean') setOpt(k, v);
   }
   for (const [role, order] of Object.entries(p.plates || {})) if (Array.isArray(order)) store.set(`order:${role}`, order);
@@ -775,6 +781,11 @@ function paintStatus() {
   makerAccent = maker;
   applyAccent();
   stage.style.setProperty('--ship', maker || 'var(--accent)');
+  // Maker themes: the plate metal and title trim of the maker of the ship you sit in.
+  const code = game.seated && game.ship ? game.ship.split('_')[0] : null;
+  const themeCode = opts.makerTheme === 'auto' ? code : opts.makerTheme;
+  if (THEMED.has(themeCode)) stage.dataset.maker = themeCode; else delete stage.dataset.maker;
+  document.querySelectorAll('#theme-seg button').forEach(b => b.classList.toggle('cur', b.dataset.v === opts.makerTheme));
   paintIdle();
   $('ship-name').textContent = name;
   $('ship-role').textContent = role;
