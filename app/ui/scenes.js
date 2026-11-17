@@ -236,10 +236,12 @@ function logPage() {
   const card = (id, x, y, w, ht, title) => screen(x, y, w, ht, `<small>${esc(title)}</small><span class="t" id="${id}-t"></span><b id="${id}-b"></b><p id="${id}-p"></p><p id="${id}-q"></p>`, 'card');
   // Two plates, so that two-row mode can stack them.
   const list = plate(1488, 1066, 'This session', { cls: 'logp' });
+  const stats = [['lg-time', 'Played'], ['lg-kills', 'Kills'], ['lg-deaths', 'Downed'], ['lg-missions', 'Missions'], ['lg-ships-n', 'Ships flown']]
+    .map(([id, l]) => `<div><b id="${id}">0</b><small>${esc(l)}</small></div>`).join('');
   return [add(p,
     card('lg-down', 24, 46, 520, 300, 'Last downed'), card('lg-where', 556, 46, 520, 300, 'Where'),
     card('lg-ref', 24, 358, 520, 322, 'Refinery'), card('lg-ships', 556, 358, 520, 322, 'Ships')),
-  add(list, screen(24, 46, 1018, 634, '<ol id="lg-list"></ol>', 'list'))];
+  add(list, screen(24, 46, 1018, 96, stats, 'stats'), screen(24, 154, 1018, 526, '<ol id="lg-list"></ol>', 'list'))];
 }
 
 const MODULES = { mfd, fighter, crew, mining, salvage, cargo, medical, ground, systems };

@@ -879,6 +879,13 @@ function paintLog() {
   const st = game.stored, last = game.lastShip, ej = d?.ejected;
   set('lg-ships', '', st ? `Stored${lastRow('stored') ? ' at ' + hhmm(lastRow('stored').ts) : ''}` : last ? (game.seated ? 'Flying now' : 'Last flown') : 'No ship this session',
     ej ? `Thrown clear of <em>${esc(shipLabel(ej.replace(/_\d+$/, '')))}</em>` : '', st ? shipLabel(st.ship) : last ? shipLabel(last.ship) : '');
+  // This session's totals, as the recap counts them.
+  const mins = minutes(session);
+  $('lg-time').textContent = mins >= 60 ? `${Math.floor(mins / 60)} h ${String(mins % 60).padStart(2, '0')}` : `${mins} min`;
+  $('lg-kills').textContent = session.kills;
+  $('lg-deaths').textContent = session.deaths;
+  $('lg-missions').textContent = session.missions;
+  $('lg-ships-n').textContent = session.ships.length;
   $('lg-list').innerHTML = logRows.length
     ? logRows.map(e => `<li><time>${hhmm(e.ts)}</time><i class="${e.tone}"></i><span>${esc(e.text)}</span></li>`).join('')
     : '<li class="empty"><span>Nothing yet. Events from the game log show here as they happen.</span></li>';

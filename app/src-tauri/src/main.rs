@@ -736,7 +736,11 @@ fn watch_game(handle: AppHandle) {
             }
             if let Some(t) = tail.as_mut() {
                 let lines = t.poll();
-                if lines.is_empty() {
+                if std::mem::take(&mut t.restarted) {
+                    // The game started over: the console starts over too, as on first load.
+                    quiet = Duration::ZERO;
+                    let _ = handle.emit("game-log", LogBatch { lines, live: false, reset: true });
+                } else if lines.is_empty() {
                     quiet = quiet.saturating_add(game::POLL);
                 } else {
                     quiet = Duration::ZERO;

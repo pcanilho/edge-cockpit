@@ -568,3 +568,8 @@ body.is-dark #stage { visibility: hidden; }
 .logp .list li time { font: 600 13px/1 var(--hud); color: var(--dim); }
 .logp .list li i { width: 9px; height: 9px; border-radius: 50%; background: var(--cyan); align-self: center; }
 .logp .list li i.bad { background: var(--danger); } .logp .list li i.good { background: var(--ok); } .logp .list li i.warn { background: var(--hold); }
+.logp .stats { display: grid; grid-template-columns: repeat(5, 1fr); padding: 0 8px; }
+.logp .stats div { position: static; display: flex; flex-direction: column; justify-content: center; padding-left: 20px; border-left: 1px solid #ffffff10; }
+.logp .stats div:first-child { border: 0; }
+.logp .stats b { position: static; font: 600 30px/1 var(--body); color: var(--paint); }
+.logp .stats small { position: static; font: 700 10px/1.4 var(--hud); letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin-top: 8px; }
