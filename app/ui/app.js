@@ -1,7 +1,7 @@
 // Edge Cockpit: builds the cockpit console, turns touches into key presses and
 // follows Game.log for the status display, the moods and the pages.
 import { GLYPHS } from './lib/glyphs.js';
-import { parseLine, reduce, lawless, EMPTY, version, untested, place, tally, stamp, NEW_TALLY, minutes, shipName, alertsFor, hangarText } from './lib/gamelog.js';
+import { parseLine, reduce, lawless, EMPTY, version, untested, place, tally, stamp, NEW_TALLY, minutes, shipName, alertsFor, hangarText, culprit, logFor, shardName, weaponName, placeName } from './lib/gamelog.js';
 import { pageFor, pageById } from './lib/pages.js';
 import { lookup } from './lib/ships.js';
 import * as bridge from './bridge.js';
@@ -359,6 +359,9 @@ const family = k => !k ? 'sys' : k.role === 'critical' || /eject|self_destruct|p
   : isWeapon(k) || /^spaceship_target(ing|ing_advanced|_hailing)$/.test(k.actionmap || '') ? 'wpn'
   : FLIGHT.test(k.actionmap || '') ? 'flt' : 'sys';
 const theme = page => page.theme || pageById(layout, page.role?.tab || page.tab || 'flight')?.theme || { accent: '#5cc8e6', glyph: 'ship' };
+// The Log page's rows, newest first, and the server-lag chip's last stall.
+const LOG_MAX = 50, LAG_MS = 45000;
+let logRows = [], lagSeen = null, lagTimer = null, liveLog = false;
 let current = 'flight', rolePage = null, lastShip = 'flight', pageAccent = '#5cc8e6', makerAccent = null;
 const applyAccent = () => stage.style.setProperty('--accent', makerAccent || pageAccent);
 
@@ -465,6 +468,7 @@ function render() {
   stack();
   repaint();
   paintQuantum();
+  paintLog();
   paintSoftkeys();
 }
 
@@ -482,6 +486,7 @@ const SOFT = [
   { label: 'On foot', icon: 'helmet', go: () => 'onfoot', is: id => id === 'onfoot' || id === 'emotes' },
   { label: 'Map', icon: 'map', go: () => 'map', is: id => id === 'map' },
   { label: 'Downed', icon: 'medical', go: () => 'downed', is: id => id === 'downed' },
+  { label: 'Log', icon: 'list', go: () => 'log', is: id => id === 'log' },
   { label: 'Settings', icon: 'cog', go: null },
 ];
 function buildSoftkeys() {
@@ -808,8 +813,16 @@ function paintStatus() {
   const odd = untested(game);
   $('build').hidden = !odd;
   $('build').querySelector('span').textContent = odd ? `Untested build ${version(game.build.branch)}` : '';
-  $('qt').hidden = !game.qtTarget;
-  $('qt-name').textContent = game.qtTarget ? `Quantum to ${game.qtTarget.replace(/_/g, ' ')}` : '';
+  // Quantum: where the drive is set to, from the route or the marker, then where it arrived.
+  const qtTo = game.qtTarget || game.qtRoute?.to, qtAt = !qtTo && game.qtArrived;
+  $('qt').hidden = !qtTo && !qtAt;
+  $('qt').classList.toggle('arrived', !!qtAt);
+  $('qt-name').textContent = qtTo ? `Quantum to ${qtTo.replace(/_/g, ' ')}` : qtAt ? `Arrived · ${qtAt.replace(/_/g, ' ')}` : '';
+  // Server lag: the log names each stall of your client; the chip shows for a while after one.
+  const lagOn = !!game.lag && game.lag.n !== lagSeen && liveLog;
+  if (lagOn) { lagSeen = game.lag.n; clearTimeout(lagTimer); $('lag').hidden = false; lagTimer = setTimeout(() => { $('lag').hidden = true; }, LAG_MS); }
+  if (game.menu) $('lag').hidden = true;
+  $('lag').querySelector('span').textContent = game.lag ? `Server lag ${game.lag.len >= 1 ? Math.round(game.lag.len) + ' s' : ''}`.trim() : '';
 
   const esc = controls.esc;
   const m = game.mission, card = $('mission');
@@ -837,7 +850,38 @@ function paintStatus() {
   // Unmonitored or lawless space is only a note on the law chip.
   stage.classList.toggle('alert', inWorld && (game.crime > 0 || (game.seated && game.wrecked > 0)));
   stage.classList.toggle('downed', inWorld && game.down);
+  // A disabled ship swaps Flight ready and All systems on for Self repair and Emergency exit.
+  stage.classList.toggle('wrecked', inWorld && game.seated && game.wrecked > 0);
   paintQuantum();
+  paintLog();
+}
+
+// ---------- the Log page: what the game log said this session ----------
+const hhmm = ts => ts ? new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
+const shipLabel = m => lookup(shipsDb.ships, overrides.ships, m)?.name || shipName(m);
+const lastRow = kind => logRows.find(r => r.kind === kind);
+function paintLog() {
+  if (current !== 'log' || !$('lg-list')) return;
+  const esc = controls.esc, set = (id, t = '', p = '', q = '', b = '') => {
+    $(id + '-t').textContent = t; $(id + '-b').textContent = b; $(id + '-p').innerHTML = p; $(id + '-q').innerHTML = q;
+    $(id + '-b').closest('.card').classList.toggle('none', !b);
+  };
+  const d = game.downedBy;
+  const by = d && culprit(d.by, game.me);
+  set('lg-down', hhmm(lastRow('down')?.ts), d ? [d.weapon && esc(weaponName(d.weapon)), d.damage && esc(d.damage.toLowerCase()) + ' hit'].filter(Boolean).join(' · ') : 'Nothing this session',
+    d?.hospital ? `Respawn at <em>${esc(placeName(d.hospital) || d.hospital)}</em>` : '', d ? (by ? `By ${by}` : 'Downed') : '');
+  const s = shardName(game.shard), at = game.location ? placeName(game.location) : null;
+  set('lg-where', '', s ? `Region <em>${esc(s.region || '?')}</em> · shard <em>${esc(s.n)}</em>` : 'No shard joined yet',
+    game.jump ? `Last jump <em>${esc(game.jump.from || '?')} → ${esc(game.jump.to)}</em>${lastRow('jump') ? ' at ' + hhmm(lastRow('jump').ts) : ''}` : '',
+    [at, game.system].filter(Boolean).join(' · ') || (s ? 'In the verse' : ''));
+  const r = game.refinery;
+  set('lg-ref', hhmm(lastRow('refinery')?.ts), r ? esc(r.place) : 'No job finished this session', r ? 'Pick it up at the refinery terminal.' : '', r ? 'Job done' : '');
+  const st = game.stored, last = game.lastShip, ej = d?.ejected;
+  set('lg-ships', '', st ? `Stored${lastRow('stored') ? ' at ' + hhmm(lastRow('stored').ts) : ''}` : last ? (game.seated ? 'Flying now' : 'Last flown') : 'No ship this session',
+    ej ? `Thrown clear of <em>${esc(shipLabel(ej.replace(/_\d+$/, '')))}</em>` : '', st ? shipLabel(st.ship) : last ? shipLabel(last.ship) : '');
+  $('lg-list').innerHTML = logRows.length
+    ? logRows.map(e => `<li><time>${hhmm(e.ts)}</time><i class="${e.tone}"></i><span>${esc(e.text)}</span></li>`).join('')
+    : '<li class="empty"><span>Nothing yet. Events from the game log show here as they happen.</span></li>';
 }
 // ---------- the system you are in, as a line of its planets from the star out ----------
 // Drawn here, not fetched: planets in order, belts as dotted marks, where you are ringed.
@@ -895,16 +939,20 @@ function follow(force) {
 
 bridge.onGameLog(({ lines, live, reset }) => {
   // A new Game.log means a new channel or a restart: its binds may differ too.
-  if (reset) { game = { ...EMPTY }; session = { ...NEW_TALLY }; lastSeq = 0; if (bridge.inApp) { reloadBinds(); loadUserShips(); } }
+  if (reset) { game = { ...EMPTY }; session = { ...NEW_TALLY }; lastSeq = 0; logRows = []; if (bridge.inApp) { reloadBinds(); loadUserShips(); } }
   for (const line of lines) {
     const ev = parseLine(line);
     const was = game;
     if (ev) game = reduce(game, ev);
     session = tally(session, was, game, stamp(line));
+    if (ev) for (const e of logFor(was, game)) logRows.unshift({ ...e, ts: stamp(line) });
     if (live && !was.menu && game.menu) showRecap();
     if (live && ev) for (const a of alertsFor(was, game)) raise(a);
     if (!game.menu) $('recap').hidden = true;
   }
+  if (logRows.length > LOG_MAX) logRows.length = LOG_MAX;
+  liveLog = live;
+  if (!live) lagSeen = game.lag?.n ?? null;
   follow(!live);
   paintStatus();
   paintChannel();

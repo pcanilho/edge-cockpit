@@ -13,12 +13,13 @@ const W = { power: 450, role: 818, flight: 612, gear: 274 };
 /** Which role module a page shows. */
 export const MODULE = {
   flight: 'systems', power: 'systems', combat: 'fighter', industry: 'mining',
-  'multi-crew': 'crew', mining: 'mining', salvage: 'salvage', cargo: 'cargo', medical: 'medical', ground: 'ground',
+  'multi-crew': 'crew', mfd: 'mfd', mining: 'mining', salvage: 'salvage', cargo: 'cargo', medical: 'medical', ground: 'ground',
 };
 export const moduleOf = id => MODULE[id] || (id.startsWith('light-fighter') || id.startsWith('heavy-fighter') ? 'fighter' : id.startsWith('multi-crew') ? 'crew' : null);
 /** Pages a swipe on the role module steps through. */
-export const SWIPE = ['light-fighter', 'heavy-fighter', 'multi-crew', 'mining', 'salvage', 'cargo', 'medical', 'ground', 'flight'];
+export const SWIPE = ['light-fighter', 'heavy-fighter', 'multi-crew', 'mining', 'salvage', 'cargo', 'medical', 'ground', 'flight', 'mfd'];
 
+const tag = (el, cls) => { el.classList.add(cls); return el; };
 const add = (p, ...els) => { for (const e of els.flat()) if (e) p.appendChild(e); return p; };
 const cut = { cut: true, lc: 'var(--cyan)', lit: true };
 // Open and close rather than one toggle: the game doesn't say whether the doors are open.
@@ -31,8 +32,11 @@ function powerPlate() {
   return add(p,
     onOff(16, 44, 'Power', { guard: true, w: 100 }), onOff(122, 44, 'Thrusters', { w: 100 }),
     onOff(228, 44, 'Shields', { w: 100 }), onOff(334, 44, 'Weapons', { w: 100 }),
-    keycap(18, 262, 274, 196, 'Flight ready', { fs: 22, is: 40, lc: 'var(--ok)', lit: true }),
-    keycap(298, 262, 134, 196, 'All systems on', { label: 'All systems on', fs: 13, is: 28, ...cut }),
+    tag(keycap(18, 262, 274, 196, 'Flight ready', { fs: 22, is: 40, lc: 'var(--ok)', lit: true }), 'when-ok'),
+    tag(keycap(298, 262, 134, 196, 'All systems on', { label: 'All systems on', fs: 13, is: 28, ...cut }), 'when-ok'),
+    // With the ship disabled, what helps instead: repair it, or get out.
+    tag(keycap(18, 262, 274, 196, 'Self repair', { label: 'Self repair all', fs: 20, is: 40, lc: 'var(--ok)', lit: true }), 'when-wrecked'),
+    tag(keycap(298, 262, 134, 196, 'Emergency exit', { fs: 13, is: 28, lc: 'var(--danger)', lit: true }), 'when-wrecked'),
     placard(18, 470, 'Power assignment'),
     keycap(18, 496, 134, 92, 'Weapons +', { fs: 12 }), keycap(158, 496, 134, 92, 'Engines +', { fs: 12 }),
     keycap(298, 496, 134, 92, 'Shields +', { fs: 12 }),
@@ -210,7 +214,35 @@ function systems() {
   ];
 }
 
-const MODULES = { fighter, crew, mining, salvage, cargo, medical, ground, systems };
+// MFD screens, the assists that have their own ON and OFF, and self repair.
+function mfd() {
+  const views = [['MFD Comms', 'Comms'], ['MFD Diagnostics', 'Diagnostics'], ['MFD IFCS', 'IFCS'], ['MFD Power', 'Power'],
+    ['MFD Scanning', 'Scanning'], ['MFD Self status', 'Self status'], ['MFD Target status', 'Target status'], ['MFD Config', 'Config']];
+  return [
+    placard(23, 46, 'MFD screens'),
+    ...views.map(([l, label], i) => keycap(23 + (i % 4) * 194, 76 + Math.floor(i / 4) * 116, 186, 108, l, { label, fs: 13, is: 24 })),
+    placard(23, 316, 'Assists'),
+    ...['Light amp', 'Auto precision', 'Wind comp'].map((l, i) => onOff(23 + i * 128, 346, l, { w: 120 })),
+    placard(431, 316, 'Repair'),
+    keycap(431, 346, 364, 196, 'Self repair', { label: 'Self repair all', fs: 15, is: 30 }),
+    label(23, 572, 772, 'The game does not say which screen shows, so these keys light only while pressed', 'left'),
+  ];
+}
+
+// ================= log =================
+/** What the game logged this session: the last time you went down, where you are, refining, ships, and a timeline. */
+function logPage() {
+  const p = plate(382, 1100, 'Log', { cls: 'logp' });
+  const card = (id, x, y, w, ht, title) => screen(x, y, w, ht, `<small>${esc(title)}</small><span class="t" id="${id}-t"></span><b id="${id}-b"></b><p id="${id}-p"></p><p id="${id}-q"></p>`, 'card');
+  // Two plates, so that two-row mode can stack them.
+  const list = plate(1488, 1066, 'This session', { cls: 'logp' });
+  return [add(p,
+    card('lg-down', 24, 46, 520, 300, 'Last downed'), card('lg-where', 556, 46, 520, 300, 'Where'),
+    card('lg-ref', 24, 358, 520, 322, 'Refinery'), card('lg-ships', 556, 358, 520, 322, 'Ships')),
+  add(list, screen(24, 46, 1018, 634, '<ol id="lg-list"></ol>', 'list'))];
+}
+
+const MODULES = { mfd, fighter, crew, mining, salvage, cargo, medical, ground, systems };
 
 /** Page n of the ship pages, with arrows to step through them as well as swiping. */
 function pager(i) {
@@ -358,6 +390,7 @@ export function scene(page) {
   if (page.id === 'map') return mapPage();
   if (page.id === 'emotes') return emotes();
   if (page.id === 'downed') return downed();
+  if (page.id === 'log') return logPage();
   const plates = { power: powerPlate(), role: rolePlate(page), flight: flightPlate(), gear: gearPlate() };
   for (const [slot, p] of Object.entries(plates)) p.dataset.slot = slot;
   return Object.values(plates);

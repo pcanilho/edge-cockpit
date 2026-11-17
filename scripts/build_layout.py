@@ -51,6 +51,22 @@ CATALOG = {
     'Advanced HUD off': ('v_flight_advanced_hud_off', 'tap', 'layers'),
     'Stability on': ('v_ifcs_stability_on', 'tap', 'assist'),
     'Stability off': ('v_ifcs_stability_off', 'tap', 'assist'),
+    'Light amp on': ('v_light_amplification_on', 'tap', 'eye'),
+    'Light amp off': ('v_light_amplification_off', 'tap', 'eye'),
+    'Auto precision on': ('v_auto_precision_mode_on', 'tap', 'focus'),
+    'Auto precision off': ('v_auto_precision_mode_off', 'tap', 'focus'),
+    'Wind comp on': ('v_ifcs_wind_compensation_on', 'tap', 'split'),
+    'Wind comp off': ('v_ifcs_wind_compensation_off', 'tap', 'split'),
+    'Self repair': ('v_mfd_quick_action_repair_all', 'tap', 'medical'),
+    'Emergency exit': ('v_emergency_exit', 'tap', 'eject'),
+    'MFD Comms': ('v_mfd_select_view_comms_short', 'tap', 'chat'),
+    'MFD Diagnostics': ('v_mfd_select_view_diagnostics_short', 'tap', 'pulse'),
+    'MFD IFCS': ('v_mfd_select_view_ifcs_short', 'tap', 'assist'),
+    'MFD Power': ('v_mfd_select_view_resource_network_short', 'tap', 'power'),
+    'MFD Scanning': ('v_mfd_select_view_scanning_short', 'tap', 'radar'),
+    'MFD Self status': ('v_mfd_select_view_self_status_short', 'tap', 'ship'),
+    'MFD Target status': ('v_mfd_select_view_target_status_short', 'tap', 'target'),
+    'MFD Config': ('v_mfd_select_view_configuration_short', 'tap', 'cog'),
     'Gravity comp on': ('v_ifcs_gravity_compensation_on', 'tap', 'gauge'),
     'Gravity comp off': ('v_ifcs_gravity_compensation_off', 'tap', 'gauge'),
     'Staggered fire on': ('v_weapon_staggered_fire_on', 'tap', 'guns'),
@@ -322,6 +338,15 @@ ROLES = {
 # Pages the panel opens on game events rather than from a rail tab.
 # 'tab' is the rail tab that lights up while the page shows.
 EVENT_PAGES = {
+    'mfd': {'name': 'MFD & assists', 'tab': 'flight', 'rows': [
+        ('MFD screens', ['MFD Comms', 'MFD Diagnostics', 'MFD IFCS', 'MFD Power', 'MFD Scanning', 'MFD Self status', 'MFD Target status', 'MFD Config']),
+        ('Assists & repair', ['Light amp on', 'Light amp off', 'Auto precision on', 'Auto precision off', 'Wind comp on', 'Wind comp off', 'Self repair', 'Emergency exit']),
+    ]},
+    # The Log page shows what the game logged this session; its keys are the map's.
+    'log': {'name': 'Log', 'tab': 'map', 'rows': [
+        ('Map', ['Local map', 'Go to selection', 'Step back', 'Plan route', 'Clear route', 'Starmap', 'QT actions', 'Advanced HUD']),
+        ('Comms & screens', ['Reply 1', 'Reply 2', 'Reply 3', 'Reply 4', 'Scoreboard', 'Scan tab ▶', 'Contact ▼', 'MFD ▶']),
+    ]},
     'emotes': {'name': 'Emotes', 'tab': 'onfoot', 'rows': [
         ('Signals', ['Signal forward', 'Signal left', 'Signal right', 'Signal stop', 'Signal yes', 'Signal no', 'Wave', 'Salute']),
         ('Emotes', ['Point', 'Come', 'Wait', 'Agree', 'Disagree', 'Cheer', 'Clap', 'Laugh']),
@@ -423,6 +448,12 @@ TOGGLES = {
 }
 # Keys that set one value of a shared state directly: (state key, value, [on label]).
 SETS = {
+    'v_light_amplification_on': ('lightamp', True),
+    'v_light_amplification_off': ('lightamp', False),
+    'v_auto_precision_mode_on': ('autoprec', True),
+    'v_auto_precision_mode_off': ('autoprec', False),
+    'v_ifcs_wind_compensation_on': ('windcomp', True),
+    'v_ifcs_wind_compensation_off': ('windcomp', False),
     'v_power_set_on': ('power', True),
     'v_power_set_off': ('power', False),
     'v_power_set_thrusters_on': ('pwr_thr', True),
@@ -491,6 +522,8 @@ def load_actions(path):
 # Keys only the console's own plates use.
 EXTRAS = ['Open doors', 'Close doors', 'Chat window', 'Push to talk',
           'Power on', 'Power off', 'Thrusters on', 'Thrusters off', 'Shields on', 'Shields off', 'Weapons on', 'Weapons off', 'Lights on', 'Lights off', 'VTOL on', 'VTOL off', 'Speed limiter on', 'Speed limiter off', 'Decoupled on', 'Decoupled off', 'G-safe on', 'G-safe off', 'Proximity assist on', 'Proximity assist off', 'Advanced HUD on', 'Advanced HUD off', 'Stability on', 'Stability off', 'Gravity comp on', 'Gravity comp off', 'Staggered fire on', 'Staggered fire off', 'Set NAV', 'Set SCM', 'Panic decoy', 'Hail target', 'All systems on', 'Accept', 'Ignore', 'Next hostile', 'Next attacker', 'Subtarget', 'Missile mode', 'Aim mode', 'Horn',
+          'Light amp on', 'Light amp off', 'Auto precision on', 'Auto precision off', 'Wind comp on', 'Wind comp off', 'Self repair', 'Emergency exit',
+          'MFD Comms', 'MFD Diagnostics', 'MFD IFCS', 'MFD Power', 'MFD Scanning', 'MFD Self status', 'MFD Target status', 'MFD Config',
           'Dance', 'Bow', 'Greet', 'Threaten', 'Taunt', 'Rude', 'Sit', 'Sleep', 'Flex', 'Gloat', 'Angry', 'At ease', 'Attention', 'Whistle']
 
 

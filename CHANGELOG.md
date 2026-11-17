@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Log page (new Log soft key): who downed you last, with the weapon and the hospital you respawn at; region and shard; the last jump; a finished refinery job; ships stored or ejected from; and a timeline of the session from the game log.
+- Quantum: the destination comes from the route the drive plots as well as the marker, and shows "Arrived" once the drive drops out.
+- Disabled ship: Flight ready and All systems on become Self repair all and Emergency exit until the ship is back.
+- Server lag: an amber chip for 45 s when the log reports your client stalled.
+- MFD & assists ship page: keys for each MFD screen, ON/OFF switches for light amplification, auto precision and wind compensation, and Self repair all. MFD keys can also go in a spare slot.
+
 ## 0.4.0
 
 - The keybind profile in the game is now called **edge-cockpit**.

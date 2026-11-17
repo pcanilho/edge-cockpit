@@ -44,9 +44,24 @@ export const PATTERNS = {
   branch: /^\s*Branch:\s*(sc-alpha-\S+)/i,
   changelist: /^\s*Changelist:\s*(\d+)/,
   // <Actor Death> CActor::Kill: 'victim' [id] in zone 'zone' killed by 'killer' [id] using 'weapon' ...
-  kill: /<Actor Death> CActor::Kill: '([^']+)' \[\d+\] in zone '[^']*' killed by '([^']+)'/,
+  kill: /<Actor Death> CActor::Kill: '([^']+)' \[\d+\] in zone '[^']*' killed by '([^']+)'(?: \[\d+\] using '([^']+)'(?: \[Class [^\]]*\])?(?: with damage type '(\w+)')?)?/,
   // <Vehicle Destruction> CVehicle::OnAdvanceDestroyLevel: Vehicle 'AEGS_Gladius_123' [123] ... driven by 'me' [1] advanced from destroy level 0 to 1 caused by 'them' ...
   wreck: /<Vehicle Destruction>.*?Vehicle '([^']+)'.*?advanced from destroy level (\d) to (\d)(?: caused by '([^']+)')?/,
+  // Quantum: CSCItemNavigation::CalculateRoute|Projected Start Location is Stanton Gateway for route to destination pyro3 ...
+  qtRoute: /\|CSCItemNavigation::CalculateRoute\|Projected Start Location is (.+?) for route to destination (\S+)/,
+  qtArrived: /\|CSCItemNavigation::OnQuantumDriveArrived/,
+  // <Actor stall> Actor stall detected, Player: me, Type: downstream, Length: 2.345.
+  stall: /<Actor stall> Actor stall detected, Player: ([\w-]+), Type: (?:up|down)stream, Length: (\d+(?:\.\d+)?)/,
+  // <Join PU> address[...] port[...] shard[pub_euw1b_13165946_150] locationId[...]
+  shard: /<Join PU>.*?shard\[([^\]]+)\]/,
+  // <Changing Solar System> ... Client entity me [1] ... changing system from Stanton to Pyro
+  jump: /<Changing Solar System>.*? Client entity ([\w-]+) .*?changing system from (\w+) to (\w+)/,
+  // Added notification "Refinery Work Orders have been Completed at ARC-L1 Wide Forest Station: "
+  refinery: /"(?:(?:A|\d+) )?Refinery Work Orders? (?:has|have) been Completed at ([^:"]+)/,
+  // <Corpse> Player 'me' <local client>: DoesLocationContainHospital: Searching landing zone location "Orison" for the closest hospital.
+  hospital: /Player '([\w-]+)' <(?:remote|local) client>: DoesLocationContainHospital: Searching landing zone location "([^"]*)" for the closest hospital/,
+  // A ship stowed as its pad or hangar unloads: Attempting to stow current vehicle [938763553539] due to landing area unregistering.
+  stowed: /\[STOWING ON UNREGISTER\].*?stow current vehicle \[(\d+)\]/,
   // <RequestLocationInventory> Player[me] requested inventory for Location[Stanton1_Lorville]
   // Hangars. A ship called at a fleet terminal: SetVehicleSpawningInformations - VehicleEntityId: [1], LandingArea: me's
   // with the rest of the name on the next line: <time> XL Hangar [Team_GameServices][ASOP]
@@ -136,16 +151,16 @@ export function parseLine(line) {
   // A notice's text echoed on its own line, after the line that logged it.
   if (/^<[^>]*>\s+"/.test(line)) return null;
   let m = PATTERNS.seat.exec(line);
-  if (m) return { type: 'seat', seated: m[1] === 'SetDriver', ship: shipModel(m[2]) };
+  if (m) return { type: 'seat', seated: m[1] === 'SetDriver', ship: shipModel(m[2]), id: /_(\d+)$/.exec(m[2])?.[1] || null };
   m = PATTERNS.nav.exec(line);
-  if (m) return { type: 'seat', seated: true, ship: m[1] };
+  if (m) return { type: 'seat', seated: true, ship: m[1], id: /\[(\d+)\]\|CSCItemNavigation/.exec(line)?.[1] || null };
   m = PATTERNS.crew.exec(line);
   if (m) return { type: 'seat', seated: m[1] === 'joined', ship: shipClass(m[2]), board: true };
   m = PATTERNS.armistice.exec(line);
   if (m) return { type: 'armistice', inside: m[1] === 'Entering' };
   m = PATTERNS.qtTarget.exec(line);
   if (m) return { type: 'qt', target: m[1] };
-  if (PATTERNS.session.test(line)) return { type: 'session' };
+  if (PATTERNS.session.test(line)) return { type: 'session', shard: PATTERNS.shard.exec(line)?.[1] || null };
   if (PATTERNS.loaded.test(line)) return { type: 'loaded' };
   if (PATTERNS.menu.test(line)) return { type: 'menu' };
   m = PATTERNS.me.exec(line);
@@ -167,9 +182,28 @@ export function parseLine(line) {
   m = PATTERNS.location.exec(line);
   if (m) return { type: 'location', who: m[1], place: m[2] };
   m = PATTERNS.kill.exec(line);
-  if (m && m[1] !== m[2]) return { type: 'kill', victim: m[1], killer: m[2] };
-  m = PATTERNS.incap.exec(line) || PATTERNS.dead.exec(line) || PATTERNS.killed.exec(line);
+  if (m && m[1] !== m[2]) return { type: 'kill', victim: m[1], killer: m[2], weapon: m[3] || null, damage: m[4] || null };
+  m = PATTERNS.incap.exec(line);
+  // Logged an incap.! nickname: me, causes: [Bullet (35 damage), ...]
+  if (m) return { type: 'down', who: m[1].trim(), damage: /causes: \[([A-Za-z ]+?) \(/.exec(line)?.[1] || null };
+  m = PATTERNS.dead.exec(line);
+  // The body thrown clear of a destroyed ship: ... ejected from zone 'AEGS_Gladius_123' ... destroyed vehicle
+  if (m) return { type: 'down', who: m[1].trim(), ejected: /ejected from zone '([^']+)'/.exec(line)?.[1] || null };
+  m = PATTERNS.killed.exec(line);
   if (m) return { type: 'down', who: m[1].trim() };
+  m = PATTERNS.hospital.exec(line);
+  if (m) return { type: 'hospital', who: m[1], place: m[2] };
+  m = PATTERNS.qtRoute.exec(line);
+  if (m) return { type: 'qt-route', from: m[1], to: m[2] };
+  if (PATTERNS.qtArrived.test(line)) return { type: 'qt-arrived', id: /_(\d+)\[\d+\]\|CSCItemNavigation::OnQuantumDriveArrived/.exec(line)?.[1] || null };
+  m = PATTERNS.stall.exec(line);
+  if (m) return { type: 'stall', who: m[1], len: Number(m[2]) };
+  m = PATTERNS.jump.exec(line);
+  if (m) return { type: 'jump', who: m[1], from: m[2], to: m[3] };
+  m = PATTERNS.refinery.exec(line);
+  if (m) return { type: 'refinery', place: m[1].trim() };
+  m = PATTERNS.stowed.exec(line);
+  if (m) return { type: 'stowed', id: m[1] };
   m = PATTERNS.unbind.exec(line);
   if (m) return { type: 'respawn', geid: m[1] };
   m = PATTERNS.spawn.exec(line);
@@ -202,7 +236,8 @@ export const lawless = state => state.monitored === 'down' || state.monitored ==
 // build: { branch, changelist } of the running game. wrecked: 1 disabled, 2 destroyed, for the ship you fly.
 // kills: players and NPCs you killed this session. location: where you last opened your inventory.
 export const EMPTY = Object.freeze({ seated: false, ship: null, armistice: false, qtTarget: null, down: false, menu: true, me: null,
-  mission: null, jurisdiction: null, monitored: null, crime: 0, build: null, wrecked: 0, wreckedBy: null, kills: 0, location: null, hangar: null });
+  mission: null, jurisdiction: null, monitored: null, crime: 0, build: null, wrecked: 0, wreckedBy: null, kills: 0, location: null, hangar: null,
+  shipId: null, lastShip: null, shard: null, system: null, qtArrived: null, lag: null, downedBy: null, refinery: null, stored: null, jumps: 0, qtRoute: null, jump: null });
 
 /** 'sc-alpha-4.3.2' -> '4.3.2' */
 export const version = branch => (branch || '').replace(/^sc-alpha-/i, '');
@@ -228,6 +263,9 @@ export function place(id) {
 }
 export const placeName = p => place(p).name;
 
+// What outlives leaving the game or changing server: who you are, the mission, and what the Log page shows.
+const kept = s => ({ me: s.me, mission: s.mission, build: s.build, kills: s.kills, shard: s.shard, lastShip: s.lastShip,
+  downedBy: s.downedBy, refinery: s.refinery, stored: s.stored, jumps: s.jumps, jump: s.jump, system: s.system });
 const isMe = (state, ev) =>
   (ev.who == null && ev.geid == null) || (state.me && (ev.who === state.me.name || ev.geid === state.me.geid));
 
@@ -238,17 +276,41 @@ export function reduce(state, ev) {
       // Boarding (the crew channel) names the ship less exactly than its pilot seat does.
       if (ev.board && ev.seated && state.seated) return live;
       if (ev.board && !ev.seated) return state.seated ? { ...live, seated: false, qtTarget: null, hangar: null } : live;
-      if (ev.seated && state.seated && state.ship === ev.ship) return live;
+      if (ev.seated && state.seated && state.ship === ev.ship) {
+        // The navigation line names the ship's entity id, which the crew channel doesn't.
+        if (ev.id && state.shipId !== ev.id) return { ...live, shipId: ev.id, lastShip: { ship: ev.ship, id: ev.id } };
+        return live;
+      }
       // Boarding the ship you called ends the hangar call; a landing clearance lasts until you get out.
       if (ev.seated) return { ...live, seated: true, ship: ev.ship, down: false, wrecked: state.ship === ev.ship ? state.wrecked : 0,
-        hangar: state.hangar?.status === 'granted' ? state.hangar : null };
+        hangar: state.hangar?.status === 'granted' ? state.hangar : null, qtArrived: null,
+        shipId: ev.id || (state.ship === ev.ship ? state.shipId : null), lastShip: { ship: ev.ship, id: ev.id || (state.lastShip?.ship === ev.ship ? state.lastShip.id : null) } };
       // Leaving another seat than ours (a turret, a second ship) changes nothing.
       return state.ship === ev.ship ? { ...live, seated: false, qtTarget: null, hangar: null } : state;
     case 'armistice': return { ...live, armistice: ev.inside };
-    case 'qt': return { ...live, qtTarget: ev.target };
-    case 'session': return { ...EMPTY, me: state.me, mission: state.mission, build: state.build, kills: state.kills };
-    case 'loaded': return state.menu ? { ...EMPTY, me: state.me, mission: state.mission, build: state.build, kills: state.kills, menu: false } : state;
-    case 'menu': return state.menu ? state : { ...EMPTY, me: state.me, mission: state.mission, build: state.build, kills: state.kills };
+    case 'qt': return { ...live, qtTarget: ev.target, qtArrived: null };
+    case 'qt-route': return state.seated ? { ...live, qtRoute: { from: ev.from, to: ev.to } } : state;
+    case 'qt-arrived': {
+      if (!state.seated || (ev.id && state.shipId && ev.id !== state.shipId)) return state;
+      const to = state.qtTarget || state.qtRoute?.to;
+      return to ? { ...live, qtArrived: to, qtTarget: null, qtRoute: null } : state;
+    }
+    case 'stall':
+      if (state.me && ev.who !== state.me.name) return state;
+      return { ...live, lag: { len: ev.len, n: (state.lag?.n || 0) + 1 } };
+    case 'jump':
+      if (state.me && ev.who !== state.me.name) return state;
+      return { ...live, system: ev.to, jump: { from: ev.from, to: ev.to }, jumps: state.jumps + 1, qtTarget: null };
+    case 'refinery': return { ...live, refinery: { place: ev.place, n: (state.refinery?.n || 0) + 1 } };
+    case 'hospital':
+      if (!state.me || ev.who !== state.me.name || !state.downedBy) return state;
+      return { ...live, downedBy: { ...state.downedBy, hospital: ev.place } };
+    case 'stowed':
+      if (!state.lastShip?.id || ev.id !== state.lastShip.id || state.seated) return state;
+      return { ...live, stored: { ship: state.lastShip.ship, n: (state.stored?.n || 0) + 1 }, hangar: null, lastShip: { ...state.lastShip, id: null } };
+    case 'session': return { ...EMPTY, ...kept(state), shard: ev.shard || state.shard };
+    case 'loaded': return state.menu ? { ...EMPTY, ...kept(state), menu: false } : state;
+    case 'menu': return state.menu ? state : { ...EMPTY, ...kept(state) };
     case 'build': return { ...state, build: { ...state.build, ...(ev.branch ? { branch: ev.branch } : { changelist: ev.changelist }) } };
     case 'wreck':
       if (!state.seated || state.ship !== ev.ship || ev.level <= state.wrecked) return state;
@@ -269,7 +331,7 @@ export function reduce(state, ev) {
       return { ...live, hangar: { ...h, lift: ev.to } };
     }
     case 'kill':
-      if (state.me && ev.victim === state.me.name) return reduce(state, { type: 'down', who: ev.victim });
+      if (state.me && ev.victim === state.me.name) return reduce(state, { type: 'down', who: ev.victim, by: ev.killer, weapon: ev.weapon, damage: ev.damage });
       if (!state.me || ev.killer !== state.me.name) return state;
       return { ...live, kills: state.kills + 1 };
     case 'location':
@@ -278,8 +340,15 @@ export function reduce(state, ev) {
     case 'me': return state.me?.geid === ev.geid ? state : { ...state, me: { geid: ev.geid, name: ev.name } };
     case 'down':
       // Without knowing who we are, only the local-only HUD notice counts.
-      if (state.down || !isMe(state, ev) || (ev.who != null && !state.me)) return state;
-      return { ...state, down: true, seated: false, qtTarget: null };
+      if (!isMe(state, ev) || (ev.who != null && !state.me)) return state;
+      if (state.down) {
+        // A later line about the same downing adds what it knows.
+        const d = state.downedBy;
+        if (!d || (!ev.by && !ev.weapon && !ev.damage && !ev.ejected)) return state;
+        return { ...state, downedBy: { ...d, by: d.by || ev.by || null, weapon: d.weapon || ev.weapon || null, damage: d.damage || ev.damage || null, ejected: d.ejected || ev.ejected || null } };
+      }
+      return { ...state, down: true, seated: false, qtTarget: null,
+        downedBy: { by: ev.by || null, weapon: ev.weapon || null, damage: ev.damage || null, ejected: ev.ejected || null, hospital: null, n: (state.downedBy?.n || 0) + 1 } };
     case 'respawn':
       if (!state.down || (state.me && !isMe(state, ev))) return state;
       return { ...state, down: false };
@@ -362,6 +431,8 @@ export function alertsFor(a, b) {
     const who = culprit(b.wreckedBy, b.me);
     out.push({ kind: 'wreck', text: `${b.wrecked >= 2 ? 'Ship destroyed' : 'Ship disabled'}${who ? ` by ${who}` : ''}`, tone: 'bad' });
   }
+  if (b.refinery && b.refinery.n !== a.refinery?.n) out.push({ kind: 'refinery', text: `Refinery job done · ${b.refinery.place}`, tone: 'good' });
+  if (b.jump && b.jumps > a.jumps) out.push({ kind: 'jump', text: `Entered ${b.jump.to}`, tone: 'good' });
   const ha = a.hangar, hb = b.hangar;
   if (hb?.status === 'granted' && ha?.status !== 'granted') out.push({ kind: 'hangar', text: 'Hangar assigned', tone: 'good' });
   if (hb?.status === 'called' && hb.lift === 'up' && ha?.lift !== 'up') out.push({ kind: 'hangar', text: `Ship ready · ${hangarName(hb, b.me)}`, tone: 'good' });
@@ -383,4 +454,31 @@ export function hangarText(state) {
   if (h.status === 'granted') return h.lift === 'lowering' ? 'Landed · lift going down' : 'Hangar assigned';
   const name = hangarName(h, state.me);
   return { rising: `${name} · lift rising`, up: `${name} · ship ready`, lowering: `${name} · lift going down` }[h.lift] || `${name} · ship called`;
+}
+
+const REGIONS = { use: 'US East', usw: 'US West', euw: 'EU West', euc: 'EU Central', eun: 'EU North', apse: 'Asia Pacific', aps: 'Asia Pacific', apne: 'Asia', aus: 'Australia', sa: 'South America' };
+/** A shard id as people say it: pub_euw1b_13165946_150 is { region: 'EU West', n: '150' }. */
+export function shardName(id) {
+  const m = /^[a-z]+_([a-z]+)\d*[a-z]?_\d+_(\d+)$/.exec(id || '');
+  if (!m) return id ? { region: null, n: id } : null;
+  return { region: REGIONS[m[1]] || m[1].toUpperCase(), n: m[2] };
+}
+
+const downText = d => [d.by ? `by ${culpritOrNull(d.by)}` : null, d.weapon ? weaponName(d.weapon) : null].filter(Boolean).join(' · ');
+const culpritOrNull = by => (/^(PU_|NPC_|AIModule|Kopion|Shipjacker)|_\d{4,}$/i.test(by) ? 'an NPC' : by);
+/** A weapon or ship entity name for people: KLWE_LaserRepeater_S3_1234 is "Laser Repeater S3". */
+export const weaponName = w => w.replace(/_\d+$/, '').replace(/^[A-Z]{3,5}_/, '').replace(/_/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2');
+
+/** What changed from state a to b that belongs on the Log page: [{ kind, text, tone }]. */
+export function logFor(a, b) {
+  const out = alertsFor(a, b).filter(e => e.kind !== 'armistice');
+  if (b.shard && b.shard !== a.shard) { const s = shardName(b.shard); out.push({ kind: 'shard', text: `Joined ${[s.region, s.n && `shard ${s.n}`].filter(Boolean).join(' · ')}`, tone: 'info' }); }
+  if (b.menu) return out;
+  if (b.down && !a.down) { const t = b.downedBy ? downText(b.downedBy) : ''; out.push({ kind: 'down', text: `Downed${t ? ` ${t}` : ''}`, tone: 'bad' }); }
+  if (b.downedBy?.hospital && b.downedBy.hospital !== a.downedBy?.hospital) out.push({ kind: 'respawn', text: `Respawn at ${placeName(b.downedBy.hospital) || b.downedBy.hospital}`, tone: 'info' });
+  if (b.downedBy?.ejected && b.downedBy.ejected !== a.downedBy?.ejected) out.push({ kind: 'eject', text: `Thrown clear of the wreck of ${shipName(shipModel(b.downedBy.ejected))}`, tone: 'warn' });
+  if (b.qtArrived && b.qtArrived !== a.qtArrived) out.push({ kind: 'qt', text: `Quantum arrived · ${b.qtArrived.replace(/_/g, ' ')}`, tone: 'info' });
+  if (b.stored && b.stored.n !== a.stored?.n) out.push({ kind: 'stored', text: `${shipName(b.stored.ship)} stored`, tone: 'good' });
+  if (b.seated && b.ship && (!a.seated || a.ship !== b.ship)) out.push({ kind: 'seat', text: `Took the seat of ${shipName(b.ship)}`, tone: 'info' });
+  return out;
 }
