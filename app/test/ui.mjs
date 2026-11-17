@@ -175,6 +175,25 @@ const right = await page.evaluate(() => Math.max(...[...document.querySelectorAl
 if (right > 2560) problems.push(`rearranged plates run off screen (${right})`);
 await page.evaluate(() => { localStorage.removeItem('xfd-order:fighter'); window.xfd.show('mining'); });
 
+// A slot for kit the ship lacks takes a key: long-press, pick, and it is a working key; a tap on it does not reopen the picker.
+await page.evaluate(() => window.xfd.show('light-fighter--no-missiles'));
+const spare = await page.$('#console .spare');
+if (!spare) problems.push('light-fighter--no-missiles has no spare slot');
+else {
+  const sb = await spare.boundingBox();
+  await page.mouse.move(sb.x + sb.width / 2, sb.y + sb.height / 2); await page.mouse.down(); await page.waitForTimeout(800); await page.mouse.up();
+  if (await page.$eval('#picker', e => e.hidden)) problems.push('long-press on a spare slot did not open the key picker');
+  await page.click('#pick-tabs .tab[data-g=systems]');
+  await page.click('#pick-grid .pick:has-text("All systems on")');
+  const now = await page.$eval('#console .spare', e => e.classList.contains('key') ? e.querySelector('.lg').textContent : 'blank');
+  if (now !== 'All systems on') problems.push(`spare slot shows ${now} after picking All systems on`);
+  const nb = await (await page.$('#console .spare')).boundingBox();
+  await page.mouse.click(nb.x + nb.width / 2, nb.y + nb.height / 2);
+  if (!(await page.$eval('#picker', e => e.hidden))) problems.push('a tap on an assigned spare slot opened the picker');
+  await checkLabels('light-fighter--no-missiles with a spare key');
+  await page.evaluate(() => { for (const k of Object.keys(localStorage)) if (k.startsWith('xfd-slot:')) localStorage.removeItem(k); window.xfd.show('mining'); });
+}
+
 // With the game's default binds, every key the console uses can be pressed and none collide.
 const health = await page.evaluate(() => window.xfd.bindHealth());
 if (health.missing.length) problems.push(`keys with no default keyboard bind: ${health.missing.join(', ')}`);

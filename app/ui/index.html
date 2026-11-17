@@ -47,6 +47,18 @@
 
   <div id="console"></div>
 
+  <div class="sheet picker" id="picker" hidden>
+    <nav class="tabs" id="pick-tabs">
+      <h2>Add a key</h2>
+      <p class="pick-now" id="pick-now"></p>
+      <button class="tab quit" id="pick-clear"><span>Clear slot</span></button>
+    </nav>
+    <div class="panes">
+      <button class="close" id="pick-close" aria-label="Close"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <div class="pick-grid" id="pick-grid"></div>
+    </div>
+  </div>
+
   <div class="sheet" id="sheet" hidden>
     <nav class="tabs" id="tabs">
       <h2>Settings</h2>
