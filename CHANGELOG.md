@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Maker themes: in a Drake, Aegis, Origin, MISC or Anvil ship, the plates and title trim take on that maker's style. Settings > Screen turns it off.
 - When the game restarts and starts a new Game.log, the console starts over with it instead of keeping the last session's state.
 - Log page: this session's time played, kills, times downed, missions and ships flown above the timeline.
 - The layout and ship data load without whitespace (the layout drops from 300 KB to 190 KB).

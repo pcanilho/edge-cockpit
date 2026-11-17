@@ -55,7 +55,7 @@ const store = {
 // Night mode is off, on, or auto (dark from 20:00 to 07:00 by this PC's clock). Older builds stored a boolean.
 const NIGHT_FROM = 20, NIGHT_TO = 7;
 const nightMode = v => (v === true ? 'on' : ['on', 'auto'].includes(v) ? v : 'off');
-const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), anywhere: store.get('anywhere', false), stack: store.get('stack', true) };
+const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), anywhere: store.get('anywhere', false), stack: store.get('stack', true), makerTheme: store.get('makerTheme', true) };
 
 // ---------- binds: the player's actionmaps.xml, then our Xeneon profile, then the defaults ----------
 function parseActionmaps(text) {
@@ -511,6 +511,7 @@ function setOpt(name, v) {
   opts[name] = v;
   if (APP_OPTS.includes(name)) bridge.setPref(name, v); else store.set(name, v);
   if (name === 'stack') fit();
+  if (name === 'makerTheme') paintStatus();
   paintNight();
   document.querySelectorAll('.opt[data-opt]').forEach(o => o.classList.toggle('on', !!opts[o.dataset.opt]));
   $('auto').classList.toggle('on', opts.auto);
@@ -573,7 +574,7 @@ $('qt').querySelector('svg').innerHTML = GLYPHS.quantum;
 
 // ---------- profile: settings, plate order, ship roles and keyboard binds in one file ----------
 // Saved as Documents\Edge Cockpit\profile.json, to copy to another PC or keep as a backup.
-const PROFILE_OPTS = ['night', 'sound', 'flash', 'auto', 'recap', 'alertSound', 'anywhere', 'stack', 'autostart', 'screen_off'];
+const PROFILE_OPTS = ['night', 'sound', 'flash', 'auto', 'recap', 'alertSound', 'anywhere', 'stack', 'makerTheme', 'autostart', 'screen_off'];
 /** The keyboard binds in an actionmaps.xml, as a Control Profile the game can load. */
 function bindsProfile(text) {
   const doc = new DOMParser().parseFromString(text, 'application/xml');
@@ -733,6 +734,7 @@ $('toast-act').addEventListener('pointerdown', e => e.stopPropagation());
 let game = { ...EMPTY }, ship = null, lastAuto = null, lastSeq = 0;
 const MAKERS = { AEGS: '#ff6b5b', ANVL: '#7fb2ff', DRAK: '#ff9f43', MISC: '#5fe0c8', RSI: '#9fb4ff', ORIG: '#f5f0e6', CRUS: '#6ec1ff', ARGO: '#f0b54a',
   CNOU: '#9be15d', ESPR: '#c49bff', KRIG: '#e0c070', BANU: '#d4a373', MRAI: '#ff7eb6', TMBL: '#f7d154', GRIN: '#b0e0a8', XIAN: '#7ef0ff', CRSD: '#6ec1ff', GAMA: '#c0d0e0' };
+const THEMED = new Set(['DRAK', 'AEGS', 'ORIG', 'MISC', 'ANVL']);
 const glyph = n => `<svg class="i" viewBox="0 0 24 24">${GLYPHS[n] || ''}</svg>`;
 
 let figureFor = null; // the ship whose outline is showing or loading
@@ -775,6 +777,9 @@ function paintStatus() {
   makerAccent = maker;
   applyAccent();
   stage.style.setProperty('--ship', maker || 'var(--accent)');
+  // Maker themes: the plate metal and title trim of the maker of the ship you sit in.
+  const code = game.seated && game.ship ? game.ship.split('_')[0] : null;
+  if (opts.makerTheme && THEMED.has(code)) stage.dataset.maker = code; else delete stage.dataset.maker;
   paintIdle();
   $('ship-name').textContent = name;
   $('ship-role').textContent = role;

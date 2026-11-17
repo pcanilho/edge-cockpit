@@ -573,3 +573,27 @@ body.is-dark #stage { visibility: hidden; }
 .logp .stats div:first-child { border: 0; }
 .logp .stats b { position: static; font: 600 30px/1 var(--body); color: var(--paint); }
 .logp .stats small { position: static; font: 700 10px/1.4 var(--hud); letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin-top: 8px; }
+
+/* Maker themes: the plates, ink and trim follow the maker of the ship you sit in. No logos. */
+#stage[data-maker] .plate { background: var(--brush), linear-gradient(180deg, var(--p0) 0%, var(--p1) 55%, var(--p2) 100%); }
+#stage[data-maker] .title { color: var(--paint); }
+/* Drake: rugged, warm steel, hazard stripes on plate titles. */
+#stage[data-maker=DRAK] { --p0: #33281d; --p1: #241c14; --p2: #1a140e; --paint: #dcc7aa; --muted: #9a8a76; }
+#stage[data-maker=DRAK] .title::before, #stage[data-maker=DRAK] .title::after { width: 34px; height: 8px; opacity: .8;
+  background: repeating-linear-gradient(-45deg, var(--accent) 0 5px, #16120e 5px 10px); }
+#stage[data-maker=DRAK] .screw { background: linear-gradient(var(--r), transparent 42%, #1a120a 42% 58%, transparent 58%), radial-gradient(circle at 35% 30%, #e0c48f, #8c6a3c 55%, #3b2c18); }
+/* Aegis: military, cold navy, a red rule under titles. */
+#stage[data-maker=AEGS] { --p0: #1c2533; --p1: #131a24; --p2: #0e131b; --paint: #cdd6e1; }
+#stage[data-maker=AEGS] .title::before, #stage[data-maker=AEGS] .title::after { background: var(--accent); opacity: .9; width: 40px; height: 2px; }
+/* Origin: luxury, light graphite, gold hairlines. */
+#stage[data-maker=ORIG] { --p0: #4a4d53; --p1: #393b40; --p2: #2e3034; --paint: #f1ebdf; --muted: #a59f93; }
+#stage[data-maker=ORIG] .plate { box-shadow: inset 0 0 0 1px #d4b47a55, inset 0 1px 0 #ffffff2a, 0 0 0 1px #000, 0 6px 18px #000a; }
+#stage[data-maker=ORIG] .title::before, #stage[data-maker=ORIG] .title::after { background: #d4b47a; opacity: .8; height: 1px; width: 48px; }
+#stage[data-maker=ORIG] .title { letter-spacing: .4em; font-weight: 600; }
+/* MISC: industrial, teal grey. */
+#stage[data-maker=MISC] { --p0: #1d2c2a; --p1: #152120; --p2: #101918; --paint: #c3dad4; }
+#stage[data-maker=MISC] .title::before, #stage[data-maker=MISC] .title::after { background: var(--accent); opacity: .6; height: 4px; width: 18px; border-radius: 2px; }
+/* Anvil: mil-spec olive drab. */
+#stage[data-maker=ANVL] { --p0: #2a2e21; --p1: #1e2118; --p2: #171912; --paint: #d0d5bf; --muted: #8f957c; }
+#stage[data-maker=ANVL] .title::before, #stage[data-maker=ANVL] .title::after { background: var(--accent); opacity: .7; width: 14px; height: 14px; clip-path: polygon(0 50%, 100% 0, 100% 100%); }
+#stage[data-maker=ANVL] .title::after { transform: scaleX(-1); }
