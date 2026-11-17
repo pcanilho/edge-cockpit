@@ -87,6 +87,50 @@ async function reloadBinds() {
   $('binds-note').textContent = text ? `${n} keyboard binds from your actionmaps.xml` : 'Default binds (no actionmaps.xml yet)';
   cache.clear();
   render();
+  paintBindHealth();
+}
+
+/**
+ * The keybind check: every key the console can send, against the binds in use.
+ * Missing: no keyboard key at all. Stick only: bound to a joystick, which the panel
+ * can't press. Shared: two different actions on the same key in the same part of the
+ * game, with the same press type, so one press does both.
+ */
+function bindHealth() {
+  const byAction = new Map();
+  const add = k => { if (k?.action && !byAction.has(k.action)) byAction.set(k.action, k); };
+  for (const k of KEYS.values()) { add(k); k.steps?.forEach(st => add(st.key)); }
+  const missing = [], stick = [], shared = [], seen = new Map();
+  for (const k of byAction.values()) {
+    const spec = bindOf(k);
+    if (!spec) { (mine.stick[k.action] ? stick : missing).push(k.label); continue; }
+    const id = `${k.actionmap || ''}|${k.activation || ''}|${spec}`;
+    const other = seen.get(id);
+    if (other) shared.push(`${other.label} and ${k.label} (${keyText(spec)})`);
+    else seen.set(id, k);
+  }
+  return { total: byAction.size, missing, stick, shared };
+}
+const listOf = (a, n = 4) => a.slice(0, n).join(', ') + (a.length > n ? ` and ${a.length - n} more` : '');
+function paintBindHealth() {
+  const h = bindHealth();
+  const bad = h.missing.length + h.stick.length;
+  const row = $('bind-health');
+  row.className = `health ${bad ? 'warn' : h.shared.length ? 'info' : 'ok'}`;
+  row.querySelector('b').textContent = bad
+    ? `${bad} of ${h.total} keys can't be pressed from the console`
+    : `All ${h.total} keys the console uses have a keyboard bind`;
+  const lines = [];
+  if (h.missing.length) lines.push(`No keyboard key: ${listOf(h.missing)}.`);
+  if (h.stick.length) lines.push(`Joystick only: ${listOf(h.stick)}.`);
+  if (h.shared.length) lines.push(`Sharing a key: ${listOf(h.shared, 2)}.`);
+  if (bad) lines.push('Add the console\'s binds, then pick "xeneon" in the game\'s Control Profiles.');
+  row.querySelector('p').textContent = lines.join('\n') || 'Checked when the console starts and whenever your binds change.';
+  const chip = $('binds-chip');
+  chip.hidden = !bad;
+  chip.querySelector('span').textContent = `${bad} ${bad === 1 ? 'key' : 'keys'} unbound`;
+  $('binds-dot').hidden = !bad;
+  return h;
 }
 const keyText = spec => (spec || '').split('+').map(p => ({ ralt: 'RAlt', lalt: 'LAlt', rctrl: 'RCtrl', lctrl: 'LCtrl', rshift: 'RShift', lshift: 'LShift', backspace: 'Bksp' }[p] || p.toUpperCase())).join(' ');
 
@@ -406,6 +450,7 @@ async function installUpdate() {
   try { await bridge.installUpdate(); } catch (e) { toast(`The update failed: ${e?.message || e}`); }
 }
 controls.pressable($('update'), { up: () => { tick('tap'); openSheet(true, 'about'); } });
+controls.pressable($('binds-chip'), { up: () => { tick('tap'); openSheet(true, 'binds'); } });
 $('toast-act').addEventListener('pointerdown', e => e.stopPropagation());
 
 // ---------- game state ----------
@@ -569,5 +614,5 @@ poll(); setInterval(poll, 2000);
 paintStatus();
 if (demo) { opts.auto = false; show(demo); }
 stage.classList.remove('booting');
-window.xfd = { show, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
+window.xfd = { show, bindHealth, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
 document.body.dataset.ready = '1';
