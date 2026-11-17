@@ -8,6 +8,7 @@ import * as bridge from './bridge.js';
 import * as controls from './controls.js';
 import { scene, init as initScenes, SWIPE, moduleOf } from './scenes.js';
 import { outline } from './outlines.js';
+import { ART } from './backdrops.js';
 import * as arrange from './arrange.js';
 import * as perf from './perf.js';
 
@@ -741,6 +742,16 @@ const MAKERS = { AEGS: '#ff6b5b', ANVL: '#7fb2ff', DRAK: '#ff9f43', MISC: '#5fe0
   CNOU: '#9be15d', ESPR: '#c49bff', KRIG: '#e0c070', BANU: '#d4a373', MRAI: '#ff7eb6', TMBL: '#f7d154', GRIN: '#b0e0a8', XIAN: '#7ef0ff', CRSD: '#6ec1ff', GAMA: '#c0d0e0' };
 const glyph = n => `<svg class="i" viewBox="0 0 24 24">${GLYPHS[n] || ''}</svg>`;
 
+// The maker's backdrop behind the status screen, drawn once per maker; a dark fade keeps text readable.
+let backdropFor = null;
+function paintBackdrop(maker) {
+  if (maker === backdropFor) return;
+  backdropFor = maker;
+  $('mfd').querySelector(':scope > .art')?.remove();
+  if (!maker) return;
+  const svg = controls.h(`<svg class="art" viewBox="0 0 338 588" preserveAspectRatio="none" aria-hidden="true">${ART[maker]()}<rect x="0" y="200" width="338" height="388" fill="url(#art-fade)"/></svg>`);
+  $('mfd').prepend(svg);
+}
 let figureFor = null; // the ship whose outline is showing or loading
 function paintFigure(fig, cls, fallback) {
   if (figureFor === cls) return;
@@ -785,6 +796,7 @@ function paintStatus() {
   const code = game.seated && game.ship ? game.ship.split('_')[0] : null;
   const themeCode = opts.makerTheme === 'auto' ? code : opts.makerTheme;
   if (THEMED.has(themeCode)) stage.dataset.maker = themeCode; else delete stage.dataset.maker;
+  paintBackdrop(THEMED.has(themeCode) ? themeCode : null);
   document.querySelectorAll('#theme-seg button').forEach(b => b.classList.toggle('cur', b.dataset.v === opts.makerTheme));
   paintIdle();
   $('ship-name').textContent = name;

@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Maker themes: in a Drake, Aegis, Origin, MISC or Anvil ship, the plates and title trim take on that maker's style. Settings > Screen > Maker theme: Auto (follows your ship), Off, or one maker always.
+- Maker themes: in a Drake, Aegis, Origin, MISC or Anvil ship, the plates, title trim and a line-art backdrop behind the status screen take on that maker's style (all drawn for the app, no game art). Settings > Screen > Maker theme: Auto (follows your ship), Off, or one maker always.
 - When the game restarts and starts a new Game.log, the console starts over with it instead of keeping the last session's state.
 - Log page: this session's time played, kills, times downed, missions and ships flown above the timeline.
 - The layout and ship data load without whitespace (the layout drops from 300 KB to 190 KB).
