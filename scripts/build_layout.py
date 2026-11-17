@@ -57,7 +57,7 @@ CATALOG = {
     'Auto precision off': ('v_auto_precision_mode_off', 'tap', 'focus'),
     'Wind comp on': ('v_ifcs_wind_compensation_on', 'tap', 'split'),
     'Wind comp off': ('v_ifcs_wind_compensation_off', 'tap', 'split'),
-    'Self repair': ('v_mfd_quick_action_repair_all', 'tap', 'medical'),
+    'Self repair': ('v_mfd_quick_action_repair_all', 'tap', 'repair'),
     'Emergency exit': ('v_emergency_exit', 'tap', 'eject'),
     'MFD Comms': ('v_mfd_select_view_comms_short', 'tap', 'chat'),
     'MFD Diagnostics': ('v_mfd_select_view_diagnostics_short', 'tap', 'pulse'),

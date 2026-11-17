@@ -2998,7 +2998,7 @@
         "activation": "tap",
         "press": "tap",
         "needsKeyboardBind": true,
-        "icon": "medical",
+        "icon": "repair",
         "role": "menu"
        },
        {
@@ -11941,7 +11941,7 @@
      "activation": "tap",
      "press": "tap",
      "needsKeyboardBind": true,
-     "icon": "medical",
+     "icon": "repair",
      "role": "menu"
     },
     {
