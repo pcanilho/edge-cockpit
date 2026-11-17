@@ -110,7 +110,8 @@ function bindHealth() {
     if (!spec) { (mine.stick[k.action] ? stick : missing).push(k.label); continue; }
     const id = `${k.actionmap || ''}|${k.activation || ''}|${spec}`;
     const other = seen.get(id);
-    if (other) shared.push(`${other.label} and ${k.label} (${keyText(spec)})`);
+    // The game itself puts some actions on one key and picks by context (mining and salvage mode on M).
+    if (other && !(spec === k.defaultKey && spec === other.defaultKey)) shared.push(`${other.label} and ${k.label} (${keyText(spec)})`);
     else seen.set(id, k);
   }
   return { total: byAction.size, missing, stick, shared };

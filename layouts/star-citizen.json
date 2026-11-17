@@ -1617,7 +1617,7 @@
       [
        {
         "label": "Mining mode",
-        "action": "v_cycle_industrial_mode",
+        "action": "v_toggle_mining_mode",
         "actionmap": "seat_general",
         "defaultKey": "m",
         "activation": "press",
@@ -1724,7 +1724,7 @@
       [
        {
         "label": "Salvage mode",
-        "action": "v_cycle_industrial_mode",
+        "action": "v_toggle_salvage_mode",
         "actionmap": "seat_general",
         "defaultKey": "m",
         "activation": "press",
@@ -6897,7 +6897,7 @@
       [
        {
         "label": "Mining mode",
-        "action": "v_cycle_industrial_mode",
+        "action": "v_toggle_mining_mode",
         "actionmap": "seat_general",
         "defaultKey": "m",
         "activation": "press",
@@ -7311,7 +7311,7 @@
       [
        {
         "label": "Salvage mode",
-        "action": "v_cycle_industrial_mode",
+        "action": "v_toggle_salvage_mode",
         "actionmap": "seat_general",
         "defaultKey": "m",
         "activation": "press",
