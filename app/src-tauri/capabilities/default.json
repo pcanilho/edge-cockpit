@@ -1,7 +1,11 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "The panel window",
-  "windows": ["main"],
-  "permissions": ["core:default"]
+  "description": "The console window: it only listens for Game.log and screen events. The app's own commands are allowed by default; nothing else from Tauri's JS API is.",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:event:default"
+  ]
 }
