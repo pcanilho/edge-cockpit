@@ -158,7 +158,50 @@ for (const sec of await page.evaluate(() => [...document.querySelectorAll('.tab[
   await checkLabels(`settings: ${sec}`, true);
   if (shots) await page.screenshot({ path: join(shots, `settings-${sec}.png`) });
 }
+// Displays: Automatic plus each display, and a warning when touch maps to another one.
+await page.evaluate(() => {
+  window.xfdTestDisplays = { picked: null, current: '\\\\.\\DISPLAY2', touch_ok: false, list: [
+    { id: '\\\\.\\DISPLAY1', name: 'DELL U2723QE', width: 3840, height: 2160, primary: true, touch: true },
+    { id: '\\\\.\\DISPLAY2', name: 'XENEON EDGE', width: 2560, height: 720, primary: false, touch: false }] };
+});
+// Night mode: Off, Auto and On, from the Screen section.
+await page.evaluate(() => document.querySelectorAll('.pane').forEach(p => { p.hidden = p.dataset.sec !== 'screen'; }));
+const night = {};
+for (const v of ['on', 'auto', 'off']) {
+  await page.click(`#night-seg [data-v="${v}"]`);
+  night[v] = await page.evaluate(() => ({ dim: document.getElementById('stage').classList.contains('night'),
+    cur: document.querySelector('#night-seg .cur')?.dataset.v, note: document.getElementById('night-note').textContent }));
+}
+await page.evaluate(() => window.xfd.showSection('screen'));
+await page.waitForTimeout(100);
+const disp = await page.evaluate(() => ({ cards: [...document.querySelectorAll('#displays .disp b')].map(b => b.textContent),
+  cur: document.querySelector('#displays .cur b')?.textContent, warn: !document.getElementById('touch-health').hidden }));
+if (disp.cards.join('|') !== 'Automatic|DELL U2723QE|XENEON EDGE' || disp.cur !== 'Automatic' || !disp.warn) problems.push(`display picker is wrong: ${JSON.stringify(disp)}`);
+await page.click('#displays .disp >> nth=2');
+await page.waitForTimeout(100);
+if (await page.evaluate(() => document.querySelector('#displays .cur b')?.textContent) !== 'XENEON EDGE') problems.push('picking a display does not stick');
+await checkLabels('settings: screen with displays', true);
+if (shots) await page.screenshot({ path: join(shots, 'settings-screen-displays.png') });
+const late = new Date().getHours() >= 20 || new Date().getHours() < 7;
+if (!night.on.dim || night.on.cur !== 'on') problems.push(`night mode On does not dim: ${JSON.stringify(night.on)}`);
+if (night.auto.dim !== late || !/20:00 to 07:00/.test(night.auto.note)) problems.push(`night mode Auto is wrong: ${JSON.stringify(night.auto)}`);
+if (night.off.dim || night.off.cur !== 'off') problems.push(`night mode Off still dims: ${JSON.stringify(night.off)}`);
 await page.evaluate(() => { document.getElementById('sheet').hidden = true; });
+
+// The hidden performance overlay: hold the title for 2 s, read it, close it the same way.
+const brand = await page.locator('#mfd .brand').boundingBox();
+await page.mouse.move(brand.x + 30, brand.y + brand.height / 2);
+await page.mouse.down(); await page.waitForTimeout(2200); await page.mouse.up();
+await page.evaluate(() => { window.__keys = []; window.xfdTestPerf = { cpu: 0.8, mem_mb: 164 }; });
+await page.click('#console .well >> nth=0').catch(() => {});
+await page.waitForTimeout(1200);
+const perfRows = await page.evaluate(() => [...document.querySelectorAll('#perf dd')].map(d => d.textContent));
+const perfOpen = await page.evaluate(() => !document.getElementById('perf').hidden);
+if (!perfOpen || perfRows.length !== 4 || !/fps/.test(perfRows[0]) || perfRows[1] !== '0.8 %' || !/^164 MB app/.test(perfRows[2])) problems.push(`performance overlay did not open: ${JSON.stringify(perfRows)}`);
+await checkLabels('performance overlay');
+if (shots) await page.screenshot({ path: join(shots, 'perf.png') });
+await page.evaluate(() => window.xfd.perf(false));
+report.push(`overlay: ${perfRows.join(' | ')}`);
 
 // Idle: nothing animates and no frames are asked for.
 for (const mood of ['ship', 'armistice', 'alert', 'downed']) {

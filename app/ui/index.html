@@ -25,18 +25,21 @@
         <path d="M130 0v14M130 246v14M0 130h14M246 130h14"/></svg><div class="figure" id="figure"></div></div>
       <div class="name" id="ship-name">Standing by</div>
       <div class="role" id="ship-role">Waiting for Star Citizen</div>
-      <div class="chips">
-        <button class="chip" id="law" hidden><i></i><span></span></button>
-        <button class="chip" id="zone" hidden><i></i><span></span></button>
-        <button class="chip" id="place" hidden><i></i><span></span></button>
-        <button class="chip" id="kills" hidden><i></i><span></span></button>
-        <button class="chip" id="wreck" hidden><i></i><span></span></button>
-        <button class="chip warn" id="build" hidden><i></i><span></span></button>
-        <button class="chip new" id="update" hidden><i></i><span></span></button>
-        <button class="chip warn" id="binds-chip" hidden><i></i><span></span></button>
-        <button class="chip auto" id="auto"><i></i><span>Follow game</span></button>
+      <div class="facts">
+        <div class="where" id="where" hidden><small>Location</small><b id="where-name"></b><span id="where-note"></span></div>
+        <svg class="orrery" id="orrery" viewBox="0 0 302 52" hidden></svg>
+        <div class="chips">
+          <button class="chip" id="law" hidden><i></i><span></span></button>
+          <button class="chip" id="kills" hidden><i></i><span></span></button>
+          <button class="chip" id="wreck" hidden><i></i><span></span></button>
+          <button class="chip warn" id="build" hidden><i></i><span></span></button>
+          <button class="chip new" id="update" hidden><i></i><span></span></button>
+          <button class="chip warn" id="binds-chip" hidden><i></i><span></span></button>
+          <button class="chip warn" id="touch-chip" hidden><i></i><span></span></button>
+          <button class="chip auto" id="auto"><i></i><span>Follow game</span></button>
+        </div>
+        <div class="qt" id="qt" hidden><svg class="i" viewBox="0 0 24 24"></svg><div><small>Quantum target</small><span id="qt-name"></span></div></div>
       </div>
-      <div class="qt" id="qt" hidden><svg class="i" viewBox="0 0 24 24"></svg><div><small>Quantum target</small><span id="qt-name"></span></div></div>
       <div class="mission" id="mission" hidden><small id="mission-kind">Mission</small><p id="mission-text"></p></div>
     </div>
     <nav class="softkeys" id="softkeys"></nav>
@@ -69,9 +72,13 @@
         <h3>Screen</h3>
         <div class="rows">
           <button class="opt" data-opt="screen_off" data-app><span class="txt">Screen off when not playing<small id="screen-note">Wakes when Star Citizen starts, or on a touch</small></span><span class="knob"></span></button>
-          <button class="opt" data-opt="night"><span class="txt">Night mode<small>Dims the console for dark rooms</small></span><span class="knob"></span></button>
+          <div class="opt choice" id="night-row"><span class="txt">Night mode<small id="night-note">Dims the console for dark rooms</small></span><span class="seg" id="night-seg"><button data-v="off">Off</button><button data-v="auto">Auto</button><button data-v="on">On</button></span></div>
           <button class="act" id="act-sleep"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Screen off now<small>Touch the screen to wake it</small></span></button>
         </div>
+        <h4 class="sub">Show the console on</h4>
+        <div class="displays" id="displays"></div>
+        <div class="health warn" id="touch-health" hidden><i></i><div class="txt"><b>Touches land on another display</b><p>Windows has the touchscreen mapped to a different display than the console.</p></div>
+          <button class="act" id="act-touch"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Fix touch<small>Touch the screen Windows asks for</small></span></button></div>
       </section>
       <section class="pane" data-sec="feedback" hidden>
         <h3>Touch feedback</h3>
@@ -106,7 +113,7 @@
             <div class="notes" id="upd-notes" hidden></div>
             <button class="act" id="act-update" hidden><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Install and restart<small id="upd-size">Takes a few seconds</small></span></button>
           </aside>
-          <p class="fine">Unofficial fan project, not affiliated with Cloud Imperium Games. Ship outlines from FleetYards.net. MIT License.</p>
+          <p class="fine">Hold the EDGE COCKPIT title for 2 seconds to see performance. Unofficial fan project, not affiliated with Cloud Imperium Games. Ship outlines from FleetYards.net. MIT License.</p>
         </div>
       </section>
     </div>

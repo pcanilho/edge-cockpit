@@ -10,6 +10,11 @@
 export const PATTERNS = {
   // CVehicleMovementBase::SetDriver: Local client node [204721322607] granted control token for 'DRAK_Clipper_771690342710' [771690342710]
   seat: /CVehicleMovementBase::(SetDriver|ClearDriver):.*?control token for '([^']+)'/,
+  // 4.10 no longer logs SetDriver when you sit down, but the ship's crew channel says you
+  // boarded: Added notification "You have joined channel 'Aegis Sabre Firebird : Argoneth'.
+  crew: /You have (joined|left) (?:the )?channel '(.+?) : [^']+'/,
+  // The ship's navigation, while you fly it: ... | NOT AUTH | AEGS_Sabre_Firebird_932943782879[932943782879]|CSCItemNavigation::GetStarmapRouteSegmentData|
+  nav: /\| ([A-Z]{3,5}_\w+?)_\d{6,}\[\d+\]\|CSCItemNavigation::GetStarmapRouteSegmentData/,
   armistice: /\b(Entering|Leaving) Armistice Zone\b/,
   qtTarget: /Player has selected point (\S+) as their destination/,
   // A new session starts loading with Join PU, and is in the game once loaded.
@@ -50,6 +55,19 @@ export const TESTED_MAJOR = 4;
 /** 'DRAK_Clipper_771690342710' -> 'DRAK_Clipper' */
 export const shipModel = entity => entity.replace(/_\d+$/, '');
 
+// Maker names in crew channels, to the codes ship classes start with.
+const MAKER_CODES = { aegis: 'AEGS', anvil: 'ANVL', drake: 'DRAK', misc: 'MISC', rsi: 'RSI', origin: 'ORIG', crusader: 'CRUS', argo: 'ARGO',
+  consolidated: 'CNOU', esperia: 'ESPR', kruger: 'KRIG', banu: 'BANU', mirai: 'MRAI', tumbril: 'TMBL', greycat: 'GRIN', aopoa: 'XIAN', gatac: 'GAMA' };
+/** 'Aegis Sabre Firebird' -> 'AEGS_Sabre_Firebird', the ship class a crew channel names. */
+export function shipClass(display) {
+  let words = display.trim().split(/\s+/);
+  const first = words[0].toLowerCase();
+  const code = MAKER_CODES[first];
+  if (!code) return words.join('_');
+  if (first === 'consolidated' && /^outland$/i.test(words[1] || '')) words = words.slice(1);
+  return [code, ...words.slice(1)].join('_');
+}
+
 /** 'MISC_Prospector' -> 'Prospector', 'DRAK_Cutlass_Black' -> 'Cutlass Black' */
 export const shipName = model => model.replace(/^[A-Z]{3,5}_/, '').replace(/_/g, ' ');
 
@@ -57,6 +75,10 @@ export function parseLine(line) {
   if (line.includes('UpdateNotificationItem')) return null;
   let m = PATTERNS.seat.exec(line);
   if (m) return { type: 'seat', seated: m[1] === 'SetDriver', ship: shipModel(m[2]) };
+  m = PATTERNS.nav.exec(line);
+  if (m) return { type: 'seat', seated: true, ship: m[1] };
+  m = PATTERNS.crew.exec(line);
+  if (m) return { type: 'seat', seated: m[1] === 'joined', ship: shipClass(m[2]), board: true };
   m = PATTERNS.armistice.exec(line);
   if (m) return { type: 'armistice', inside: m[1] === 'Entering' };
   m = PATTERNS.qtTarget.exec(line);
@@ -116,7 +138,24 @@ export const version = branch => (branch || '').replace(/^sc-alpha-/i, '');
 /** True when the game's major version differs from the one the panel was tested on. */
 export const untested = state => !!state.build?.branch && Number(version(state.build.branch).split('.')[0]) !== TESTED_MAJOR;
 /** 'Stanton1_Lorville' -> 'Lorville', 'RR_HUR_LEO' -> 'RR HUR LEO' */
-export const placeName = p => (p || '').replace(/^(Stanton|Pyro|Nyx)\d*[a-z]?_/i, '').replace(/_/g, ' ');
+// Location ids are internal names: Stanton1_Lorville, AsteroidClusterBase_Nyx_Social_Keeger_001.
+const SYSTEMS = /^(Stanton|Pyro|Nyx)\d*[a-z]?$/i;
+const KINDS = { AsteroidClusterBase: 'Asteroid base', AsteroidBase: 'Asteroid base', RestStop: 'Rest stop', RR: 'Rest stop', Outpost: 'Outpost',
+  Station: 'Station', LandingZone: '', LZ: '', Social: '', Hangar: '', Habs: '', Shop: '' };
+/** { name, kind, system, body } of a location id, for people: Keeger, Asteroid base, Nyx.
+ *  body is the planet's number in its system when the id says (Stanton1_Lorville: 1). */
+export function place(id) {
+  let system = null, kind = '', body = null;
+  const words = [];
+  for (const t of (id || '').split('_')) {
+    if (!t || /^\d+$/.test(t)) continue;
+    if (SYSTEMS.test(t)) { system ||= t.match(SYSTEMS)[1]; body ??= Number(t.match(/\d+/)?.[0]) || null; continue; }
+    if (t in KINDS) { kind ||= KINDS[t]; continue; }
+    words.push(t.replace(/([a-z])([A-Z])/g, '$1 $2'));
+  }
+  return { name: words.join(' ') || kind || system || '', kind: words.length ? kind : '', system, body };
+}
+export const placeName = p => place(p).name;
 
 const isMe = (state, ev) =>
   (ev.who == null && ev.geid == null) || (state.me && (ev.who === state.me.name || ev.geid === state.me.geid));
@@ -125,6 +164,10 @@ export function reduce(state, ev) {
   const live = state.menu ? { ...state, menu: false } : state;  // anything in the world means we're in it
   switch (ev.type) {
     case 'seat':
+      // Boarding (the crew channel) names the ship less exactly than its pilot seat does.
+      if (ev.board && ev.seated && state.seated) return live;
+      if (ev.board && !ev.seated) return state.seated ? { ...live, seated: false, qtTarget: null } : live;
+      if (ev.seated && state.seated && state.ship === ev.ship) return live;
       if (ev.seated) return { ...live, seated: true, ship: ev.ship, down: false, wrecked: state.ship === ev.ship ? state.wrecked : 0 };
       // Leaving another seat than ours (a turret, a second ship) changes nothing.
       return state.ship === ev.ship ? { ...live, seated: false, qtTarget: null } : state;

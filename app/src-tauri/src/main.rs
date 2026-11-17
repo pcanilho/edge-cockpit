@@ -34,6 +34,8 @@ struct App {
     /// Bumped on every wake, so only the latest wake puts the screen back to sleep.
     wake_gen: AtomicU64,
     prefs: Mutex<Prefs>,
+    /// The last CPU reading for the performance overlay: when, and total CPU ticks.
+    perf: Mutex<Option<(std::time::Instant, u64)>>,
     /// Whether the Edge answered DDC/CI, once we have tried.
     ddc: Mutex<Option<bool>>,
     update: Mutex<Option<tauri_plugin_updater::Update>>,
@@ -49,11 +51,13 @@ struct Prefs {
     screen_off: bool,
     /// The backlight level to restore, while we hold it down.
     saved_backlight: Option<u32>,
+    /// The display picked in Settings (its monitor name or GDI name), or None for automatic.
+    display: Option<String>,
 }
 
 impl Default for Prefs {
     fn default() -> Self {
-        Prefs { autostart: true, screen_off: true, saved_backlight: None }
+        Prefs { autostart: true, screen_off: true, saved_backlight: None, display: None }
     }
 }
 
@@ -212,6 +216,35 @@ fn game_info(app: State<'_, App>) -> GameInfo {
         focused: game_focused(),
         running: running || game_focused() || app.game.load(Ordering::SeqCst) != 0,
     }
+}
+
+#[derive(Serialize)]
+struct Perf {
+    /// Percent of the whole machine, as Task Manager shows it.
+    cpu: f64,
+    mem_mb: f64,
+}
+
+/// CPU and memory of the app and its WebView2 processes, for the performance overlay.
+/// CPU is measured since the previous call, so the first call reads 0.
+#[tauri::command]
+fn perf(app: State<'_, App>) -> Perf {
+    #[cfg(windows)]
+    let (ticks, mem) = win::usage();
+    #[cfg(not(windows))]
+    let (ticks, mem) = (0u64, 0u64);
+    let now = std::time::Instant::now();
+    let cores = std::thread::available_parallelism().map_or(1, |n| n.get()) as f64;
+    let mut last = app.perf.lock().unwrap();
+    let cpu = match *last {
+        Some((t, before)) if ticks >= before => {
+            let wall = now.duration_since(t).as_secs_f64();
+            if wall > 0.0 { (ticks - before) as f64 / 1e7 / wall / cores * 100.0 } else { 0.0 }
+        }
+        _ => 0.0,
+    };
+    *last = Some((now, ticks));
+    Perf { cpu, mem_mb: mem as f64 / 1_048_576.0 }
 }
 
 /// The player's actionmaps.xml, or None when there isn't one yet.
@@ -506,15 +539,129 @@ async fn install_update(handle: AppHandle, app: State<'_, App>) -> Result<(), St
 
 /// The Edge is the only common display wider than 3:1. Otherwise use the last
 /// non-primary display, or the primary one in a window (for development).
+/// The display to use, as (x, y, width, height). A display picked in Settings wins
+/// while it is connected. Otherwise: a touchscreen that isn't the main display, then
+/// any display at least 3:1 wide (the Edge is 32:9), then any display but the main one.
 fn edge_rect(w: &WebviewWindow) -> Option<(i32, i32, i32, i32)> {
-    let mons = w.available_monitors().ok()?;
-    let primary = w.primary_monitor().ok().flatten();
-    let rect = |m: &tauri::Monitor| (m.position().x, m.position().y, m.size().width as i32, m.size().height as i32);
-    if let Some(m) = mons.iter().find(|m| m.size().width as f64 / m.size().height.max(1) as f64 >= 3.0) {
-        return Some(rect(m));
+    let picked = w.state::<App>().prefs.lock().unwrap().display.clone();
+    let list = display_list(w);
+    pick_display(&list, picked.as_deref()).map(|d| d.rect)
+}
+
+#[derive(Serialize, Clone)]
+struct DisplayView {
+    id: String,
+    name: String,
+    width: i32,
+    height: i32,
+    primary: bool,
+    touch: bool,
+}
+
+#[derive(Clone)]
+struct Disp {
+    id: String,
+    name: String,
+    rect: (i32, i32, i32, i32),
+    primary: bool,
+    touch: bool,
+}
+
+fn display_list(w: &WebviewWindow) -> Vec<Disp> {
+    #[cfg(windows)]
+    {
+        let _ = w;
+        win::displays()
+            .into_iter()
+            .map(|d| Disp { id: d.id, name: d.name, rect: d.rect, primary: d.primary, touch: d.touch })
+            .collect()
     }
-    let other = mons.iter().rev().find(|m| primary.as_ref().is_none_or(|p| p.position() != m.position()));
-    other.map(rect)
+    #[cfg(not(windows))]
+    {
+        let primary = w.primary_monitor().ok().flatten();
+        w.available_monitors()
+            .unwrap_or_default()
+            .iter()
+            .map(|m| {
+                let id = m.name().cloned().unwrap_or_default();
+                Disp {
+                    name: id.clone(),
+                    id,
+                    rect: (m.position().x, m.position().y, m.size().width as i32, m.size().height as i32),
+                    primary: primary.as_ref().is_some_and(|p| p.position() == m.position()),
+                    touch: false,
+                }
+            })
+            .collect()
+    }
+}
+
+fn pick_display<'a>(list: &'a [Disp], picked: Option<&str>) -> Option<&'a Disp> {
+    if let Some(p) = picked {
+        if let Some(d) = list.iter().find(|d| d.id == p).or_else(|| list.iter().find(|d| d.name == p)) {
+            return Some(d);
+        }
+    }
+    let wide = |d: &&Disp| d.rect.2 as f64 / d.rect.3.max(1) as f64 >= 3.0;
+    list.iter()
+        .find(|d| d.touch && !d.primary)
+        .or_else(|| list.iter().find(wide))
+        .or_else(|| list.iter().find(|d| !d.primary))
+}
+
+#[derive(Serialize)]
+struct Displays {
+    list: Vec<DisplayView>,
+    /// What Settings picked, or None for automatic.
+    picked: Option<String>,
+    /// The display the console is on now.
+    current: Option<String>,
+    /// False when Windows has touchscreens but none of them on the console's display,
+    /// so touches land on another display.
+    touch_ok: bool,
+}
+
+#[tauri::command]
+fn displays(handle: AppHandle, app: State<'_, App>) -> Displays {
+    let picked = app.prefs.lock().unwrap().display.clone();
+    let Some(w) = handle.get_webview_window("main") else {
+        return Displays { list: vec![], picked, current: None, touch_ok: true };
+    };
+    let list = display_list(&w);
+    let cur = pick_display(&list, picked.as_deref()).cloned();
+    let touch_ok = !list.iter().any(|d| d.touch) || cur.as_ref().is_none_or(|c| c.touch);
+    Displays {
+        list: list
+            .iter()
+            .map(|d| DisplayView { id: d.id.clone(), name: d.name.clone(), width: d.rect.2, height: d.rect.3, primary: d.primary, touch: d.touch })
+            .collect(),
+        current: cur.map(|c| c.id),
+        picked,
+        touch_ok,
+    }
+}
+
+/// Picks the display for the console (None: automatic) and moves it there now.
+#[tauri::command]
+fn set_display(handle: AppHandle, app: State<'_, App>, id: Option<String>) {
+    let p = {
+        let mut p = app.prefs.lock().unwrap();
+        p.display = id;
+        p.clone()
+    };
+    save_prefs(&handle, &p);
+    if let Some(w) = handle.get_webview_window("main") {
+        place(&w);
+    }
+}
+
+/// Opens Windows' touchscreen setup, for touches that land on the wrong display.
+#[tauri::command]
+fn fix_touch() -> bool {
+    #[cfg(windows)]
+    return win::fix_touch();
+    #[cfg(not(windows))]
+    false
 }
 
 fn place(w: &WebviewWindow) {
@@ -619,7 +766,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             key, wheel, ui_ready, user_ships, release_keys, game_info, read_binds, install_binds, run_as_admin, quit,
             save_profile, load_profile, save_user_ships, install_profile_binds,
-            get_prefs, set_pref, wake_screen, sleep_screen, check_update, install_update
+            get_prefs, set_pref, wake_screen, sleep_screen, check_update, install_update, perf,
+            displays, set_display, fix_touch
         ])
         .setup(|app| {
             let handle = app.handle().clone();
@@ -668,21 +816,49 @@ fn main() {
                     wake(&handle);
                 }
             }
-            // Displays come and go (the Edge sleeping, a resolution change): re-place now and then.
-            let w2 = w.clone();
-            std::thread::spawn(move || {
-                let mut last = None;
-                loop {
-                    std::thread::sleep(Duration::from_secs(3));
-                    let now = edge_rect(&w2);
-                    if now != last && w2.is_visible().unwrap_or(false) {
-                        place(&w2);
-                    }
-                    last = now;
-                }
-            });
+            // Displays come and go (the Edge sleeping, a resolution change): Windows says so
+            // with WM_DISPLAYCHANGE, and the console moves to the right display again.
+            #[cfg(windows)]
+            {
+                let h = handle.clone();
+                win::on_display_change(move || {
+                    let h2 = h.clone();
+                    let _ = h.run_on_main_thread(move || {
+                        if let Some(w) = h2.get_webview_window("main") {
+                            place(&w);
+                        }
+                        let _ = h2.emit("displays", ());
+                    });
+                });
+            }
             Ok(())
         })
         .run(tauri::generate_context!())
         .expect("error while running Edge Cockpit");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{pick_display, Disp};
+
+    fn d(id: &str, name: &str, w: i32, h: i32, primary: bool, touch: bool) -> Disp {
+        Disp { id: id.into(), name: name.into(), rect: (0, 0, w, h), primary, touch }
+    }
+
+    #[test]
+    fn picks_the_touchscreen_then_a_wide_display_then_any_other() {
+        let main = d("1", "DELL", 2560, 1440, true, false);
+        let edge = d("2", "XENEON EDGE", 2560, 720, false, true);
+        let side = d("3", "LG", 1920, 1080, false, false);
+        let id = |l: &[Disp], p: Option<&str>| pick_display(l, p).map(|x| x.id.clone());
+        assert_eq!(id(&[main.clone(), side.clone(), edge.clone()], None).as_deref(), Some("2"));
+        let edge_no_touch = d("2", "XENEON EDGE", 2560, 720, false, false);
+        assert_eq!(id(&[main.clone(), side.clone(), edge_no_touch], None).as_deref(), Some("2"));
+        assert_eq!(id(&[main.clone(), side.clone()], None).as_deref(), Some("3"));
+        assert_eq!(id(std::slice::from_ref(&main), None), None);
+        // A picked display wins, by GDI name or monitor name, and is ignored once it's gone.
+        assert_eq!(id(&[main.clone(), side.clone(), edge.clone()], Some("LG")).as_deref(), Some("3"));
+        assert_eq!(id(&[main.clone(), side.clone(), edge.clone()], Some("1")).as_deref(), Some("1"));
+        assert_eq!(id(&[main, side, edge], Some("gone")).as_deref(), Some("2"));
+    }
 }

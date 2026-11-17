@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Knows which ship you're in on 4.10 again: the game no longer logs taking the pilot seat, so boarding is read from the ship's crew channel and the ship from its navigation. The console follows you between ship and on-foot pages again, and picks the ship page by the ship.
+- Flight Ready is now a big button on the power plate, beside plain Weapons / Engines / Shields + and Power reset keys. The power triangle and its guessed pips are gone.
+- Cycle gimbal replaces Freelook on the combat target wheels; Freelook moved to the flight plate.
+- Switches the game doesn't report (G-safe, ESP, doors, lights and the like) are push-buttons with no guessed ON/OFF. Only keys that set one state, and the gear lever, show the last one sent.
+- The red frame is only for a CrimeStat or your ship disabled. Unmonitored space, comms down and ungoverned space show as an amber note.
+- The status screen is reorganised: a readable location ("Keeger · Nyx", "Asteroid base · Ungoverned"), a drawn line of the system's planets with where you are, and, on foot, the ship you last flew.
+- Ship pages have a clear page counter with arrow buttons, as well as swiping.
+- Night mode: Off, Auto (dims from 20:00 to 07:00) or On.
+- Hidden performance overlay: hold the EDGE COCKPIT title for 2 seconds for frame rate, CPU, memory and touch-to-key time.
+- Settings, Screen: pick the display for the console, or leave it on Automatic, which now finds the touchscreen. A warning, with a fix button, shows when Windows maps touch to another display. The console moves back by itself when displays change.
 - "Auto pages" is now called "Follow game", on the status screen chip and in Settings.
 - The Settings key lights up while Settings is open, and tapping a page key closes Settings.
 - The VirusTotal badge shows the latest release's real result (engines that flag it), and the release notes give the result next to each exe's report link.

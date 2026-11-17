@@ -126,6 +126,121 @@ pub fn hide_panel() {
     }
 }
 
+/// One display as Windows has it: GDI name (\\.\DISPLAY2), the monitor's own name,
+/// its rectangle on the desktop, and whether a touch digitizer is mapped to it.
+pub struct Display {
+    pub id: String,
+    pub name: String,
+    pub rect: (i32, i32, i32, i32),
+    pub primary: bool,
+    pub touch: bool,
+}
+
+/// Every active display. Touch comes from the pointer devices Windows knows, each of
+/// which Windows maps to one display (Tablet PC Settings, Setup).
+pub fn displays() -> Vec<Display> {
+    use windows::Win32::Foundation::{LPARAM, RECT};
+    use windows::Win32::Graphics::Gdi::{EnumDisplayMonitors, GetMonitorInfoW, HDC, HMONITOR, MONITORINFO, MONITORINFOEXW};
+    use windows::Win32::UI::Controls::{POINTER_DEVICE_INFO, POINTER_DEVICE_TYPE_TOUCH};
+    use windows::Win32::UI::Input::Pointer::GetPointerDevices;
+    const MONITORINFOF_PRIMARY: u32 = 1;
+
+    unsafe extern "system" fn each(m: HMONITOR, _: HDC, _: *mut RECT, data: LPARAM) -> windows::core::BOOL {
+        let out = unsafe { &mut *(data.0 as *mut Vec<HMONITOR>) };
+        out.push(m);
+        true.into()
+    }
+    let mut mons: Vec<HMONITOR> = Vec::new();
+    let mut touch: Vec<HMONITOR> = Vec::new();
+    unsafe {
+        let _ = EnumDisplayMonitors(None, None, Some(each), LPARAM(&mut mons as *mut _ as isize));
+        let mut n = 0u32;
+        if GetPointerDevices(&mut n, None).is_ok() && n > 0 {
+            let mut devs = vec![POINTER_DEVICE_INFO::default(); n as usize];
+            if GetPointerDevices(&mut n, Some(devs.as_mut_ptr())).is_ok() {
+                touch = devs.iter().take(n as usize).filter(|d| d.pointerDeviceType == POINTER_DEVICE_TYPE_TOUCH).map(|d| d.monitor).collect();
+            }
+        }
+    }
+    let names = friendly_names();
+    mons.iter()
+        .filter_map(|&m| unsafe {
+            let mut info = MONITORINFOEXW::default();
+            info.monitorInfo.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
+            if !GetMonitorInfoW(m, &mut info as *mut _ as *mut MONITORINFO).as_bool() {
+                return None;
+            }
+            let len = info.szDevice.iter().position(|&c| c == 0).unwrap_or(info.szDevice.len());
+            let id = String::from_utf16_lossy(&info.szDevice[..len]);
+            let r = info.monitorInfo.rcMonitor;
+            Some(Display {
+                name: names.iter().find(|(g, _)| *g == id).map(|(_, f)| f.clone()).filter(|f| !f.is_empty()).unwrap_or_else(|| id.trim_start_matches(r"\\.\").to_string()),
+                id,
+                rect: (r.left, r.top, r.right - r.left, r.bottom - r.top),
+                primary: info.monitorInfo.dwFlags & MONITORINFOF_PRIMARY != 0,
+                touch: touch.contains(&m),
+            })
+        })
+        .collect()
+}
+
+/// GDI display name to the monitor's own name ("XENEON EDGE"), from the display config.
+fn friendly_names() -> Vec<(String, String)> {
+    use windows::Win32::Devices::Display::{
+        DisplayConfigGetDeviceInfo, GetDisplayConfigBufferSizes, QueryDisplayConfig, DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME,
+        DISPLAYCONFIG_DEVICE_INFO_GET_TARGET_NAME, DISPLAYCONFIG_MODE_INFO, DISPLAYCONFIG_PATH_INFO, DISPLAYCONFIG_SOURCE_DEVICE_NAME,
+        DISPLAYCONFIG_TARGET_DEVICE_NAME, QDC_ONLY_ACTIVE_PATHS,
+    };
+    use windows::Win32::Foundation::ERROR_SUCCESS;
+    let s = |w: &[u16]| String::from_utf16_lossy(&w[..w.iter().position(|&c| c == 0).unwrap_or(w.len())]);
+    let mut out = Vec::new();
+    unsafe {
+        let (mut np, mut nm) = (0u32, 0u32);
+        if GetDisplayConfigBufferSizes(QDC_ONLY_ACTIVE_PATHS, &mut np, &mut nm) != ERROR_SUCCESS {
+            return out;
+        }
+        let mut paths = vec![DISPLAYCONFIG_PATH_INFO::default(); np as usize];
+        let mut modes = vec![DISPLAYCONFIG_MODE_INFO::default(); nm as usize];
+        if QueryDisplayConfig(QDC_ONLY_ACTIVE_PATHS, &mut np, paths.as_mut_ptr(), &mut nm, modes.as_mut_ptr(), None) != ERROR_SUCCESS {
+            return out;
+        }
+        for p in paths.iter().take(np as usize) {
+            let mut src = DISPLAYCONFIG_SOURCE_DEVICE_NAME::default();
+            src.header.r#type = DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME;
+            src.header.size = std::mem::size_of::<DISPLAYCONFIG_SOURCE_DEVICE_NAME>() as u32;
+            src.header.adapterId = p.sourceInfo.adapterId;
+            src.header.id = p.sourceInfo.id;
+            let mut tgt = DISPLAYCONFIG_TARGET_DEVICE_NAME::default();
+            tgt.header.r#type = DISPLAYCONFIG_DEVICE_INFO_GET_TARGET_NAME;
+            tgt.header.size = std::mem::size_of::<DISPLAYCONFIG_TARGET_DEVICE_NAME>() as u32;
+            tgt.header.adapterId = p.targetInfo.adapterId;
+            tgt.header.id = p.targetInfo.id;
+            if DisplayConfigGetDeviceInfo(&mut src.header) == 0 && DisplayConfigGetDeviceInfo(&mut tgt.header) == 0 {
+                out.push((s(&src.viewGdiDeviceName), s(&tgt.monitorFriendlyDeviceName)));
+            }
+        }
+    }
+    out
+}
+
+/// Opens Windows' own "which screen is the touchscreen" setup (Tablet PC Settings, Setup).
+pub fn fix_touch() -> bool {
+    let op = wide("open");
+    let exe = wide("MultiDigiMon.exe");
+    let args = wide("-touch");
+    unsafe {
+        let r = ShellExecuteW(None, PCWSTR(op.as_ptr()), PCWSTR(exe.as_ptr()), PCWSTR(args.as_ptr()), PCWSTR::null(), SW_SHOWNORMAL);
+        r.0 as isize > 32
+    }
+}
+
+static ON_DISPLAYS: OnceLock<Box<dyn Fn() + Send + Sync>> = OnceLock::new();
+
+/// Calls `f` whenever displays are added, removed or change resolution (WM_DISPLAYCHANGE).
+pub fn on_display_change(f: impl Fn() + Send + Sync + 'static) {
+    let _ = ON_DISPLAYS.set(Box::new(f));
+}
+
 /// Re-applies size and top-most, for when the display layout changes.
 pub fn place(x: i32, y: i32, w: i32, h: i32) {
     let raw = PANEL.load(Ordering::SeqCst);
@@ -137,6 +252,7 @@ pub fn place(x: i32, y: i32, w: i32, h: i32) {
 }
 
 const WM_MOUSEACTIVATE: u32 = 0x0021;
+const WM_DISPLAYCHANGE: u32 = 0x007E;
 const WM_POINTERACTIVATE: u32 = 0x024B;
 const MA_NOACTIVATE: isize = 3;
 const PA_NOACTIVATE: isize = 3;
@@ -145,6 +261,12 @@ unsafe extern "system" fn no_activate(w: HWND, msg: u32, wp: WPARAM, lp: LPARAM,
     match msg {
         WM_MOUSEACTIVATE => LRESULT(MA_NOACTIVATE),
         WM_POINTERACTIVATE => LRESULT(PA_NOACTIVATE),
+        WM_DISPLAYCHANGE => {
+            if let Some(f) = ON_DISPLAYS.get() {
+                f();
+            }
+            unsafe { DefSubclassProc(w, msg, wp, lp) }
+        }
         _ => unsafe { DefSubclassProc(w, msg, wp, lp) },
     }
 }
@@ -207,6 +329,51 @@ pub fn find_game() -> Option<u32> {
         let _ = CloseHandle(snap);
         found
     }
+}
+
+/// CPU time (in 100 ns ticks) and working set (bytes) of this app and the WebView2
+/// processes under it, summed. Only read while the performance overlay is open.
+pub fn usage() -> (u64, u64) {
+    use windows::Win32::Foundation::FILETIME;
+    use windows::Win32::System::Diagnostics::ToolHelp::{
+        CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W, TH32CS_SNAPPROCESS,
+    };
+    use windows::Win32::System::ProcessStatus::{GetProcessMemoryInfo, PROCESS_MEMORY_COUNTERS};
+    use windows::Win32::System::Threading::{GetProcessTimes, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION};
+    let ours = std::process::id();
+    let mut pairs = Vec::new();
+    unsafe {
+        if let Ok(snap) = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) {
+            let mut e = PROCESSENTRY32W { dwSize: std::mem::size_of::<PROCESSENTRY32W>() as u32, ..Default::default() };
+            if Process32FirstW(snap, &mut e).is_ok() {
+                loop {
+                    pairs.push((e.th32ProcessID, e.th32ParentProcessID));
+                    if Process32NextW(snap, &mut e).is_err() {
+                        break;
+                    }
+                }
+            }
+            let _ = CloseHandle(snap);
+        }
+    }
+    let tree = family(ours, &pairs);
+    let ticks = |t: FILETIME| (u64::from(t.dwHighDateTime) << 32) | u64::from(t.dwLowDateTime);
+    let (mut cpu, mut mem) = (0u64, 0u64);
+    for pid in tree {
+        unsafe {
+            let Ok(h) = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid) else { continue };
+            let (mut c, mut x, mut k, mut u) = Default::default();
+            if GetProcessTimes(h, &mut c, &mut x, &mut k, &mut u).is_ok() {
+                cpu += ticks(k) + ticks(u);
+            }
+            let mut m = PROCESS_MEMORY_COUNTERS { cb: std::mem::size_of::<PROCESS_MEMORY_COUNTERS>() as u32, ..Default::default() };
+            if GetProcessMemoryInfo(h, &mut m, m.cb).is_ok() {
+                mem += m.WorkingSetSize as u64;
+            }
+            let _ = CloseHandle(h);
+        }
+    }
+    (cpu, mem)
 }
 
 /// Blocks until the process exits. False if Windows would not let us wait on it.
@@ -420,5 +587,36 @@ pub fn foreground_elevated() -> bool {
         }
         let _ = CloseHandle(proc_);
         elevated
+    }
+}
+
+/// A process and everything started under it, from (pid, parent) pairs. Windows reuses
+/// ids, so a stale parent link can point anywhere: each id is taken at most once.
+pub(crate) fn family(root: u32, pairs: &[(u32, u32)]) -> Vec<u32> {
+    let mut out = vec![root];
+    let mut i = 0;
+    while i < out.len() {
+        let p = out[i];
+        for &(c, parent) in pairs {
+            if parent == p && c != p && !out.contains(&c) {
+                out.push(c);
+            }
+        }
+        i += 1;
+    }
+    out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::family;
+
+    #[test]
+    fn family_takes_children_and_grandchildren_once() {
+        // 1 -> 2 -> 4, 1 -> 3; 5 is someone else's; 6 claims itself as parent; 7 <-> 8 loop.
+        let pairs = [(2, 1), (3, 1), (4, 2), (5, 9), (6, 6), (7, 8), (8, 7), (1, 7)];
+        let mut got = family(1, &pairs);
+        got.sort();
+        assert_eq!(got, vec![1, 2, 3, 4]);
     }
 }
