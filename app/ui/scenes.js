@@ -292,16 +292,16 @@ const EMOTES = ['Wave', 'Salute', 'Point', 'Come', 'Wait', 'Agree', 'Disagree', 
 function emotes() {
   const a = plate(382, 760, 'Hand signals');
   add(a,
-    keycap(280, 50, 200, 140, 'Signal forward', { label: 'Forward', fs: 15 }),
-    keycap(70, 200, 200, 140, 'Signal left', { label: 'Left', fs: 15 }),
-    keycap(280, 200, 200, 140, 'Signal stop', { label: 'Stop', fs: 15 }),
-    keycap(490, 200, 200, 140, 'Signal right', { label: 'Right', fs: 15 }),
-    keycap(70, 380, 305, 140, 'Signal yes', { label: 'Yes', fs: 15 }),
-    keycap(385, 380, 305, 140, 'Signal no', { label: 'No', fs: 15 }),
+    keycap(280, 50, 200, 140, 'Signal forward', { label: 'Forward', fs: 15, is: 36 }),
+    keycap(70, 200, 200, 140, 'Signal left', { label: 'Left', fs: 15, is: 36 }),
+    keycap(280, 200, 200, 140, 'Signal stop', { label: 'Stop', fs: 15, is: 36 }),
+    keycap(490, 200, 200, 140, 'Signal right', { label: 'Right', fs: 15, is: 36 }),
+    keycap(70, 380, 305, 140, 'Signal yes', { label: 'Yes', fs: 15, is: 36 }),
+    keycap(385, 380, 305, 140, 'Signal no', { label: 'No', fs: 15, is: 36 }),
     pageKey(70, 560, 620, 120, 'Back to on foot', 'back', 'onfoot'));
   const b = plate(1148, 1406, 'Emotes');
   const cw = (1406 - 40 - 5 * 8) / 6, rh = 150;
-  add(b, ...EMOTES.map((l, i) => keycap(20 + (i % 6) * (cw + 8), 50 + Math.floor(i / 6) * (rh + 8), cw, rh, l, { fs: 16 })));
+  add(b, ...EMOTES.map((l, i) => keycap(20 + (i % 6) * (cw + 8), 50 + Math.floor(i / 6) * (rh + 8), cw, rh, l, { fs: 15, is: 58 })));
   return [a, b];
 }
 

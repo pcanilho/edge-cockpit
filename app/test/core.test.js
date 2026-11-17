@@ -159,3 +159,27 @@ test('4.10 missions: reward markup, echoed lines, where the marker points', () =
   assert.deepEqual(contractText('Deliver to <EM4>Lorville</EM4> [Illegal]'), { text: 'Deliver to Lorville', tags: ['Illegal'], runs: [{ text: 'Deliver to ', em: null }, { text: 'Lorville', em: 4 }] });
   assert.deepEqual(markup('<EM3>Hot</EM3> <b>cargo</b> <cough>run'), [{ text: 'Hot', em: 3 }, { text: ' ', em: null }, { text: 'cargo', em: 'b' }, { text: ' run', em: null }]);
 });
+
+test('tallies a session for the recap', async () => {
+  const { tally, stamp, minutes, NEW_TALLY } = await import('../ui/lib/gamelog.js');
+  const lines = [
+    '<2026-11-17T08:00:00.000Z> <Context Establisher Done>',
+    SET.replace('08:00:01', '08:01:00'),
+    '<2026-11-17T08:05:00.000Z> Player has selected point OM-1_Hurston as their destination',
+    '<2026-11-17T08:20:00.000Z> Added notification "Contract Complete: Kill them: "',
+    CLEAR.replace('08:09:01', '08:40:00'),
+    '<2026-11-17T08:42:00.000Z> CCIGBroker::FastShutdown',
+  ];
+  let s = { ...EMPTY }, t = { ...NEW_TALLY };
+  s = reduce(s, { type: 'mission', kind: 'accepted', text: 'Kill them', tags: [] });
+  s = { ...s, menu: true };
+  for (const line of lines) {
+    const ev = parseLine(line), was = s;
+    if (ev) s = reduce(s, ev);
+    t = tally(t, was, s, stamp(line));
+  }
+  assert.equal(minutes(t), 40);
+  assert.deepEqual(t.ships, ['MISC_Prospector']);
+  assert.equal(t.routes, 1);
+  assert.equal(t.missions, 1);
+});

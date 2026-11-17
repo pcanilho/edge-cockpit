@@ -64,6 +64,7 @@
         <div class="rows">
           <button class="opt" data-opt="autostart" data-app><span class="txt">Start with Windows<small>Waits in the tray and shows itself when you play</small></span><span class="knob"></span></button>
           <button class="opt" data-opt="auto"><span class="txt">Follow game<small>Turn pages to match your seat, ship and status</small></span><span class="knob"></span></button>
+          <button class="opt" data-opt="recap"><span class="txt">Session recap<small>When you leave the game: time played, kills, missions, ships and places</small></span><span class="knob"></span></button>
           <button class="opt" data-opt="anywhere"><span class="txt">Test mode<small>Send keys to any window, not just the game</small></span><span class="knob"></span></button>
         </div>
       </section>
@@ -115,6 +116,14 @@
           <p class="fine">Hold the EDGE COCKPIT title for 2 seconds to see performance. Unofficial fan project, not affiliated with Cloud Imperium Games. Ship outlines from FleetYards.net. MIT License.</p>
         </div>
       </section>
+    </div>
+  </div>
+  <div class="recap" id="recap" role="dialog" aria-labelledby="rc-title" hidden>
+    <div class="rc-card">
+      <small>Session recap</small><h3 id="rc-title"><span id="rc-time"></span> in the verse</h3>
+      <div class="rc-stats" id="rc-stats"></div>
+      <div class="rc-lists" id="rc-lists"></div>
+      <div class="upd-btns"><button class="go" id="rc-close">Done</button></div>
     </div>
   </div>
   <div class="upd-prompt" id="upd-prompt" role="dialog" aria-labelledby="upd-p-title" hidden>

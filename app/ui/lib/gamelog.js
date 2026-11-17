@@ -277,3 +277,33 @@ export function reduce(state, ev) {
   }
 }
 
+
+// ---------- session recap ----------
+/** A fresh tally, from the log time a session started (ISO string or null). */
+export const NEW_TALLY = Object.freeze({ start: null, end: null, kills: 0, deaths: 0, ships: [], missions: 0, failed: 0, crimeMax: 0, places: [], routes: 0 });
+/** The log line's timestamp, or null. */
+export const stamp = line => /^<(\d{4}-\d\d-\d\dT[\d:.]+Z)>/.exec(line)?.[1] || null;
+
+/** Adds what changed from state a to state b to the session tally t; ts is the line's time. */
+export function tally(t, a, b, ts) {
+  if (a === b) return ts && t.start ? { ...t, end: ts } : t;
+  if (a.menu && !b.menu) return { ...NEW_TALLY, start: ts, end: ts };
+  if (b.menu) return t;
+  const n = { ...t, end: ts || t.end };
+  if (!n.start) n.start = ts;
+  if (b.kills > a.kills) n.kills += b.kills - a.kills;
+  if (b.down && !a.down) n.deaths++;
+  if (b.seated && b.ship && (!a.seated || a.ship !== b.ship) && !n.ships.includes(b.ship)) n.ships = [...n.ships, b.ship];
+  const ma = a.mission, mb = b.mission;
+  if (mb && mb.seq !== ma?.seq && mb.status !== ma?.status) {
+    if (mb.status === 'complete') n.missions++;
+    if (mb.status === 'failed') n.failed++;
+  }
+  if (b.crime > n.crimeMax) n.crimeMax = b.crime;
+  if (b.location && b.location !== a.location) { const p = placeName(b.location); if (p && !n.places.includes(p)) n.places = [...n.places, p]; }
+  if (b.qtTarget && b.qtTarget !== a.qtTarget) n.routes++;
+  return n;
+}
+
+/** Minutes between the tally's first and last log line. */
+export const minutes = t => (t.start && t.end ? Math.max(0, Math.round((Date.parse(t.end) - Date.parse(t.start)) / 60000)) : 0);

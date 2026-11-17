@@ -2845,7 +2845,7 @@
         "activation": "press",
         "press": "tap",
         "needsKeyboardBind": false,
-        "icon": "stop",
+        "icon": "hand",
         "role": "action"
        },
        {
@@ -2856,7 +2856,7 @@
         "activation": "press",
         "press": "tap",
         "needsKeyboardBind": false,
-        "icon": "person",
+        "icon": "em-yes",
         "role": "action"
        },
        {
@@ -2878,7 +2878,7 @@
         "activation": "press",
         "press": "tap",
         "needsKeyboardBind": true,
-        "icon": "hand",
+        "icon": "em-wave",
         "role": "action"
        },
        {
@@ -2889,7 +2889,7 @@
         "activation": "press",
         "press": "tap",
         "needsKeyboardBind": true,
-        "icon": "hand",
+        "icon": "em-salute",
         "role": "action"
        }
       ],
@@ -2902,7 +2902,7 @@
         "activation": "press",
         "press": "tap",
         "needsKeyboardBind": true,
-        "icon": "right",
+        "icon": "em-point",
         "role": "action"
        },
        {
@@ -2913,7 +2913,7 @@
         "activation": "press",
         "press": "tap",
         "needsKeyboardBind": true,
-        "icon": "pull",
+        "icon": "em-come",
         "role": "action"
        },
        {
@@ -2924,7 +2924,7 @@
         "activation": "press",
         "press": "tap",
         "needsKeyboardBind": true,
-        "icon": "hand",
+        "icon": "em-wait",
         "role": "action"
        },
        {
@@ -2935,7 +2935,7 @@
         "activation": "press",
         "press": "tap",
         "needsKeyboardBind": true,
-        "icon": "person",
+        "icon": "em-agree",
         "role": "action"
        },
        {
@@ -2946,7 +2946,7 @@
         "activation": "press",
         "press": "tap",
         "needsKeyboardBind": true,
-        "icon": "person",
+        "icon": "em-disagree",
         "role": "action"
        },
        {
@@ -2957,7 +2957,7 @@
         "activation": "press",
         "press": "tap",
         "needsKeyboardBind": true,
-        "icon": "person",
+        "icon": "em-cheer",
         "role": "action"
        },
        {
@@ -2968,7 +2968,7 @@
         "activation": "press",
         "press": "tap",
         "needsKeyboardBind": true,
-        "icon": "person",
+        "icon": "em-clap",
         "role": "action"
        },
        {
@@ -2979,7 +2979,7 @@
         "activation": "press",
         "press": "tap",
         "needsKeyboardBind": true,
-        "icon": "person",
+        "icon": "em-laugh",
         "role": "action"
        }
       ],
@@ -10966,7 +10966,7 @@
      "activation": "press",
      "press": "tap",
      "needsKeyboardBind": true,
-     "icon": "person",
+     "icon": "em-dance",
      "role": "action"
     },
     {
@@ -10977,7 +10977,7 @@
      "activation": "press",
      "press": "tap",
      "needsKeyboardBind": true,
-     "icon": "person",
+     "icon": "em-bow",
      "role": "action"
     },
     {
@@ -10988,7 +10988,7 @@
      "activation": "press",
      "press": "tap",
      "needsKeyboardBind": true,
-     "icon": "person",
+     "icon": "em-greet",
      "role": "action"
     },
     {
@@ -10999,7 +10999,7 @@
      "activation": "press",
      "press": "tap",
      "needsKeyboardBind": true,
-     "icon": "person",
+     "icon": "em-threaten",
      "role": "action"
     },
     {
@@ -11010,7 +11010,7 @@
      "activation": "press",
      "press": "tap",
      "needsKeyboardBind": true,
-     "icon": "person",
+     "icon": "em-taunt",
      "role": "action"
     },
     {
@@ -11021,7 +11021,7 @@
      "activation": "press",
      "press": "tap",
      "needsKeyboardBind": true,
-     "icon": "person",
+     "icon": "em-rude",
      "role": "action"
     },
     {
@@ -11032,7 +11032,7 @@
      "activation": "press",
      "press": "tap",
      "needsKeyboardBind": true,
-     "icon": "crouch",
+     "icon": "em-sit",
      "role": "action"
     },
     {
@@ -11043,7 +11043,7 @@
      "activation": "press",
      "press": "tap",
      "needsKeyboardBind": true,
-     "icon": "moon",
+     "icon": "em-sleep",
      "role": "action"
     },
     {
@@ -11054,7 +11054,7 @@
      "activation": "press",
      "press": "tap",
      "needsKeyboardBind": true,
-     "icon": "person",
+     "icon": "em-flex",
      "role": "action"
     },
     {
@@ -11065,7 +11065,7 @@
      "activation": "press",
      "press": "tap",
      "needsKeyboardBind": true,
-     "icon": "person",
+     "icon": "em-gloat",
      "role": "action"
     },
     {
@@ -11076,7 +11076,7 @@
      "activation": "press",
      "press": "tap",
      "needsKeyboardBind": true,
-     "icon": "person",
+     "icon": "em-angry",
      "role": "action"
     },
     {
@@ -11087,7 +11087,7 @@
      "activation": "press",
      "press": "tap",
      "needsKeyboardBind": true,
-     "icon": "person",
+     "icon": "em-atease",
      "role": "action"
     },
     {
@@ -11098,7 +11098,7 @@
      "activation": "press",
      "press": "tap",
      "needsKeyboardBind": true,
-     "icon": "person",
+     "icon": "em-attention",
      "role": "action"
     },
     {
@@ -11109,7 +11109,7 @@
      "activation": "press",
      "press": "tap",
      "needsKeyboardBind": true,
-     "icon": "person",
+     "icon": "em-whistle",
      "role": "action"
     }
    ]

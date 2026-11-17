@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Session recap when you leave the game: time played, kills, times down, missions, routes set, ships flown and places visited, from that session's log. Settings > General turns it off.
+- Every emote has its own icon.
 - Emotes page, from the Emotes key on the On foot page: squad hand signals and 24 emotes. Reload the keybind profile for their keys.
 - Panic decoy now has a key in the keybind profile (it had none, so the long press did nothing).
 - Every key is checked on each change against the game's 4.x action list, so a renamed or removed action fails the build instead of a key doing nothing.
