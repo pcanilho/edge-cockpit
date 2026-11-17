@@ -83,6 +83,10 @@ Only the Corsair Xeneon Edge (2560 x 720) is fully supported for now. If you wou
 
 Found a bug? Open a [bug report](../../issues/new?template=bug.yml). Have an idea? Open a [feature request](../../issues/new?template=feature.yml).
 
+## Support
+
+Edge Cockpit is free and always will be, with every feature included. If it improves your flights and you'd like to support its development, you can [sponsor the developer](https://github.com/sponsors/pcanilho).
+
 ## Security
 
 See [SECURITY.md](SECURITY.md) for what the app can do and how to report a vulnerability privately.
