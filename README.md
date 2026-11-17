@@ -46,6 +46,7 @@ Every ship page has a power plate with a big **Flight Ready** button, a module f
 | HOLD tag | The key stays down while you hold it |
 | LONG or 2× tag | Long press or double tap for a second action |
 | MACRO (cut corners) | One tap runs a sequence, such as Ready & ATC or Battle stations |
+| ON/OFF switch | Top half sets on, bottom half sets off. Unlit until you set it |
 | Switch, knob | Tap or turn |
 | Lever, slider | Drag |
 | Red cover | Tap to lift it, then tap again within 3 seconds |
@@ -59,7 +60,7 @@ Every ship page has a power plate with a big **Flight Ready** button, a module f
 - Lights a red frame only for a CrimeStat or your ship disabled. Unmonitored or ungoverned space is an amber note.
 - Reads your `actionmaps.xml`, so keys you rebound in game just work. **Settings > Keybinds** lists any key the console can't press.
 
-The game doesn't report gear, power, doors, lights or most switches, so those are push-buttons (doors get separate Open and Close keys), and the gear lever and missiles show what you last pressed. Hold the EDGE COCKPIT title for 2 seconds to see frame rate, CPU, memory and touch-to-key latency.
+The game doesn't report gear, power, doors, lights or most switches. Where 4.x has separate on and off binds (power, lights, VTOL, limiter, decoupled, G-safe and others), the console uses an ON/OFF switch that sends exactly that state. It shows nothing until you set it, because the console can't know what the ship is doing. **All systems on** sets the main ones in one tap, so the switches match the ship. They go back to unknown when you leave the seat or change ship. Everything else is a push-button (doors get separate Open and Close keys), and the gear lever and missiles show what you last pressed. Hold the EDGE COCKPIT title for 2 seconds to see frame rate, CPU, memory and touch-to-key latency.
 
 No telemetry. The only network calls are ship outlines from FleetYards and the update check against these releases.
 
