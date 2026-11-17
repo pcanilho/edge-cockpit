@@ -249,7 +249,7 @@ function rolePlate(page) {
 
 function weaponWheel(cx, cy) {
   const keys = [['Primary', -36, 36], ['Secondary', 36, 108], ['Sidearm', 108, 180], ['Melee', 180, 252], ['Gadget', 252, 324]];
-  return dial(cx, cy, { bezel: 300, centreR: 96, centre: 'Reload', rings: [{ r0: 110, r1: 250, keys: keys.map(([l, a0, a1]) => ({ label: l, a0: a0 + 1, a1: a1 - 1 })) }] });
+  return dial(cx, cy, { bezel: 270, centreR: 96, centre: 'Reload', rings: [{ r0: 110, r1: 250, keys: keys.map(([l, a0, a1]) => ({ label: l, a0: a0 + 1, a1: a1 - 1 })) }] });
 }
 
 function onFoot() {
@@ -311,7 +311,7 @@ function mapPage() {
   const a = plate(382, 760, 'Map');
   add(a,
     dial(380, 380, {
-      bezel: 300, centreR: 96, centre: 'Go to selection',
+      bezel: 270, centreR: 96, centre: 'Go to selection',
       rings: [{ r0: 110, r1: 250, keys: [{ label: 'Local map', a0: -44, a1: 44 }, { label: 'My location', a0: 46, a1: 134 }, { label: 'Plan route', a0: 136, a1: 224 }, { label: 'Step back', a0: 226, a1: 314 }] }],
     }),
     keycap(20, 44, 150, 110, 'Clear route', { fs: 13 }), keycap(590, 44, 150, 110, 'QT actions', { fs: 13 }),
