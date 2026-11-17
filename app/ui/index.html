@@ -26,7 +26,8 @@
       <div class="name" id="ship-name">Standing by</div>
       <div class="role" id="ship-role">Waiting for Star Citizen</div>
       <div class="facts">
-        <div class="where" id="where" hidden><small>Location</small><b id="where-name"></b><span id="where-note"></span></div>
+        <div class="mission" id="mission" hidden><small id="mission-kind">Mission</small><b id="mission-obj"></b><p id="mission-text"></p><div class="mtags"><span class="at" id="mission-at"></span><span id="mission-tags"></span></div></div>
+        <div class="where" id="where" hidden><small>Location</small><b id="where-name"></b><span id="where-note"></span><div class="qt" id="qt" hidden><svg class="i" viewBox="0 0 24 24"></svg><span id="qt-name"></span></div></div>
         <svg class="orrery" id="orrery" viewBox="0 0 302 52" hidden></svg>
         <div class="chips">
           <button class="chip" id="law" hidden><i></i><span></span></button>
@@ -38,9 +39,7 @@
           <button class="chip warn" id="touch-chip" hidden><i></i><span></span></button>
           <button class="chip auto" id="auto"><i></i><span>Follow game</span></button>
         </div>
-        <div class="qt" id="qt" hidden><svg class="i" viewBox="0 0 24 24"></svg><div><small>Quantum target</small><span id="qt-name"></span></div></div>
       </div>
-      <div class="mission" id="mission" hidden><small id="mission-kind">Mission</small><p id="mission-text"></p></div>
     </div>
     <nav class="softkeys" id="softkeys"></nav>
   </section>
@@ -116,6 +115,14 @@
           <p class="fine">Hold the EDGE COCKPIT title for 2 seconds to see performance. Unofficial fan project, not affiliated with Cloud Imperium Games. Ship outlines from FleetYards.net. MIT License.</p>
         </div>
       </section>
+    </div>
+  </div>
+  <div class="upd-prompt" id="upd-prompt" role="dialog" aria-labelledby="upd-p-title" hidden>
+    <div class="upd-card">
+      <small>Update ready</small><h3 id="upd-p-title"></h3>
+      <div class="notes" id="upd-p-notes"></div>
+      <div class="upd-btns"><button class="later" id="upd-later">Later</button><button class="go" id="upd-now">Update now</button></div>
+      <p class="upd-fine">Takes a few seconds and the console restarts. Never offered while Star Citizen is running.</p>
     </div>
   </div>
   <div class="toast" id="toast" role="status"><span id="toast-text"></span><button id="toast-act" hidden></button></div>

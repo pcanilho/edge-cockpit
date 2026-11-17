@@ -14,6 +14,14 @@
   <action name="v_toggle_all_doorlocks">
    <rebind input="kb1_rshift+f6"/>
   </action>
+  <!-- Open doors -->
+  <action name="v_open_all_doors">
+   <rebind input="kb1_rctrl+rshift+f4"/>
+  </action>
+  <!-- Close doors -->
+  <action name="v_close_all_doors">
+   <rebind input="kb1_rctrl+rshift+f5"/>
+  </action>
  </actionmap>
  <actionmap name="spaceship_movement">
   <!-- Speed limiter -->

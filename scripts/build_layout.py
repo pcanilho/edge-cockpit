@@ -24,6 +24,10 @@ CATALOG = {
     'Weapons': ('v_power_toggle_weapons', 'tap', 'crosshair'),
     'Lights': ('v_lights', 'tap', 'bulb'),
     'Doors': ('v_toggle_all_doors', 'tap', 'door'),
+    'Open doors': ('v_open_all_doors', 'tap', 'door'),
+    'Close doors': ('v_close_all_doors', 'tap', 'door'),
+    'Chat window': ('toggle_chat', 'tap', 'chat'),
+    'Push to talk': ('foip_pushtotalk', 'hold', 'chat'),
     'Landing gear': ('v_toggle_landing_system', 'tap', 'gear'),
     'Autoland': ('v_autoland', 'hold', 'land'),
     'VTOL': ('v_vtol_toggle', 'tap', 'vtol'),
@@ -376,6 +380,10 @@ def load_actions(path):
     return acts
 
 
+# Keys only the console's own plates use.
+EXTRAS = ['Open doors', 'Close doors', 'Chat window', 'Push to talk']
+
+
 def make_cell(cell, acts, missing):
     """A deck key from a page cell: a catalog key (with its long press and double tap extras) or a macro."""
     label = cell[0] if isinstance(cell, tuple) else cell
@@ -501,6 +509,8 @@ def main(path):
         if k:
             k['type'] = 'action'
             rail.append(k)
+    # Keys the console uses that no deck page shows.
+    extras = [make_key(spec_of(label), acts, missing) for label in EXTRAS]
     if missing:
         sys.exit('Unknown actions: ' + ', '.join(sorted(set(missing))))
 
@@ -509,7 +519,8 @@ def main(path):
         'source': 'Star Citizen defaultProfile.xml',
         'device': {'name': 'Corsair Xeneon Edge', 'resolution': [2560, 720]},
         'decks': [{'id': 'rail', 'grid': [COLUMNS, 1], 'keys': rail},
-                  {'id': 'main', 'grid': [COLUMNS, ROWS - 1], 'pages': pages}],
+                  {'id': 'main', 'grid': [COLUMNS, ROWS - 1], 'pages': pages},
+                  {'id': 'extras', 'keys': [k for k in extras if k]}],
         'roles': [{'id': rid, 'name': r['name'], 'code': r['code'], 'tab': r['tab']} for rid, r in ROLES.items()],
                 # Pages the panel opens on game events.
         'defaultPages': {'seated': 'flight', 'onFoot': 'onfoot', 'downed': 'downed', 'menu': 'flight'},

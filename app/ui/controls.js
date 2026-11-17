@@ -70,14 +70,15 @@ const blank = (x, y, w, ht, r) => h(`<div class="well blank" style="${box(x, y, 
 /**
  * A backlit keycap in a recessed well. `l` is a key label (or key). Options:
  * label, icon, is (icon size), fs (font size), r (radius), lc (backlight colour),
- * lit (legend always lit), cut (chamfered macro plate), noLed, sub.
+ * lit (legend always lit), cut (chamfered macro plate), noLed, sub, kb (false hides the keybind).
  */
 export function keycap(x, y, w, ht, l, o = {}) {
   const k = keyOf(l);
   if (!k || (o.fitted !== undefined ? !o.fitted : !K.fitted(k))) return blank(x, y, w, ht, o.r);
   const tog = k.role === 'toggle' || k.role === 'select';
   const tag = k.role === 'hold' ? 'HOLD' : k.role === 'macro' ? 'MACRO' : k.role === 'critical' ? 'GUARD' : k.more?.hold ? 'LONG' : k.more?.double ? '2×' : '';
-  const bind = K.bindText(k);
+  // Long chords don't fit a narrow cap; the keybind check still lists them.
+  const bind = o.kb === false ? '' : K.bindText(k);
   const el = h(`<div class="well key ${K.isWeapon(k) ? 'weapon' : ''} ${o.cut ? 'cut' : ''} ${w < 100 ? 'narrow' : ''}" style="${box(x, y, w, ht)};--lc:${o.lc || 'var(--accent)'};${o.r ? `--r:${o.r}px` : ''}">
     <div class="cap ${o.lit ? 'lit' : ''}">
       ${tog && !o.noLed && k.state?.kind === 'set' ? '<span class="led"></span>' : ''}

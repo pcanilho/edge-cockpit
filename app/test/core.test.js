@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { EMPTY, parseLine, reduce, shipName, shipClass, version, untested, placeName, place } from '../ui/lib/gamelog.js';
+import { EMPTY, parseLine, reduce, shipName, shipClass, version, untested, placeName, place, contractText, markup } from '../ui/lib/gamelog.js';
 import { pageFor } from '../ui/lib/pages.js';
 import { lookup } from '../ui/lib/ships.js';
 import { slugsOf } from '../ui/outlines.js';
@@ -141,3 +141,21 @@ test('4.10: boarding by crew channel, the ship from navigation, leaving', () => 
   assert.equal(shipClass('Consolidated Outland Mustang Alpha'), 'CNOU_Mustang_Alpha');
 });
 
+
+test('4.10 missions: reward markup, echoed lines, where the marker points', () => {
+  const lines = [
+    '<2026-11-17T18:23:04.061Z> [Notice] <SHUDEvent_OnNotification> Added notification "Contract Accepted:  Retrieve Additional Smuggler Intel <EM4>[BP]</EM4> <EM4>[100 Rep]</EM4>: " [10] to queue. New queue size: 1, MissionId: [e1a0], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]',
+    '<2026-11-17T18:23:04.061Z> [Notice] <SHUDEvent_OnNotification> Added notification "New Objective: Go to Location: " [11] to queue. New queue size: 2, MissionId: [e1a0], ObjectiveId: [a319] [Team_CoreGameplayFeatures][Missions][Comms]',
+    // The game echoes queued notices on lines of their own; they must not reset the objective.
+    '<2026-11-17T18:23:04.061Z>    "Contract Accepted:  Retrieve Additional Smuggler Intel <EM4>[BP]</EM4> <EM4>[100 Rep]</EM4>: " [10]',
+    '<2026-11-17T18:23:04.178Z> [Notice] <CObjectiveMarkerComponent::PairWithMissionNavpoint> MissionObjectiveMarker_754[754] - Paired with NavPoint: MISSION_QT_Kaboos_928306496062[928306496062] [Team_MissionFeatures][Missions]',
+  ];
+  const s = lines.map(parseLine).filter(Boolean).reduce(reduce, { ...EMPTY, menu: false });
+  assert.equal(s.mission.contract, 'Retrieve Additional Smuggler Intel');
+  assert.deepEqual(s.mission.tags, ['BP', '100 Rep']);
+  assert.equal(s.mission.objective, 'Go to Location');
+  assert.equal(s.mission.target, 'Kaboos');
+  // Colour markup from the game and from StarStrings / SmartCitizen.
+  assert.deepEqual(contractText('Deliver to <EM4>Lorville</EM4> [Illegal]'), { text: 'Deliver to Lorville', tags: ['Illegal'], runs: [{ text: 'Deliver to ', em: null }, { text: 'Lorville', em: 4 }] });
+  assert.deepEqual(markup('<EM3>Hot</EM3> <b>cargo</b> <cough>run'), [{ text: 'Hot', em: 3 }, { text: ' ', em: null }, { text: 'cargo', em: 'b' }, { text: ' run', em: null }]);
+});

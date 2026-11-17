@@ -21,6 +21,8 @@ export const SWIPE = ['light-fighter', 'heavy-fighter', 'multi-crew', 'mining', 
 
 const add = (p, ...els) => { for (const e of els.flat()) if (e) p.appendChild(e); return p; };
 const cut = { cut: true, lc: 'var(--cyan)', lit: true };
+// Open and close rather than one toggle: the game doesn't say whether the doors are open.
+const doors = (x, w) => [keycap(x, 44, w, 92, 'Open doors', { fs: 12, kb: w > 110 }), keycap(x, 140, w, 92, 'Close doors', { fs: 12, kb: w > 110 })];
 
 // ================= ship plates =================
 
@@ -45,8 +47,10 @@ function flightPlate() {
     quantum(372, 44, 220, 'Quantum'),
     keycap(150, 276, 140, 90, 'Decoupled', { fs: 13 }),
     keycap(296, 276, 140, 90, 'Freelook', { fs: 13 }),
-    keycap(442, 276, 150, 90, 'Startup', { fs: 13, ...cut }),
-    keycap(150, 374, 218, 78, 'Decoy', { fs: 13 }), keycap(374, 374, 218, 78, 'Noise', { fs: 13 }),
+    keycap(442, 276, 150, 90, 'Startup', { label: 'Ready & ATC', fs: 13, ...cut }),
+    keycap(150, 374, 150, 78, 'Decoy', { fs: 13 }),
+    keycap(306, 374, 68, 78, 'Decoy burst −', { label: 'Burst −', fs: 11, icon: false }), keycap(380, 374, 68, 78, 'Decoy burst +', { label: 'Burst +', fs: 11, icon: false }),
+    keycap(454, 374, 138, 78, 'Noise', { fs: 13 }),
   );
   const brake = h('<div class="hz" style="left:150px;top:460px;width:442px;height:110px"></div>');
   brake.appendChild(keycap(8, 8, 426, 94, 'Space brake', { fs: 20, is: 30, lc: 'var(--hold)', lit: true }));
@@ -73,20 +77,20 @@ function fighter() {
       rings: [
         { r0: 94, r1: 188, keys: [{ label: 'Lock 1', a0: -88, a1: -2 }, { label: 'Lock 2', a0: 2, a1: 88 }, { label: 'Lock 3', a0: 92, a1: 178 }, { label: 'Unlock', a0: 182, a1: 268 }] },
         { r0: 196, r1: 238, keys: [{ label: 'Look ahead', a0: -64, a1: -22 }, { label: 'Ping', a0: -20, a1: 20 }, { label: 'Scan mode', a0: 22, a1: 64 },
-          { label: 'Look behind', a0: 136, a1: 178 }, { label: 'Gimbal mode', text: 'Cycle gimbal', a0: 182, a1: 224 }] },
+          { label: 'Clear pins', a0: 136, a1: 178 }, { label: 'Gimbal mode', text: 'Cycle gimbal', a0: 182, a1: 224 }] },
       ],
     }),
     placard(20, 54, 'Missiles'), missileRack(20, 80, 128, 148),
     keycap(20, 238, 128, 92, 'Missiles +', { fs: 13 }),
     keycap(20, 338, 62, 100, 'EMP', { fs: 13, is: 20 }), keycap(86, 338, 62, 100, 'QED', { fs: 13, is: 20 }),
-    keycap(20, 446, 128, 110, 'Decoy burst +', { fs: 12 }),
-    keycap(20, 564, 128, 122, 'Combat prep', { fs: 12, ...cut }),
+    keycap(20, 446, 128, 110, 'Missiles reset', { fs: 12 }),
+    keycap(20, 564, 128, 122, 'Combat prep', { label: 'Battle stations', fs: 12, ...cut }),
     placard(670, 54, 'Gimbals'),
     rotary(670, 80, 68, [{ label: 'Locked', angle: -48, key: 'Gimbals locked' }, { label: 'Free', angle: 48, key: 'Gimbals free' }], { radius: 60 }),
     placard(670, 252, 'Gun groups'),
     keycap(670, 278, 62, 220, 'Guns group 1', { label: '1', fs: 26, r: 31, icon: 'guns' }),
     keycap(738, 278, 62, 220, 'Guns group 2', { label: '2', fs: 26, r: 31, icon: 'guns' }),
-    keycap(670, 508, 130, 84, 'Power reset', { fs: 12 }),
+    keycap(670, 508, 130, 84, 'Look behind', { fs: 12 }),
     keycap(670, 600, 130, 86, 'Evade', { fs: 12, ...cut }),
   ];
 }
@@ -100,11 +104,11 @@ function crew() {
         { r0: 176, r1: 214, keys: [{ label: 'Look ahead', a0: -64, a1: -22 }, { label: 'Ping', a0: -20, a1: 20 }, { label: 'Scan mode', a0: 22, a1: 64 }] },
       ],
     }),
-    toggle(500, 44, 'Doors', { w: 98 }), toggle(602, 44, 'Door locks', { w: 98 }), toggle(704, 44, 'Lights', { w: 98 }),
-    keycap(500, 256, 148, 90, 'Operator mode', { fs: 12 }), keycap(652, 256, 148, 90, 'Gimbal mode', { fs: 12 }),
+    ...doors(500, 98), toggle(602, 44, 'Door locks', { w: 98 }), toggle(704, 44, 'Look behind', { w: 98 }),
+    keycap(500, 256, 148, 90, 'Operator mode', { fs: 12 }), keycap(652, 256, 148, 90, 'Gimbal mode', { label: 'Cycle gimbal', fs: 12 }),
     keycap(500, 354, 148, 90, 'Guns group 1', { fs: 12 }), keycap(652, 354, 148, 90, 'Guns group 2', { fs: 12 }),
     keycap(500, 452, 148, 90, 'Missiles +', { fs: 12 }), missileRack(656, 456, 140, 82),
-    keycap(500, 550, 98, 136, 'Loading area', { fs: 11 }), keycap(602, 550, 98, 136, 'Port locks', { fs: 11 }), keycap(704, 550, 96, 136, 'Power reset', { fs: 11 }),
+    keycap(500, 550, 98, 136, 'Loading area', { fs: 11 }), keycap(602, 550, 98, 136, 'Port locks', { fs: 11 }), keycap(704, 550, 96, 136, 'Docking request', { label: 'Docking', fs: 11 }),
   ];
 }
 
@@ -114,7 +118,7 @@ function mining() {
     keycap(254, 610, 310, 76, 'Mining mode', { fs: 14, lc: 'var(--cyan)' }),
     keycap(20, 60, 150, 110, 'Scan mode', { fs: 13, lc: 'var(--cyan)' }), keycap(20, 178, 150, 110, 'Ping', { fs: 13 }),
     keycap(20, 296, 150, 100, 'Lock rotation', { fs: 12 }), keycap(20, 404, 150, 100, 'Operator mode', { fs: 12 }),
-    keycap(20, 512, 150, 84, 'Lights', { fs: 12 }), keycap(20, 604, 150, 82, 'ATC request', { fs: 12 }),
+    keycap(20, 512, 150, 84, 'Clear pins', { fs: 12 }), keycap(20, 604, 150, 82, 'Loading area', { fs: 12 }),
     placard(648, 54, 'Modules'),
     ...[1, 2, 3].map(m => keycap(648, 80 + (m - 1) * 84, 150, 76, `Module ${m}`, { fs: 13, lc: 'var(--cyan)' })),
     keycap(648, 332, 150, 76, 'Perm. module', { label: 'Permanent module', fs: 12, icon: false }),
@@ -141,34 +145,34 @@ function salvage() {
 function cargo() {
   const beam = (s, el) => K.fire(K.key(s > 0 ? 'Beam farther' : 'Beam closer'), el);
   return [
-    toggle(20, 44, 'Doors', { w: 100 }), toggle(126, 44, 'Door locks', { w: 100 }), toggle(232, 44, 'Lights', { w: 100 }),
-    keycap(20, 258, 154, 92, 'Loading area', { fs: 12 }), keycap(180, 258, 154, 92, 'Port locks', { fs: 12 }),
-    keycap(20, 358, 154, 92, 'ATC request', { fs: 12 }), keycap(180, 358, 154, 92, 'Autoland', { fs: 12 }),
+    ...doors(20, 100), toggle(126, 44, 'Door locks', { w: 100 }), toggle(232, 44, 'Port locks', { w: 100 }),
+    keycap(20, 258, 154, 92, 'Loading area', { fs: 12 }), keycap(180, 258, 154, 92, 'Lock rotation', { fs: 12 }),
+    keycap(20, 358, 154, 92, 'Cruise throttle', { fs: 12 }), keycap(180, 358, 154, 92, 'Ping', { fs: 12 }),
     keycap(20, 458, 154, 92, 'Scan mode', { fs: 12 }), keycap(180, 458, 154, 92, 'Operator mode', { fs: 12 }),
     keycap(20, 558, 314, 128, 'Docking request', { fs: 14 }),
     placard(380, 54, 'Tractor beam'),
     slider(380, 86, 112, 520, { value: 'beam', title: 'Beam distance', onStep: beam, colour: 'var(--hold)' }),
     roundButton(540, 80, 230, 'Tractor rotate', { colour: 'var(--hold)', is: 40 }),
     keycap(530, 340, 250, 100, 'Tractor detach', { fs: 14 }),
-    rocker(530, 452, 250, 120, 'Beam farther', 'Beam closer', { vertical: true }),
-    keycap(530, 584, 250, 102, 'Freelook', { fs: 13 }),
+    keycap(530, 452, 250, 120, 'Look behind', { fs: 13 }),
+    keycap(530, 584, 250, 102, 'Look ahead', { fs: 13 }),
   ];
 }
 
 function medical() {
   return [
     dial(296, 364, {
-      bezel: 250, centreR: 82, centre: 'Autoland',
+      bezel: 250, centreR: 82, centre: 'Scan mode',
       rings: [
-        { r0: 94, r1: 190, keys: [{ label: 'ATC request', a0: -88, a1: -2 }, { label: 'Loading area', a0: 2, a1: 88 }, { label: 'Docking request', a0: 92, a1: 178 }, { label: 'Freelook', a0: 182, a1: 268 }] },
-        { r0: 198, r1: 236, keys: [{ label: 'Scan mode', a0: -40, a1: -2 }, { label: 'Ping', a0: 2, a1: 40 }] },
+        { r0: 94, r1: 190, keys: [{ label: 'Loading area', a0: -88, a1: -2 }, { label: 'Docking request', a0: 2, a1: 88 }, { label: 'Look behind', a0: 92, a1: 178 }, { label: 'Look ahead', a0: 182, a1: 268 }] },
+        { r0: 198, r1: 236, keys: [{ label: 'Ping', a0: -40, a1: -2 }, { label: 'Lock rotation', a0: 2, a1: 40 }] },
       ],
     }),
-    toggle(566, 44, 'Doors', { w: 116 }), toggle(684, 44, 'Door locks', { w: 116 }),
-    keycap(566, 256, 116, 96, 'Lights', { fs: 12 }), keycap(686, 256, 114, 96, 'Operator mode', { fs: 11 }),
-    keycap(566, 360, 116, 96, 'Gimbal mode', { fs: 11 }), keycap(686, 360, 114, 96, 'Guns group 1', { fs: 11 }),
-    keycap(566, 464, 234, 96, 'Power reset', { fs: 13 }),
-    keycap(566, 568, 234, 118, 'Port locks', { fs: 13 }),
+    ...doors(566, 116), toggle(684, 44, 'Door locks', { w: 116 }),
+    keycap(566, 256, 116, 96, 'Port locks', { fs: 12 }), keycap(686, 256, 114, 96, 'Operator mode', { fs: 11 }),
+    keycap(566, 360, 116, 96, 'Gimbal mode', { label: 'Cycle gimbal', fs: 11 }), keycap(686, 360, 114, 96, 'Guns group 1', { fs: 11 }),
+    keycap(566, 464, 234, 96, 'Cruise throttle', { fs: 13 }),
+    keycap(566, 568, 234, 118, 'Visor wipe', { fs: 13 }),
   ];
 }
 
@@ -181,21 +185,22 @@ function ground() {
         { r0: 198, r1: 236, keys: [{ label: 'Scan mode', a0: -40, a1: -2 }, { label: 'Ping', a0: 2, a1: 40 }] },
       ],
     }),
-    toggle(566, 44, 'Lights', { w: 116 }), toggle(684, 44, 'Doors', { w: 116 }),
+    ...doors(566, 116), toggle(684, 44, 'Door locks', { w: 116 }),
     keycap(566, 256, 234, 96, 'Operator mode', { fs: 13 }),
-    keycap(566, 360, 116, 96, 'Gimbal mode', { fs: 11 }), keycap(686, 360, 114, 96, 'Guns group 1', { fs: 11 }),
+    keycap(566, 360, 116, 96, 'Guns group 1', { fs: 11 }), keycap(686, 360, 114, 96, 'Guns group 2', { fs: 11 }),
     keycap(566, 464, 234, 96, 'Auto target', { fs: 13 }),
-    keycap(566, 568, 234, 118, 'Power reset', { fs: 13 }),
+    keycap(566, 568, 234, 118, 'Look ahead', { fs: 13 }),
   ];
 }
 
 function systems() {
   const row = (y, ht, labels, o = {}) => labels.map((l, i) => keycap(23 + i * 130, y, 122, ht, l, { fs: 11, is: 20, ...o }));
   return [
-    ...['G-safe', 'ESP', 'Proximity assist', 'Lock rotation', 'Advanced HUD', 'Door locks', 'Doors'].map((l, i) => toggle(19 + i * 112, 44, l, { w: 108 })),
+    ...['G-safe', 'ESP', 'Proximity assist', 'Lock rotation', 'Advanced HUD', 'Door locks'].map((l, i) => toggle(19 + i * 112, 44, l, { w: 108 })),
+    ...doors(19 + 6 * 112, 108),
     ...row(258, 100, ['Cruise throttle', 'Loading area', 'Docking request', 'Scan mode', 'Ping', 'Starmap']),
-    ...row(366, 100, ['Look behind', 'Freelook', 'Lock rotation', 'mobiGlas', 'Power reset', 'Autoland']),
-    keycap(23, 476, 250, 98, 'Combat prep', { fs: 13, ...cut }), keycap(281, 476, 250, 98, 'Evade', { fs: 13, ...cut }),
+    ...row(366, 100, ['Look behind', 'Look ahead', 'Port locks', 'mobiGlas', 'Visor wipe', 'Chat window']),
+    keycap(23, 476, 250, 98, 'Combat prep', { label: 'Battle stations', fs: 13, ...cut }), keycap(281, 476, 250, 98, 'Evade', { fs: 13, ...cut }),
     rocker(539, 476, 256, 98, 'Throttle −', 'Throttle +', { vertical: false }),
     keycap(23, 584, 250, 102, 'Weapons max', { fs: 13 }), keycap(281, 584, 250, 102, 'Shields max', { fs: 13 }), keycap(539, 584, 256, 102, 'Engines max', { fs: 13 }),
   ];
@@ -264,7 +269,8 @@ function comms(x, w) {
     ...[1, 2, 3, 4, 5].map(n => keycap(20, 70 + (n - 1) * 124, half, 116, `Reply ${n}`, { fs: 16, icon: 'chat' })),
     keycap(40 + half, 70, half, 116, 'Local map', { fs: 15 }), keycap(40 + half, 194, half, 116, 'Starmap', { fs: 15 }),
     keycap(40 + half, 318, half, 116, 'Plan route', { fs: 15 }), keycap(40 + half, 442, half, 116, 'Scoreboard', { fs: 15 }),
-    keycap(40 + half, 566, half, 116, 'Flashlight', { fs: 15 }));
+    keycap(40 + half, 566, half / 2 - 4, 116, 'Chat window', { label: 'Chat', fs: 14 }),
+    keycap(44 + half * 1.5, 566, half / 2 - 4, 116, 'Push to talk', { fs: 13 }));
   return p;
 }
 
@@ -288,7 +294,8 @@ function mapPage() {
   const c = plate(1754, 800, 'Comms');
   const half = 370;
   add(c, ...[1, 2, 3, 4, 5].map(n => keycap(20, 50 + (n - 1) * 128, half, 120, `Reply ${n}`, { fs: 16, icon: 'chat' })),
-    keycap(410, 50, half, 248, 'ATC request', { fs: 18, is: 34 }), keycap(410, 306, half, 120, 'Docking request', { fs: 16 }),
+    keycap(410, 50, half, 120, 'ATC request', { fs: 16 }), keycap(410, 178, half / 2 - 4, 120, 'Chat window', { label: 'Chat', fs: 15 }),
+    keycap(414 + half / 2, 178, half / 2 - 4, 120, 'Push to talk', { fs: 14 }), keycap(410, 306, half, 120, 'Docking request', { fs: 16 }),
     keycap(410, 434, half, 120, 'Third person', { fs: 16 }), keycap(410, 562, half, 116, 'Visor wipe', { fs: 16 }));
   return [a, b, c];
 }
@@ -307,7 +314,7 @@ function downed() {
   add(b, ...[1, 2, 3, 4, 5].map(n => keycap(20, 50 + (n - 1) * 128, 520, 120, `Reply ${n}`, { fs: 16, icon: 'chat' })),
     keycap(560, 50, 260, 248, 'Local map', { fs: 18, is: 34 }), keycap(828, 50, 258, 248, 'Plan route', { fs: 18, is: 34 }),
     keycap(560, 306, 260, 186, 'Scoreboard', { fs: 16 }), keycap(828, 306, 258, 186, 'mobiGlas', { fs: 16 }),
-    keycap(560, 500, 260, 186, 'Third person', { fs: 16 }), keycap(828, 500, 258, 186, 'Flashlight', { fs: 16 }));
+    keycap(560, 500, 260, 186, 'Third person', { fs: 16 }), keycap(828, 500, 258, 186, 'Push to talk', { fs: 16 }));
   return [a, b];
 }
 

@@ -35,6 +35,8 @@ export const PATTERNS = {
   // notice is repeated on UpdateNotificationItem lines, which are skipped.
   contract: /"Contract (Accepted|Complete|Failed|Withdrawn):\s*(.*?):?\s*"/,
   objective: /"(New Objective|Objective Complete|Objective Withdrawn):\s*(.*?):?\s*"/,
+  // Where the objective marker points, e.g. Paired with NavPoint: MISSION_QT_Kaboos_928306496062[...]
+  objectiveAt: /Paired with NavPoint: (?:MISSION_)?(?:QT_)?(.+?)_\d+\[/,
   jurisdiction: /"Entered (.+?) Jurisdiction/,
   monitored: /\b(Entered|Exited) Monitored Space\b|\bMonitored Space (Down|Restored)\b/,
   crime: /CrimeStat(?: Rating)?\s*(Increased|Decreased|Cleared|Removed|Lost)?\D{0,12}(\d)?/i,
@@ -71,8 +73,58 @@ export function shipClass(display) {
 /** 'MISC_Prospector' -> 'Prospector', 'DRAK_Cutlass_Black' -> 'Cutlass Black' */
 export const shipName = model => model.replace(/^[A-Z]{3,5}_/, '').replace(/_/g, ' ');
 
+/**
+ * The game's text markup, which localisation mods such as StarStrings and SmartCitizen use
+ * too: <EM>/<EM0>..<EM4> colour a run of text, <b>, <i> and <font ...> style it. Returns the
+ * text as runs, [{ text, em }], em being 0-4, 'b', 'i' or null for plain text. Unknown tags
+ * (stage directions such as <cough>) are dropped.
+ */
+export function markup(raw) {
+  const runs = [], stack = [];
+  const push = text => {
+    if (!text) return;
+    const em = stack.length ? stack[stack.length - 1] : null;
+    const last = runs[runs.length - 1];
+    if (last && last.em === em) last.text += text; else runs.push({ text, em });
+  };
+  const re = /<(\/?)(EM(\d)?|b|i|font)\b[^>]*>|<[^<>]{1,30}>/gi;
+  let at = 0, m;
+  while ((m = re.exec(raw))) {
+    push(raw.slice(at, m.index));
+    at = re.lastIndex;
+    if (!m[2]) continue;
+    if (m[1]) { stack.pop(); continue; }
+    const tag = m[2].toLowerCase();
+    stack.push(tag.startsWith('em') ? Number(m[3] || 0) : tag === 'font' ? (stack[stack.length - 1] ?? null) : tag);
+  }
+  push(raw.slice(at));
+  for (const r of runs) r.text = r.text.replace(/\\n/g, ' ').replace(/\s+/g, ' ');
+  return runs.filter(r => r.text.trim() || r.text === ' ');
+}
+
+/**
+ * A contract title, split into its name and the reward tags mods and the game append:
+ * 'Retrieve Intel <EM4>[BP]</EM4> <EM4>[100 Rep]</EM4>' -> { text: 'Retrieve Intel', tags: ['BP', '100 Rep'], runs }.
+ */
+export function contractText(raw) {
+  const tags = [];
+  const runs = [];
+  for (const r of markup(raw)) {
+    // Bracketed tags, coloured or not: [BP], [100 Rep], [Illegal].
+    const rest = r.text.replace(/\[([^\]]{1,24})\]/g, (_, t) => { tags.push(t.trim()); return ' '; });
+    if (rest) runs.push({ ...r, text: rest });
+  }
+  while (runs.length && !runs[0].text.trim()) runs.shift();
+  while (runs.length && !runs[runs.length - 1].text.trim()) runs.pop();
+  if (runs.length) { runs[0].text = runs[0].text.trimStart(); runs[runs.length - 1].text = runs[runs.length - 1].text.trimEnd(); }
+  const text = runs.map(r => r.text).join('').replace(/\s+/g, ' ').trim();
+  return { text, tags, runs: runs.filter(r => r.text) };
+}
+
 export function parseLine(line) {
   if (line.includes('UpdateNotificationItem')) return null;
+  // A notice's text echoed on its own line, after the line that logged it.
+  if (/^<[^>]*>\s+"/.test(line)) return null;
   let m = PATTERNS.seat.exec(line);
   if (m) return { type: 'seat', seated: m[1] === 'SetDriver', ship: shipModel(m[2]) };
   m = PATTERNS.nav.exec(line);
@@ -106,9 +158,11 @@ export function parseLine(line) {
   m = PATTERNS.spawn.exec(line);
   if (m) return { type: 'respawn', who: m[1] };
   m = PATTERNS.contract.exec(line);
-  if (m) return { type: 'mission', kind: m[1].toLowerCase(), text: m[2].trim() };
+  if (m) return { type: 'mission', kind: m[1].toLowerCase(), ...contractText(m[2]) };
   m = PATTERNS.objective.exec(line);
-  if (m) return { type: 'objective', kind: { 'New Objective': 'new', 'Objective Complete': 'done', 'Objective Withdrawn': 'withdrawn' }[m[1]], text: m[2].trim() };
+  if (m) return { type: 'objective', kind: { 'New Objective': 'new', 'Objective Complete': 'done', 'Objective Withdrawn': 'withdrawn' }[m[1]], text: contractText(m[2]).text };
+  m = PATTERNS.objectiveAt.exec(line);
+  if (m) return { type: 'objective-at', place: m[1].replace(/_/g, ' ') };
   m = PATTERNS.jurisdiction.exec(line);
   if (m) return { type: 'jurisdiction', name: m[1].trim() };
   m = PATTERNS.monitored.exec(line);
@@ -126,7 +180,7 @@ export const lawless = state => state.monitored === 'down' || state.monitored ==
   || /ungoverned|lawless|unclaimed/i.test(state.jurisdiction || '');
 
 // menu: at the main menu or a loading screen. down: incapacitated or dead.
-// mission: { contract, objective, status: active | complete | failed | withdrawn, seq } (seq counts changes).
+// mission: { contract, tags (rewards), objective, target (where its marker points), status: active | complete | failed | withdrawn, seq } (seq counts changes).
 // monitored: yes, no (left monitored space) or down (comm array offline). crime: CrimeStat level.
 // build: { branch, changelist } of the running game. wrecked: 1 disabled, 2 destroyed, for the ship you fly.
 // kills: players and NPCs you killed this session. location: where you last opened your inventory.
@@ -197,14 +251,21 @@ export function reduce(state, ev) {
       return { ...state, down: false };
     case 'mission': {
       const m = state.mission;
-      if (ev.kind === 'accepted') return { ...live, mission: { contract: ev.text, objective: null, status: 'active', seq: (m?.seq || 0) + 1 } };
+      if (ev.kind === 'accepted') {
+        if (m?.contract === ev.text && m.status === 'active') return live;
+        return { ...live, mission: { contract: ev.text, tags: ev.tags || [], runs: ev.runs || null, objective: null, target: null, status: 'active', seq: (m?.seq || 0) + 1 } };
+      }
       if (!m || m.status !== 'active') return live;
       return { ...live, mission: { ...m, status: ev.kind, seq: m.seq + 1 } };
     }
     case 'objective': {
       const m = state.mission || { contract: null, objective: null, status: 'active', seq: 0 };
-      if (ev.kind === 'new') return m.objective === ev.text && m.status === 'active' ? live : { ...live, mission: { ...m, objective: ev.text, status: 'active', seq: m.seq + 1 } };
+      if (ev.kind === 'new') return m.objective === ev.text && m.status === 'active' ? live : { ...live, mission: { ...m, objective: ev.text, target: null, status: 'active', seq: m.seq + 1 } };
       return { ...live, mission: { ...m, objective: m.objective === ev.text ? null : m.objective } };
+    }
+    case 'objective-at': {
+      const m = state.mission;
+      return !m || m.target === ev.place ? live : { ...live, mission: { ...m, target: ev.place } };
     }
     case 'jurisdiction': return state.jurisdiction === ev.name ? live : { ...live, jurisdiction: ev.name };
     case 'monitored': return state.monitored === ev.value ? live : { ...live, monitored: ev.value };
