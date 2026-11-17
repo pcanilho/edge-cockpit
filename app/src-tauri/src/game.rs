@@ -106,21 +106,30 @@ pub struct Tail {
     pub path: PathBuf,
     offset: u64,
     rest: String,
+    born: Option<SystemTime>,
+    /// Set when the game started a new Game.log since the last poll.
+    pub restarted: bool,
 }
 
 impl Tail {
     pub fn new(path: PathBuf) -> Self {
-        Self { path, offset: 0, rest: String::new() }
+        Self { path, offset: 0, rest: String::new(), born: None, restarted: false }
     }
 
-    /// New complete lines since the last call.
+    /// New complete lines since the last call. A new Game.log (the game restarted: the file
+    /// is shorter, or was created again) is read from the start and sets `restarted`.
     pub fn poll(&mut self) -> Vec<String> {
         let Ok(mut f) = File::open(&self.path) else { return vec![] };
-        let Ok(size) = f.metadata().map(|m| m.len()) else { return vec![] };
-        if size < self.offset {
+        let Ok(meta) = f.metadata() else { return vec![] };
+        let size = meta.len();
+        let born = meta.created().ok();
+        let renewed = self.offset > 0 && born.is_some() && self.born.is_some() && born != self.born;
+        if size < self.offset || renewed {
             self.offset = 0;
             self.rest.clear();
+            self.restarted = true;
         }
+        self.born = born;
         if size == self.offset || f.seek(SeekFrom::Start(self.offset)).is_err() {
             return vec![];
         }
@@ -184,6 +193,7 @@ mod tests {
         assert_eq!(t.poll(), vec!["Leaving Armistice Zone"]);
         fs::write(&p, "<Join PU>\n").unwrap();
         assert_eq!(t.poll(), vec!["<Join PU>"]);
+        assert!(t.restarted, "a shorter log is a new one");
         fs::remove_dir_all(dir).ok();
     }
 
