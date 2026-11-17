@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5.0
 
 - Ship backdrop: behind the status screen, a dimmed render of the ship you sit in over its maker's name. The render comes from FleetYards.net the first time and is kept on your PC; offline, themed makers show line art instead.
 - Maker themes: in a Drake, Aegis, Origin, MISC or Anvil ship, the plates and title trim take on that maker's style (drawn for the app, no game art). Settings > Screen > Maker theme: Auto (follows your ship), Off (also hides the backdrop), or one maker always.

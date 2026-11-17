@@ -29,7 +29,7 @@ It finds the touchscreen by itself (or pick one in **Settings > Screen**), and h
 
 ## The console
 
-Every ship page has a power plate with a big **Flight Ready** button, a module for your ship's role, a flight plate and a gear plate. The role module is a target dial for fighters, a laser power knob for mining, a beam head for salvage, a tractor beam slider for cargo, and so on. Swipe it sideways or tap the arrows to see the others. No key appears twice on a page. To rearrange the plates, long-press a plate's title, drag the plates and tap **Done**. The order is saved for each role. On foot you get a weapon wheel, your suit and comms, and an Emotes page with hand signals and emotes. Downed, a big revive button.
+Every ship page has a power plate with a big **Flight Ready** button, a module for your ship's role, a flight plate and a gear plate. The role module is a target dial for fighters, a laser power knob for mining, a beam head for salvage, a tractor beam slider for cargo, and so on. Swipe it sideways or tap the arrows to see the others. No key appears twice on a page. To rearrange the plates, long-press a plate's title, drag the plates and tap **Done**. The order is saved for each role. On foot you get a weapon wheel, your suit and comms, and an Emotes page with hand signals and emotes. Downed, a big revive button. The **MFD & assists** page has a key for each MFD screen, ON/OFF switches for light amplification, auto precision and wind compensation, and Self repair all. The **Log** page shows this session: time played, kills, times downed, missions, ships flown, who downed you last, region and shard, the last jump, finished refinery jobs, and a timeline.
 
 | | |
 | --- | --- |
@@ -38,7 +38,9 @@ Every ship page has a power plate with a big **Flight Ready** button, a module f
 | ![Armistice](docs/panel-armistice.png) | ![Red alert](docs/panel-alert.png) |
 | Weapons grey out in armistice zones | Red alert with a CrimeStat |
 | ![Downed](docs/panel-downed.png) | ![Settings](docs/panel-settings.png) |
-| The Downed page opens when you go down | Settings and what's new |
+| The Downed page opens when you go down | Settings, with the maker theme |
+| ![Log](docs/panel-log.png) | ![MFD & assists](docs/panel-mfd.png) |
+| Log page: this session at a glance | MFD screens and assists |
 
 | Control | How it works |
 | --- | --- |
@@ -54,10 +56,13 @@ Every ship page has a power plate with a big **Flight Ready** button, a module f
 ## It follows the game
 
 - Opens the page for what you are doing: your ship's role page when you board, On foot when you leave, Downed when you go down.
-- Takes your ship maker's colours and shows its outline, role and quantum target. Behind it sits a dimmed render of the ship over the maker's name. Outlines and renders come from [FleetYards.net](https://fleetyards.net) the first time a ship is seen and are kept on your PC. On foot it shows the ship you last flew.
+- Takes your ship maker's colours and shows its role and quantum target, with "Arrived" when the drive drops out. Behind it sits a dimmed render of the ship over the maker's name. Renders and outlines come from [FleetYards.net](https://fleetyards.net) the first time a ship is seen and are kept on your PC. On foot it shows the ship you last flew.
+- Maker themes: in a Drake, Aegis, Origin, MISC or Anvil ship, the plates and title trim take that maker's style. **Settings > Screen > Maker theme**: Auto, Off, or one maker always.
 - Shows where you are ("Keeger · Nyx", "Asteroid base · Ungoverned") on a line of the system's planets.
 - Shows your mission: the objective, the contract with its rewards as chips, and where the objective's marker points. Game colour tags, and those of StarStrings and SmartCitizen, are read rather than shown. The game logs no distances, so there are none.
-- Lights a red frame only for a CrimeStat or your ship disabled. Unmonitored or ungoverned space is an amber note.
+- Lights a red frame only for a CrimeStat or your ship disabled. Unmonitored or ungoverned space is an amber note. While the ship is disabled, Flight ready and All systems on become Self repair all and Emergency exit.
+- Shows an amber lag chip when the log reports your client stalled.
+- Starts over when the game restarts and writes a new `Game.log`.
 - Reads your `actionmaps.xml`, so keys you rebound in game just work. **Settings > Keybinds** lists any key the console can't press.
 
 The game doesn't report gear, power, doors, lights or most switches. Where 4.x has separate on and off binds (power, lights, VTOL, limiter, decoupled, G-safe and others), the console uses an ON/OFF switch that sends exactly that state. It shows nothing until you set it, because the console can't know what the ship is doing. **All systems on** sets the main ones in one tap, so the switches match the ship. They go back to unknown when you leave the seat or change ship. Everything else is a push-button (doors get separate Open and Close keys), and the gear lever and missiles show what you last pressed. Hold the EDGE COCKPIT title for 2 seconds to see frame rate, CPU, memory and touch-to-key latency.
