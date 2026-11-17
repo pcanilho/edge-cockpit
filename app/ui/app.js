@@ -45,7 +45,7 @@ const KEYS = new Map();
   }
 })(layout);
 // Kit a ship may lack, and the keys that need it.
-const KIT_KEYS = { missiles: ['Missiles +', 'Missiles reset'], emp: ['EMP'], qed: ['QED'], tractor: ['Tractor rotate', 'Tractor detach', 'Beam closer', 'Beam farther'] };
+const KIT_KEYS = { missiles: ['Missiles +', 'Missiles reset', 'Missile mode'], emp: ['EMP'], qed: ['QED'], tractor: ['Tractor rotate', 'Tractor detach', 'Beam closer', 'Beam farther'] };
 
 // ---------- settings ----------
 const store = {
@@ -353,6 +353,11 @@ function repaint() {
 // ---------- the console ----------
 // Ship weapon actionmaps, and on-foot weapons by their icon.
 const isWeapon = k => /^spaceship_(weapons|missiles|defensive)$/.test(k.actionmap || '') || /^(rifle|pistol|knife|grenade)$/.test(k.icon || '');
+// Colour family of a key: emergency red, weapons amber, flight cyan, everything else systems white.
+const FLIGHT = /^spaceship_(movement|quantum|docking|view)$/;
+const family = k => !k ? 'sys' : k.role === 'critical' || /eject|self_destruct|panic|emergency/.test(k.action || '') ? 'emg'
+  : isWeapon(k) || /^spaceship_target(ing|ing_advanced|_hailing)$/.test(k.actionmap || '') ? 'wpn'
+  : FLIGHT.test(k.actionmap || '') ? 'flt' : 'sys';
 const theme = page => page.theme || pageById(layout, page.role?.tab || page.tab || 'flight')?.theme || { accent: '#5cc8e6', glyph: 'ship' };
 let current = 'flight', rolePage = null, lastShip = 'flight', pageAccent = '#5cc8e6', makerAccent = null;
 const applyAccent = () => stage.style.setProperty('--accent', makerAccent || pageAccent);
@@ -365,6 +370,7 @@ const K = {
   },
   bindText: k => (k.role === 'macro' ? '' : mine.stick[k.action] ? 'STICK' : keyText(bindOf(k))),
   isWeapon,
+  family,
   bind, fire, wheel, flip, isOn, local, tick, toast, theme,
   fired: node => { if (opts.flash) flash(node, 'fired'); },
   scale: () => Math.min(innerWidth / 2560, innerHeight / 720),

@@ -510,3 +510,20 @@ body.is-dark #stage { visibility: hidden; }
 
 /* No game running: the controls grey out until Star Citizen starts. One static filter, no animation. */
 #stage.idle #console { filter: grayscale(1) brightness(.6); }
+
+/* ---------- colour families, type marks, dim backlight at rest ---------- */
+.fam-sys { --fam: #e4ecf2; } .fam-flt { --fam: #58d2f0; } .fam-wpn { --fam: #ffb547; } .fam-emg { --fam: #ff4232; }
+.key[class*=fam-] > .cap::before, .pair[class*=fam-] > .pt::before { content: ""; position: absolute; left: 16%; right: 16%; top: 0; height: 3px; border-radius: 0 0 3px 3px;
+  background: var(--fam); opacity: .7; box-shadow: 0 0 8px color-mix(in oklab, var(--fam) 60%, transparent); }
+.pair > .pt::before { top: -7px; }
+.key[class*=fam-] > .cap > svg.i { color: color-mix(in oklab, var(--fam) 85%, #6c7680); filter: drop-shadow(0 0 4px color-mix(in oklab, var(--fam) 35%, transparent)); }
+.key[class*=fam-] > .cap .lg { color: color-mix(in oklab, var(--fam) 14%, #d9e0e7); }
+.key[class*=fam-] > .cap { background: linear-gradient(180deg, color-mix(in oklab, var(--fam) 7%, #343b44), #222830 45%, #1b2026); }
+.pair[class*=fam-] .pt { color: color-mix(in oklab, var(--fam) 55%, #9aa4ae); }
+.tgl[class*=fam-] .placard { border-top: 2px solid color-mix(in oklab, var(--fam) 45%, transparent); }
+.cap .ring-h { position: absolute; left: 8px; bottom: 3px; width: 14px; height: 14px; fill: none; stroke-width: 2.4; transform: rotate(-90deg); }
+.cap .ring-h circle { stroke: #ffffff26; }
+.cap .ring-h .f { stroke: var(--fam); stroke-dasharray: 1; stroke-dashoffset: 1; opacity: .8; }
+.held .ring-h .f { stroke-dashoffset: 0; transition: stroke-dashoffset var(--hold-ms, 350ms) linear; }
+.cap .notch { position: absolute; right: 0; top: 0; width: 14px; height: 14px; background: linear-gradient(225deg, color-mix(in oklab, var(--fam) 75%, transparent) 50%, transparent 50%); }
+.cut .cap .notch { right: 0; top: 0; }

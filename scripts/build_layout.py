@@ -207,6 +207,14 @@ CATALOG = {
     'At ease': ('emote_atease', 'tap', 'em-atease'),
     'Attention': ('emote_attention', 'tap', 'em-attention'),
     'Whistle': ('emote_whistle', 'tap', 'em-whistle'),
+    'Accept': ('ui_notification_accept', 'tap', 'em-yes'),
+    'Ignore': ('ui_notification_ignore', 'tap', 'x'),
+    'Next hostile': ('v_target_cycle_hostile_fwd', 'tap', 'target'),
+    'Next attacker': ('v_target_cycle_attacker_fwd', 'tap', 'crosshair'),
+    'Subtarget': ('v_target_cycle_subitem_fwd', 'tap', 'focus'),
+    'Missile mode': ('v_toggle_missile_mode', 'tap', 'missile'),
+    'Aim mode': ('v_weapon_aim_type_cycle', 'tap', 'aim'),
+    'Horn': ('v_horn', 'hold', 'horn'),
     'Local map': ('mapui_action_goto_localmap', 'tap', 'map'),
     'My location': ('mapui_action_mylocation', 'tap', 'locate'),
     'Go to selection': ('mapui_action_goto_selection', 'tap', 'pin'),
@@ -482,7 +490,7 @@ def load_actions(path):
 
 # Keys only the console's own plates use.
 EXTRAS = ['Open doors', 'Close doors', 'Chat window', 'Push to talk',
-          'Power on', 'Power off', 'Thrusters on', 'Thrusters off', 'Shields on', 'Shields off', 'Weapons on', 'Weapons off', 'Lights on', 'Lights off', 'VTOL on', 'VTOL off', 'Speed limiter on', 'Speed limiter off', 'Decoupled on', 'Decoupled off', 'G-safe on', 'G-safe off', 'Proximity assist on', 'Proximity assist off', 'Advanced HUD on', 'Advanced HUD off', 'Stability on', 'Stability off', 'Gravity comp on', 'Gravity comp off', 'Staggered fire on', 'Staggered fire off', 'Set NAV', 'Set SCM', 'Panic decoy', 'Hail target', 'All systems on',
+          'Power on', 'Power off', 'Thrusters on', 'Thrusters off', 'Shields on', 'Shields off', 'Weapons on', 'Weapons off', 'Lights on', 'Lights off', 'VTOL on', 'VTOL off', 'Speed limiter on', 'Speed limiter off', 'Decoupled on', 'Decoupled off', 'G-safe on', 'G-safe off', 'Proximity assist on', 'Proximity assist off', 'Advanced HUD on', 'Advanced HUD off', 'Stability on', 'Stability off', 'Gravity comp on', 'Gravity comp off', 'Staggered fire on', 'Staggered fire off', 'Set NAV', 'Set SCM', 'Panic decoy', 'Hail target', 'All systems on', 'Accept', 'Ignore', 'Next hostile', 'Next attacker', 'Subtarget', 'Missile mode', 'Aim mode', 'Horn',
           'Dance', 'Bow', 'Greet', 'Threaten', 'Taunt', 'Rude', 'Sit', 'Sleep', 'Flex', 'Gloat', 'Angry', 'At ease', 'Attention', 'Whistle']
 
 
