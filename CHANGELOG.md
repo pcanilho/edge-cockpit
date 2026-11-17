@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Hangar status: a chip and an alert follow a ship you call at a fleet terminal (called, lift rising, ready, with the hangar size) and a landing hangar ATC assigns you. It clears when you board or leave the seat. The log says nothing about pads or hangar numbers, so neither is shown.
 - The weapon wheel and map dial are slightly smaller so their rims no longer run under the corner keys. A screen test now fails if any two controls or plates touch on any page.
 - Buttons are coloured by group (weapons amber, flight cyan, systems white, emergency red) with a dim backlight strip and tinted icon at rest. Hold keys show a ring that fills while held; macros have a notched corner.
 - New keys, checked against GameGlass's Star Citizen shards: Accept and Ignore for invites and calls, next hostile, next attacker and subtarget on the target wheel, aim mode, missile mode, and the horn on ground vehicles. Reload the keybind profile for the missile mode key.

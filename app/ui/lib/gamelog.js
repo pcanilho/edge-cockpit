@@ -48,6 +48,14 @@ export const PATTERNS = {
   // <Vehicle Destruction> CVehicle::OnAdvanceDestroyLevel: Vehicle 'AEGS_Gladius_123' [123] ... driven by 'me' [1] advanced from destroy level 0 to 1 caused by 'them' ...
   wreck: /<Vehicle Destruction>.*?Vehicle '([^']+)'.*?advanced from destroy level (\d) to (\d)(?: caused by '([^']+)')?/,
   // <RequestLocationInventory> Player[me] requested inventory for Location[Stanton1_Lorville]
+  // Hangars. A ship called at a fleet terminal: SetVehicleSpawningInformations - VehicleEntityId: [1], LandingArea: me's
+  // with the rest of the name on the next line: <time> XL Hangar [Team_GameServices][ASOP]
+  hangarCall: /SetVehicleSpawningInformations - VehicleEntityId: \[\d+\], LandingArea: (.*?)\s*(?:\[Team_\w+\].*)?$/,
+  hangarName: /^<[^>]+> ([^<>\["]+?) \[Team_GameServices\]\[ASOP\]\s*$/,
+  // Landing clearance from ATC: Added notification "Hangar Request Completed: "
+  hangarGranted: /"Hangar Request Completed/,
+  // The hangar's ship lift: Loading Platform Manager [LoadingPlatformManager_ShipElevator_HangarXLTop_Nyx] Platform state changed to RaisingPlatform
+  lift: /<CSCLoadingPlatformManager::OnLoadingPlatformStateChanged>.*?\[LoadingPlatformManager_ShipElevator_[^\]]*\] Platform state changed to (\w+)/,
   location: /<RequestLocationInventory> Player\[([^\]]+)\] requested inventory for Location\[([^\]]+)\]/,
 };
 
@@ -121,6 +129,8 @@ export function contractText(raw) {
   return { text, tags, runs: runs.filter(r => r.text) };
 }
 
+const LIFT = { OpeningLoadingGate: 'rising', RaisingPlatform: 'rising', OpenIdle: 'up', LoweringPlatform: 'lowering', ClosingLoadingGate: 'lowering', ClosedIdle: 'down' };
+
 export function parseLine(line) {
   if (line.includes('UpdateNotificationItem')) return null;
   // A notice's text echoed on its own line, after the line that logged it.
@@ -147,6 +157,13 @@ export function parseLine(line) {
   if (m) return { type: 'build', changelist: m[1] };
   m = PATTERNS.wreck.exec(line);
   if (m) return { type: 'wreck', ship: shipModel(m[1]), level: Number(m[3]), by: m[4] || null };
+  m = PATTERNS.lift.exec(line);
+  if (m) return { type: 'lift', to: LIFT[m[1]] || null };
+  m = PATTERNS.hangarCall.exec(line);
+  if (m) return { type: 'hangar', status: 'called', area: m[1].trim() };
+  m = PATTERNS.hangarName.exec(line);
+  if (m) return { type: 'hangar-name', area: m[1].trim() };
+  if (PATTERNS.hangarGranted.test(line)) return { type: 'hangar', status: 'granted', area: null };
   m = PATTERNS.location.exec(line);
   if (m) return { type: 'location', who: m[1], place: m[2] };
   m = PATTERNS.kill.exec(line);
@@ -185,7 +202,7 @@ export const lawless = state => state.monitored === 'down' || state.monitored ==
 // build: { branch, changelist } of the running game. wrecked: 1 disabled, 2 destroyed, for the ship you fly.
 // kills: players and NPCs you killed this session. location: where you last opened your inventory.
 export const EMPTY = Object.freeze({ seated: false, ship: null, armistice: false, qtTarget: null, down: false, menu: true, me: null,
-  mission: null, jurisdiction: null, monitored: null, crime: 0, build: null, wrecked: 0, wreckedBy: null, kills: 0, location: null });
+  mission: null, jurisdiction: null, monitored: null, crime: 0, build: null, wrecked: 0, wreckedBy: null, kills: 0, location: null, hangar: null });
 
 /** 'sc-alpha-4.3.2' -> '4.3.2' */
 export const version = branch => (branch || '').replace(/^sc-alpha-/i, '');
@@ -220,11 +237,13 @@ export function reduce(state, ev) {
     case 'seat':
       // Boarding (the crew channel) names the ship less exactly than its pilot seat does.
       if (ev.board && ev.seated && state.seated) return live;
-      if (ev.board && !ev.seated) return state.seated ? { ...live, seated: false, qtTarget: null } : live;
+      if (ev.board && !ev.seated) return state.seated ? { ...live, seated: false, qtTarget: null, hangar: null } : live;
       if (ev.seated && state.seated && state.ship === ev.ship) return live;
-      if (ev.seated) return { ...live, seated: true, ship: ev.ship, down: false, wrecked: state.ship === ev.ship ? state.wrecked : 0 };
+      // Boarding the ship you called ends the hangar call; a landing clearance lasts until you get out.
+      if (ev.seated) return { ...live, seated: true, ship: ev.ship, down: false, wrecked: state.ship === ev.ship ? state.wrecked : 0,
+        hangar: state.hangar?.status === 'granted' ? state.hangar : null };
       // Leaving another seat than ours (a turret, a second ship) changes nothing.
-      return state.ship === ev.ship ? { ...live, seated: false, qtTarget: null } : state;
+      return state.ship === ev.ship ? { ...live, seated: false, qtTarget: null, hangar: null } : state;
     case 'armistice': return { ...live, armistice: ev.inside };
     case 'qt': return { ...live, qtTarget: ev.target };
     case 'session': return { ...EMPTY, me: state.me, mission: state.mission, build: state.build, kills: state.kills };
@@ -234,6 +253,21 @@ export function reduce(state, ev) {
     case 'wreck':
       if (!state.seated || state.ship !== ev.ship || ev.level <= state.wrecked) return state;
       return { ...live, wrecked: ev.level, wreckedBy: ev.by };
+    case 'hangar': return { ...live, hangar: { status: ev.status, area: ev.area, lift: null } };
+    case 'hangar-name': {
+      // The second line of a called ship's hangar name, only right after the first.
+      const h = state.hangar;
+      if (h?.status !== 'called' || h.lift || !/'s$/.test(h.area || '')) return state;
+      return { ...live, hangar: { ...h, area: `${h.area} ${ev.area}` } };
+    }
+    case 'lift': {
+      // Lifts in other hangars load and settle too; only follow one after a call or clearance.
+      const h = state.hangar;
+      if (!h || !ev.to || h.lift === ev.to) return state;
+      if ((ev.to === 'up' && h.lift !== 'rising') || (ev.to === 'down' && h.lift !== 'lowering')) return state;
+      if (ev.to === 'down') return { ...live, hangar: null };  // stowed
+      return { ...live, hangar: { ...h, lift: ev.to } };
+    }
     case 'kill':
       if (state.me && ev.victim === state.me.name) return reduce(state, { type: 'down', who: ev.victim });
       if (!state.me || ev.killer !== state.me.name) return state;
@@ -328,5 +362,25 @@ export function alertsFor(a, b) {
     const who = culprit(b.wreckedBy, b.me);
     out.push({ kind: 'wreck', text: `${b.wrecked >= 2 ? 'Ship destroyed' : 'Ship disabled'}${who ? ` by ${who}` : ''}`, tone: 'bad' });
   }
+  const ha = a.hangar, hb = b.hangar;
+  if (hb?.status === 'granted' && ha?.status !== 'granted') out.push({ kind: 'hangar', text: 'Hangar assigned', tone: 'good' });
+  if (hb?.status === 'called' && hb.lift === 'up' && ha?.lift !== 'up') out.push({ kind: 'hangar', text: `Ship ready · ${hangarName(hb, b.me)}`, tone: 'good' });
   return out;
+}
+
+/** A hangar's name for people: "XL Hangar" for your own (the game says "Name's XL Hangar"), else as logged. */
+export function hangarName(h, me) {
+  const a = (h?.area || '').trim();
+  if (!a) return 'Hangar';
+  const own = me && a.startsWith(`${me.name}'s`) ? a.slice(me.name.length + 2).trim() : a.replace(/^\S+'s\s+/, '');
+  return own || 'Hangar';
+}
+
+/** The hangar chip's text, or null: what the log says about the ship you called or the hangar you were given. */
+export function hangarText(state) {
+  const h = state.hangar;
+  if (!h) return null;
+  if (h.status === 'granted') return h.lift === 'lowering' ? 'Landed · lift going down' : 'Hangar assigned';
+  const name = hangarName(h, state.me);
+  return { rising: `${name} · lift rising`, up: `${name} · ship ready`, lowering: `${name} · lift going down` }[h.lift] || `${name} · ship called`;
 }
