@@ -3,11 +3,14 @@
 (() => {
   const box = document.querySelector('.lightbox');
   if (box && box.showModal) {
-    const img = box.querySelector('img');
+    // Shows a copy of the clicked screenshot (the same file at full size), so no URL is read back from the page.
     document.querySelectorAll('.shot, .bezel a').forEach(a => a.addEventListener('click', e => {
+      const thumb = a.querySelector('img');
+      if (!thumb) return;
       e.preventDefault();
-      const src = a.querySelector('img');
-      img.src = a.href; img.alt = src ? src.alt : '';
+      const big = thumb.cloneNode(false);
+      for (const at of ['loading', 'width', 'height']) big.removeAttribute(at);
+      box.querySelector('img').replaceWith(big);
       box.showModal();
     }));
     box.addEventListener('click', () => box.close());
