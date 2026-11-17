@@ -1,0 +1,37 @@
+name: VirusTotal
+
+# Scans the exes of a release that is already published and adds the VirusTotal
+# links to its notes. New releases are scanned by app.yml; this is for older ones.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag, for example v0.3.0
+        required: true
+
+permissions: {}
+
+jobs:
+  scan:
+    name: scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Scan and link
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VT_API_KEY: ${{ secrets.VT_API_KEY }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          [ -n "$VT_API_KEY" ] || { echo "::error::VT_API_KEY is not set"; exit 1; }
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern '*.exe' --dir out
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body > notes.md
+          if grep -q '^### VirusTotal' notes.md; then echo "Already linked."; exit 0; fi
+          { echo; echo "### VirusTotal"; } >> notes.md
+          for f in out/*.exe; do
+            curl -sf --request POST https://www.virustotal.com/api/v3/files -H "x-apikey: $VT_API_KEY" --form file=@"$f" >/dev/null \
+              || echo "::warning::VirusTotal upload failed for $f"
+            echo "- [$(basename "$f")](https://www.virustotal.com/gui/file/$(sha256sum "$f" | cut -d' ' -f1))" >> notes.md
+          done
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file notes.md

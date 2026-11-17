@@ -2,11 +2,10 @@ name: App
 
 # Builds the Windows app on every pull request and on main. Run it by hand from the
 # Actions tab with "release" ticked to publish v<version> (from app/src-tauri/tauri.conf.json),
-# with notes from CHANGELOG.md, SHA-256 checksums, the self-update manifest and, when a
-# VirusTotal key is set, a scan of each exe.
+# with notes from CHANGELOG.md, SHA-256 checksums, build provenance, the self-update
+# manifest and, when a VirusTotal key is set, a scan of each exe.
 on:
-  pull_request:
-    paths-ignore: ['**.md', 'docs/**', '.github/ISSUE_TEMPLATE/**']
+  pull_request:   # always runs, because build is a required check on main
   push:
     branches: [main]
     paths-ignore: ['**.md', 'docs/**', '.github/ISSUE_TEMPLATE/**']
@@ -17,36 +16,41 @@ on:
         type: boolean
         default: false
 
-permissions:
-  contents: write
+permissions: {}
 
 concurrency:
   group: app-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  app:
+  build:
+    name: build
     runs-on: windows-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: app
         shell: bash
-    env:
-      # Signs the self-update files (not the exe). Without it the app still builds, but
-      # the release carries no update manifest.
-      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+    outputs:
+      version: ${{ steps.out.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: '22'
-      - uses: dtolnay/rust-toolchain@stable
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+        with:
+          toolchain: stable
           components: clippy
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: app/src-tauri
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: npm ci
       - name: Sync shared layout, icons and Game.log reader
         run: node scripts/sync.mjs
@@ -59,11 +63,14 @@ jobs:
         working-directory: app/src-tauri
         run: cargo clippy --locked -- -D warnings
       - name: Build the installer
+        env:
+          # Signs the self-update files (not the exe), only for builds from main.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ github.event_name != 'pull_request' && secrets.TAURI_SIGNING_PRIVATE_KEY || '' }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
         run: |
           if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
             npx tauri build --config '{"bundle":{"createUpdaterArtifacts":true}}'
           else
-            echo "::notice::No TAURI_SIGNING_PRIVATE_KEY secret: building without self-update files."
             npx tauri build
           fi
       - name: Collect
@@ -75,58 +82,82 @@ jobs:
           cp src-tauri/target/release/bundle/nsis/*-setup.exe "../out/$setup"
           cp src-tauri/target/release/edge-cockpit.exe "../out/Edge-Cockpit-$version-portable.exe"
           sig=$(ls src-tauri/target/release/bundle/nsis/*-setup.exe.sig 2>/dev/null | head -1 || true)
-          [ -n "$sig" ] && cp "$sig" "../out/$setup.sig"
+          if [ -n "$sig" ]; then cp "$sig" "../out/$setup.sig"; fi
           (cd ../out && sha256sum *.exe > SHA256SUMS.txt && cat SHA256SUMS.txt)
           echo "version=$version" >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: edge-cockpit
-          path: |
-            out/*.exe
-            out/SHA256SUMS.txt
-      - name: Publish release
-        if: github.event_name == 'workflow_dispatch' && inputs.release
+          path: out/
+          if-no-files-found: error
+
+  release:
+    name: release
+    needs: build
+    if: github.event_name == 'workflow_dispatch' && inputs.release && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: edge-cockpit
+          path: out
+      - name: Build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: out/*.exe
+      - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
           VT_API_KEY: ${{ secrets.VT_API_KEY }}
-          VERSION: ${{ steps.out.outputs.version }}
+          VERSION: ${{ needs.build.outputs.version }}
         run: |
           tag="v$VERSION"
           setup="Edge-Cockpit-$VERSION-setup.exe"
           # What's new: this version's section of CHANGELOG.md.
-          awk -v v="$VERSION" '$0 ~ "^## " { on = ($2 == v); next } on' ../CHANGELOG.md | sed '/./,$!d' > ../out/notes.md
-          [ -s ../out/notes.md ] || echo "Edge Cockpit $VERSION." > ../out/notes.md
-          game=$(node -p "require('../layouts/ships.json').gameVersion.split('.').slice(0, 3).join('.')")
+          awk -v v="$VERSION" '$0 ~ "^## " { on = ($2 == v); next } on' CHANGELOG.md | sed '/./,$!d' > out/notes.md
+          [ -s out/notes.md ] || echo "Edge Cockpit $VERSION." > out/notes.md
+          game=$(node -p "require('./layouts/ships.json').gameVersion.split('.').slice(0, 3).join('.')")
           {
-            cat ../out/notes.md
+            cat out/notes.md
             echo
             echo "Tested on Star Citizen $game. Run the setup, or the portable exe without installing."
             echo "Windows SmartScreen warns because the exe is not code signed: click **More info**, then **Run anyway**."
             echo
-            echo "### Checksums (SHA-256)"
+            echo "### Verify"
+            echo "SHA-256 checksums:"
             echo '```'
-            cat ../out/SHA256SUMS.txt
+            cat out/SHA256SUMS.txt
             echo '```'
-          } > ../out/release.md
+            echo "Build provenance: \`gh attestation verify <file> --repo $GITHUB_REPOSITORY\`"
+          } > out/release.md
           if [ -n "$VT_API_KEY" ]; then
-            echo >> ../out/release.md
-            echo "### VirusTotal" >> ../out/release.md
-            for f in ../out/*.exe; do
+            echo >> out/release.md
+            echo "### VirusTotal" >> out/release.md
+            for f in out/*.exe; do
               curl -sf --request POST https://www.virustotal.com/api/v3/files -H "x-apikey: $VT_API_KEY" --form file=@"$f" >/dev/null \
-                && echo "- [$(basename "$f")](https://www.virustotal.com/gui/file/$(sha256sum "$f" | cut -d' ' -f1))" >> ../out/release.md \
+                && echo "- [$(basename "$f")](https://www.virustotal.com/gui/file/$(sha256sum "$f" | cut -d' ' -f1))" >> out/release.md \
                 || echo "::warning::VirusTotal upload failed for $f"
             done
           fi
-          assets=(../out/*.exe ../out/SHA256SUMS.txt)
-          if [ -f "../out/$setup.sig" ]; then
+          assets=(out/*.exe out/SHA256SUMS.txt)
+          if [ -f "out/$setup.sig" ]; then
             node -e '
               const fs = require("fs"), [v, setup, repo] = process.argv.slice(1);
-              fs.writeFileSync("../out/latest.json", JSON.stringify({
-                version: v, notes: fs.readFileSync("../out/notes.md", "utf8").trim(), pub_date: new Date().toISOString(),
-                platforms: { "windows-x86_64": { signature: fs.readFileSync(`../out/${setup}.sig`, "utf8").trim(),
+              fs.writeFileSync("out/latest.json", JSON.stringify({
+                version: v, notes: fs.readFileSync("out/notes.md", "utf8").trim(), pub_date: new Date().toISOString(),
+                platforms: { "windows-x86_64": { signature: fs.readFileSync(`out/${setup}.sig`, "utf8").trim(),
                   url: `https://github.com/${repo}/releases/download/v${v}/${setup}` } },
               }, null, 2));' "$VERSION" "$setup" "$GITHUB_REPOSITORY"
-            assets+=(../out/latest.json)
+            assets+=(out/latest.json)
+          else
+            echo "::warning::No update signature: this release won't be offered as a self update."
           fi
-          gh release create "$tag" --target "$GITHUB_SHA" --title "Edge Cockpit $VERSION" --notes-file ../out/release.md "${assets[@]}" \
-          || { gh release edit "$tag" --notes-file ../out/release.md && gh release upload "$tag" --clobber "${assets[@]}"; }
+          gh release create "$tag" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Edge Cockpit $VERSION" --notes-file out/release.md "${assets[@]}" \
+          || { gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --notes-file out/release.md && gh release upload "$tag" --repo "$GITHUB_REPOSITORY" --clobber "${assets[@]}"; }
