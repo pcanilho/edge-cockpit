@@ -11,8 +11,8 @@ const SET = "<2026-11-17T08:00:01.123Z> [Notice] <Vehicle Control Flow> CVehicle
 const CLEAR = "<2026-11-17T08:09:01.123Z> [Notice] <Vehicle Control Flow> CVehicleMovementBase::ClearDriver: Local client node [204721322607] releasing control token for 'MISC_Prospector_771690342710' [771690342710] [Team_VehicleFeatures][Vehicle]";
 
 test('parses pilot seat lines', () => {
-  assert.deepEqual(parseLine(SET), { type: 'seat', seated: true, ship: 'MISC_Prospector' });
-  assert.deepEqual(parseLine(CLEAR), { type: 'seat', seated: false, ship: 'MISC_Prospector' });
+  assert.deepEqual(parseLine(SET), { type: 'seat', seated: true, ship: 'MISC_Prospector', id: '771690342710' });
+  assert.deepEqual(parseLine(CLEAR), { type: 'seat', seated: false, ship: 'MISC_Prospector', id: '771690342710' });
   assert.deepEqual(parseLine('<SHUDEvent_OnNotification> Added notification "Entering Armistice Zone - Combat Prohibited: "'), { type: 'armistice', inside: true });
   assert.deepEqual(parseLine('Added notification "Leaving Armistice Zone - Caution Advised: "'), { type: 'armistice', inside: false });
   assert.deepEqual(parseLine('Player has selected point OM-1_Hurston as their destination'), { type: 'qt', target: 'OM-1_Hurston' });
@@ -29,7 +29,8 @@ test('tracks seat, zone and destination', () => {
   assert.equal(reduce(s, { type: 'seat', seated: false, ship: 'ANVL_Arrow' }), s);
   s = reduce(s, parseLine(CLEAR));
   assert.deepEqual([s.seated, s.armistice, s.qtTarget], [false, true, null]);
-  assert.deepEqual(reduce(s, { type: 'session' }), { ...EMPTY });
+  // A new session keeps what the Log page shows, such as the last ship flown.
+  assert.deepEqual(reduce(s, { type: 'session' }), { ...EMPTY, lastShip: { ship: 'MISC_Prospector', id: '771690342710' } });
 });
 
 test('tracks going down, respawning and the menu', () => {
@@ -226,4 +227,39 @@ test('hangar: a called ship and its lift, a landing clearance', async () => {
   assert.equal(hangarText(granted), 'Hangar assigned');
   assert.deepEqual(alertsFor(s, granted).map(a => a.text), ['Hangar assigned']);
   assert.equal(reduce(granted, parseLine(CLEAR)).hangar, null);
+});
+
+test('Log page: shard, jump, refinery, downed, quantum arrival, lag', async () => {
+  const { logFor, shardName, weaponName } = await import('../ui/lib/gamelog.js');
+  assert.deepEqual(shardName('pub_euw1b_13165946_150'), { region: 'EU West', n: '150' });
+  assert.equal(weaponName('KLWE_LaserRepeater_S3_4411'), 'Laser Repeater S3');
+  const lines = [
+    '<Join PU> address[1] port[2] shard[pub_euw1b_13165946_031] locationId[1]',
+    '<AccountLoginCharacterStatus_Character> Character: createdAt 1 - updatedAt 1 - geid 2001 - accountId 1 - name me - state STATE_CURRENT',
+    '<Context Establisher Done>',
+    'Added notification "Refinery Work Orders have been Completed at Levski: " [4]',
+    '| NOT AUTH | DRAK_Cutlass_Black_771690342710[771690342710]|CSCItemNavigation::GetStarmapRouteSegmentData|',
+    '<Changing Solar System> Solar system changed: Client entity me [2001] is changing system from Stanton to Nyx',
+    "<Actor Death> CActor::Kill: 'me' [2001] in zone 'space' killed by 'Kaboos_Raider' [3] using 'KLWE_LaserRepeater_S3_4411' [Class unknown] with damage type 'Ballistic'",
+    `<Corpse> Player 'me' <local client>: DoesLocationContainHospital: Searching landing zone location "Orison" for the closest hospital.`,
+    '<Recv Unbind Batch Add Player> playerGEID=2001',
+    '| NOT AUTH | AEGS_Sabre_Firebird_932943782879[932943782879]|CSCItemNavigation::GetStarmapRouteSegmentData|',
+    '| NOT AUTH | AEGS_Sabre_Firebird_932943782879[932943782879]|CSCItemNavigation::CalculateRoute|Projected Start Location is Nyx I for route to destination Keeger',
+    '| NOT AUTH | AEGS_Sabre_Firebird_932943782879[932943782879]|CSCItemNavigation::OnQuantumDriveArrived|',
+    '<Actor stall> Actor stall detected, Player: me, Type: downstream, Length: 3.2.',
+    '<Actor stall> Actor stall detected, Player: someone, Type: downstream, Length: 9.',
+  ];
+  let g = { ...EMPTY };
+  const log = [];
+  for (const l of lines) { const ev = parseLine(l); assert.ok(ev, l); const was = g; g = reduce(g, ev); log.push(...logFor(was, g).map(e => e.text)); }
+  assert.deepEqual(log, ['Joined EU West · shard 031', 'Refinery job done · Levski', 'Took the seat of Cutlass Black', 'Entered Nyx',
+    'Downed by Kaboos_Raider · Laser Repeater S3', 'Respawn at Orison', 'Took the seat of Sabre Firebird', 'Quantum arrived · Keeger']);
+  assert.deepEqual(g.lag, { len: 3.2, n: 1 });
+  assert.equal(g.system, 'Nyx');
+  assert.equal(g.downedBy.damage, 'Ballistic');
+  // Stowing the ship you left logs it as stored.
+  g = reduce(g, parseLine("CVehicleMovementBase::ClearDriver: Local client node [1] releasing control token for 'AEGS_Sabre_Firebird_932943782879' [932943782879]"));
+  const was = g;
+  g = reduce(g, parseLine('[STOWING ON UNREGISTER] Attempting to stow current vehicle [932943782879] due to landing area unregistering'));
+  assert.deepEqual(logFor(was, g).map(e => e.text), ['Sabre Firebird stored']);
 });

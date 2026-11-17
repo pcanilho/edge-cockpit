@@ -59,6 +59,26 @@ export function onGameLog(onBatch) {
   if (demo) setTimeout(() => onBatch({ lines: DEMO[demo] || DEMO.ship, live: true, reset: true }), 50);
 }
 
+// A session for the Log page, with the game log's own time stamps.
+const T = (hm, rest) => `<2026-11-17T${hm}:00.000Z> ${rest}`;
+const LOG_DEMO = [
+  T('18:05', '[Notice] <Join PU> address[10.0.0.1] port[64090] shard[pub_euw1b_13165946_031] locationId[1]'),
+  T('18:05', '<AccountLoginCharacterStatus_Character> Character: createdAt 1 - updatedAt 1 - geid 2001 - accountId 1 - name Argoneth - state STATE_CURRENT'),
+  T('18:06', '<Context Establisher Done>'),
+  T('18:40', 'Added notification "Refinery Work Orders have been Completed at Levski: " [4]'),
+  T('19:02', '[Notice] | NOT AUTH | DRAK_Cutlass_Black_771690342710[771690342710]|CSCItemNavigation::GetStarmapRouteSegmentData|'),
+  T('19:12', '<Changing Solar System> Solar system changed: Client entity Argoneth [2001] is changing system from Stanton to Nyx'),
+  T('19:44', "<Vehicle Destruction> CVehicle::OnAdvanceDestroyLevel: Vehicle 'DRAK_Cutlass_Black_771690342710' [771690342710] in zone 'space' driven by 'Argoneth' [2001] advanced from destroy level 0 to 2 caused by 'Kaboos_Raider' [3]"),
+  T('19:44', "<Actor Death> CActor::Kill: 'Argoneth' [2001] in zone 'space' killed by 'Kaboos_Raider' [3] using 'KLWE_LaserRepeater_S3_4411' [Class unknown] with damage type 'Ballistic'"),
+  T('19:44', "<[ActorState] Dead> [ACTOR STATE][SSCActorStateCVars::LogActorState] Player 'Argoneth' [2001] ejected from zone 'DRAK_Cutlass_Black_771690342710' [771690342710] to zone 'space' due to destroyed vehicle. Actor 'Argoneth' [2001]"),
+  T('19:52', `<Corpse> Player 'Argoneth' <local client>: DoesLocationContainHospital: Searching landing zone location "Orison" for the closest hospital.`),
+  T('19:52', '<Recv Unbind Batch Add Player> playerGEID=2001'),
+  T('20:05', '[Notice] | NOT AUTH | AEGS_Sabre_Firebird_932943782879[932943782879]|CSCItemNavigation::GetStarmapRouteSegmentData|'),
+  T('20:06', '[Notice] | NOT AUTH | AEGS_Sabre_Firebird_932943782879[932943782879]|CSCItemNavigation::CalculateRoute|Projected Start Location is Nyx I for route to destination Keeger'),
+  T('20:09', '[Notice] | NOT AUTH | AEGS_Sabre_Firebird_932943782879[932943782879]|CSCItemNavigation::OnQuantumDriveArrived|'),
+  T('20:10', '<Actor stall> Actor stall detected, Player: Argoneth, Type: downstream, Length: 3.2.'),
+];
+
 const DEMO = {
   ship: [
     'Branch: sc-alpha-4.10.3',
@@ -73,6 +93,7 @@ const DEMO = {
     "<Actor Death> CActor::Kill: 'PU_Pilot_Enemy_77' [77] in zone 'space' killed by 'pilot' [2001] using 'AEGS_Gladius_123456' [Class unknown]",
   ],
   foot: ['<Context Establisher Done>', 'Entering Armistice Zone'],
+  log: LOG_DEMO,
   nyx: ['<AccountLoginCharacterStatus_Character> Character: createdAt 1 - updatedAt 1 - geid 2001 - accountId 1 - name Argoneth - state STATE_CURRENT',
     '<Context Establisher Done>', 'Added notification "Entered Ungoverned Jurisdiction: " [1]',
     '<RequestLocationInventory> Player[Argoneth] requested inventory for Location[AsteroidClusterBase_Nyx_Social_Keeger_001]'],
@@ -81,6 +102,8 @@ const DEMO = {
   alert: ['<Context Establisher Done>', "CVehicleMovementBase::SetDriver: Local client node [1] granted control token for 'ANVL_Hornet_F7C_Mk2_1' [1]",
     'Added notification "Entered Pyro Jurisdiction: " [1]', 'Added notification "CrimeStat Rating Increased: " [2] SHUDEvent', 'Player has selected point Ruin_Station as their destination'],
   downed: ['<Context Establisher Done>', 'Emergency Services are en route'],
+  disabled: ['<Context Establisher Done>', "CVehicleMovementBase::SetDriver: Local client node [1] granted control token for 'ANVL_Hornet_F7C_Mk2_1' [1]",
+    "<Vehicle Destruction> CVehicle::OnAdvanceDestroyLevel: Vehicle 'ANVL_Hornet_F7C_Mk2_1' [1] in zone 'space' driven by 'pilot' [2] advanced from destroy level 0 to 1 caused by 'PU_Pilot_Enemy_77' [77]"],
   hangar: ['<AccountLoginCharacterStatus_Character> Character: createdAt 1 - updatedAt 1 - geid 2001 - accountId 1 - name Argoneth - state STATE_CURRENT',
     '<Context Establisher Done>', 'Entering Armistice Zone', '<RequestLocationInventory> Player[Argoneth] requested inventory for Location[AsteroidClusterBase_Nyx_Social_Keeger_001]',
     "<x> [Notice] <CEntityComponentShipListProvider::SetVehicleSpawningInformations> SetVehicleSpawningInformations - VehicleEntityId: [1], LandingArea: Argoneth's",

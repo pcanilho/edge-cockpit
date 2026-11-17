@@ -354,7 +354,7 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: ro
 .em0 { color: var(--cyan); } .em1 { color: var(--ok); } .em2 { color: var(--danger); } .em3 { color: var(--accent); } .em4 { color: var(--hold); }
 .emb { font-weight: 700; } .emi { font-style: italic; }
 .softkeys { left: 12px; top: 614px; width: 346px; height: 80px; display: flex; gap: 4px; }
-.softkeys .well { position: relative; flex: 1 1 auto; min-width: 56px; }
+.softkeys .well { position: relative; flex: 1 1 0; min-width: 40px; }
 .softkeys .cap { padding: 10px 1px 8px; gap: 4px; }
 .softkeys .lg { font-size: 10px; letter-spacing: .02em; white-space: nowrap; }
 .softkeys .cur .cap .led { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
@@ -495,8 +495,8 @@ body.is-dark #stage { visibility: hidden; }
 #stage.standby #console { opacity: .45; }
 #stage.night { filter: brightness(.6); }
 #stage.booting { opacity: 0; }
-.softkeys .well:nth-child(1), .softkeys .well:nth-child(3) { flex-grow: .75; }
-.softkeys .well:nth-child(2), .softkeys .well:nth-child(5) { flex-grow: 1.2; }
+.softkeys .well:nth-child(1), .softkeys .well:nth-child(3), .softkeys .well:nth-child(5) { flex-grow: .5; }
+.softkeys .well:nth-child(2), .softkeys .well:nth-child(4), .softkeys .well:nth-child(6) { flex-grow: 1.4; }
 
 /* ---------- arranging plates ---------- */
 #console.arranging .plate[data-slot] { transition: left .18s var(--ease); box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 55%, transparent), 0 10px 30px #000; }
@@ -545,3 +545,26 @@ body.is-dark #stage { visibility: hidden; }
 
 /* ---------- two rows, on a screen that isn't ultra-wide ---------- */
 #stage.stacked .sheet { left: 6px; height: 1428px; }
+
+/* A disabled ship: the power plate's first keys become repair and exit. */
+#stage:not(.wrecked) .when-wrecked, #stage.wrecked .when-ok { display: none; }
+.lab.left { text-align: left; }
+.qt.arrived svg { color: var(--ok); }
+
+/* Log page: four cards and the session timeline. */
+.logp .card { padding: 26px 30px; }
+.logp .card small, .logp .list small { display: block; position: static; font: 700 11px/1.4 var(--hud); letter-spacing: .2em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+.logp .list small { color: var(--muted); margin-bottom: 8px; }
+.logp .card b { display: block; position: static; font: 600 26px/1.25 var(--body); color: var(--paint); }
+.logp .card p { position: static; margin-top: 10px; font: 500 16px/1.45 var(--body); color: var(--muted); }
+.logp .card p:empty { display: none; }
+.logp .card p em { font-style: normal; color: var(--paint); }
+.logp .card .t { position: absolute; right: 26px; top: 24px; font: 600 13px/1 var(--hud); color: var(--dim); letter-spacing: .08em; }
+.logp .card.none b { display: none; }
+.logp .list { padding: 22px 28px; overflow: hidden; }
+.logp .list ol { position: static; list-style: none; margin: 0; padding: 0; }
+.logp .list li { display: grid; grid-template-columns: 70px 26px 1fr; align-items: baseline; padding: 11px 0; border-bottom: 1px solid #ffffff0c; font: 500 15px/1.35 var(--body); color: var(--ink); }
+.logp .list li.empty { display: block; color: var(--muted); border: 0; }
+.logp .list li time { font: 600 13px/1 var(--hud); color: var(--dim); }
+.logp .list li i { width: 9px; height: 9px; border-radius: 50%; background: var(--cyan); align-self: center; }
+.logp .list li i.bad { background: var(--danger); } .logp .list li i.good { background: var(--ok); } .logp .list li i.warn { background: var(--hold); }

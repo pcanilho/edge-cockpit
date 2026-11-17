@@ -32,6 +32,22 @@
   <action name="v_flight_advanced_hud_toggle">
    <rebind input="kb1_rctrl+rshift+f3"/>
   </action>
+  <!-- Auto precision on -->
+  <action name="v_auto_precision_mode_on">
+   <rebind input="kb1_rctrl+lalt+np_1"/>
+  </action>
+  <!-- Auto precision off -->
+  <action name="v_auto_precision_mode_off">
+   <rebind input="kb1_rctrl+lalt+np_2"/>
+  </action>
+  <!-- Wind comp on -->
+  <action name="v_ifcs_wind_compensation_on">
+   <rebind input="kb1_rctrl+lalt+np_3"/>
+  </action>
+  <!-- Wind comp off -->
+  <action name="v_ifcs_wind_compensation_off">
+   <rebind input="kb1_rctrl+lalt+np_4"/>
+  </action>
   <!-- G-safe -->
   <action name="v_ifcs_toggle_gforce_safety">
    <rebind input="kb1_rctrl+f3"/>
@@ -174,6 +190,14 @@
   <action name="v_operator_mode_cycle_forward">
    <rebind input="kb1_rshift+f9"/>
   </action>
+  <!-- Light amp on -->
+  <action name="v_light_amplification_on">
+   <rebind input="kb1_rctrl+lalt+pgdn"/>
+  </action>
+  <!-- Light amp off -->
+  <action name="v_light_amplification_off">
+   <rebind input="kb1_rctrl+lalt+np_0"/>
+  </action>
   <!-- Missile mode -->
   <action name="v_toggle_missile_mode">
    <rebind input="kb1_rctrl+lalt+end"/>
@@ -187,6 +211,44 @@
   <!-- Heal target -->
   <action name="combathealtarget">
    <rebind input="kb1_rshift+f11"/>
+  </action>
+ </actionmap>
+ <actionmap name="vehicle_mfd">
+  <!-- MFD Comms -->
+  <action name="v_mfd_select_view_comms_short">
+   <rebind input="kb1_rctrl+lalt+np_6"/>
+  </action>
+  <!-- MFD Diagnostics -->
+  <action name="v_mfd_select_view_diagnostics_short">
+   <rebind input="kb1_rctrl+lalt+np_7"/>
+  </action>
+  <!-- MFD IFCS -->
+  <action name="v_mfd_select_view_ifcs_short">
+   <rebind input="kb1_rctrl+lalt+np_8"/>
+  </action>
+  <!-- MFD Power -->
+  <action name="v_mfd_select_view_resource_network_short">
+   <rebind input="kb1_rctrl+lalt+np_9"/>
+  </action>
+  <!-- MFD Scanning -->
+  <action name="v_mfd_select_view_scanning_short">
+   <rebind input="kb1_rctrl+lalt+np_divide"/>
+  </action>
+  <!-- MFD Self status -->
+  <action name="v_mfd_select_view_self_status_short">
+   <rebind input="kb1_rctrl+lalt+np_multiply"/>
+  </action>
+  <!-- MFD Target status -->
+  <action name="v_mfd_select_view_target_status_short">
+   <rebind input="kb1_rctrl+lalt+np_subtract"/>
+  </action>
+  <!-- MFD Config -->
+  <action name="v_mfd_select_view_configuration_short">
+   <rebind input="kb1_rctrl+lalt+np_period"/>
+  </action>
+  <!-- Self repair -->
+  <action name="v_mfd_quick_action_repair_all">
+   <rebind input="kb1_rctrl+lalt+np_5"/>
   </action>
  </actionmap>
  <actionmap name="player_emotes">
