@@ -140,13 +140,9 @@ jobs:
             echo "Build provenance: \`gh attestation verify <file> --repo $GITHUB_REPOSITORY\`"
           } > out/release.md
           if [ -n "$VT_API_KEY" ]; then
-            echo >> out/release.md
-            echo "### VirusTotal" >> out/release.md
-            for f in out/*.exe; do
-              curl -sf --request POST https://www.virustotal.com/api/v3/files -H "x-apikey: $VT_API_KEY" --form file=@"$f" >/dev/null \
-                && echo "- [$(basename "$f")](https://www.virustotal.com/gui/file/$(sha256sum "$f" | cut -d' ' -f1))" >> out/release.md \
-                || echo "::warning::VirusTotal upload failed for $f"
-            done
+            .github/scripts/virustotal.sh out out/*.exe && cat out/virustotal.md >> out/release.md \
+              && .github/scripts/publish-badge.sh out/virustotal.json \
+              || echo "::warning::The VirusTotal scan did not finish"
           fi
           # The provenance bundle and the update signature ship with the release, so anyone can check them.
           cp "$BUNDLE" "out/edge-cockpit-$VERSION.sigstore.json"

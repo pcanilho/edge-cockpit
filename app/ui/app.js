@@ -630,8 +630,10 @@ bridge.onGameLog(({ lines, live, reset }) => {
 
 let info = { running: false, focused: false, elevated: false, channel: null };
 function paintChannel() {
-  const ch = info.channel ? info.channel.split(/[\\/]/).pop().toUpperCase() : 'NO GAME';
-  $('channel').textContent = info.channel && game.build?.branch ? `${ch} ${version(game.build.branch)}` : ch;
+  // OFFLINE with no game; the game's channel and version (LIVE 4.10.3, PTU 4.11) while it runs.
+  const on = info.running && info.channel;
+  const ch = on ? info.channel.split(/[\\/]/).pop().toUpperCase() : 'OFFLINE';
+  $('channel').textContent = on && game.build?.branch ? `${ch} ${version(game.build.branch)}` : ch;
 }
 async function poll() {
   const was = JSON.stringify(info);
