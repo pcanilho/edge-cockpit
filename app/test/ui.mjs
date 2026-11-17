@@ -53,10 +53,11 @@ async function checkLabels(where, sheet = false) {
     for (let n = walker.nextNode(); n; n = walker.nextNode()) {
       const text = n.textContent.trim();
       const el = n.parentElement;
-      if (!text || !visible(el) || !!el.closest('.sheet') !== sheet || el.closest('.toast')) continue;
+      if (!text || !visible(el) || !!el.closest('.sheet') !== sheet || el.closest('.toast, .banner')) continue;
       if (getComputedStyle(el).textOverflow === 'ellipsis') out.push(`${text}: ellipsis`);
       const range = document.createRange(); range.selectNodeContents(n);
       const frame = el.closest(FRAMES);
+      if (!frame) { out.push(`${text}: outside any frame`); continue; }
       const fr = frame.getBoundingClientRect();
       for (const r of range.getClientRects()) {
         if (!inside(r, fr, 2)) { out.push(`"${text}" spills out of its ${frame.className.split(' ')[0]}`); break; }
@@ -107,6 +108,38 @@ for (const id of ids) {
       .map(e => e.textContent.trim().replace(/\s+/g, ' ').slice(0, 30) || e.className);
   });
   for (const u of under) problems.push(`${id}: "${u}" is under the page title or arrows`);
+  // No two controls on a plate may touch: boxes, or circles for dials and round controls, with 2 px between them.
+  const overlaps = await page.evaluate(() => {
+    const out = [];
+    const name = e => e.textContent.trim().replace(/\s+/g, ' ').slice(0, 24) || e.className.split(' ')[0];
+    const plates = [...document.querySelectorAll('#console .plate')];
+    plates.forEach((a, i) => plates.slice(i + 1).forEach(b => {
+      const p = a.getBoundingClientRect(), q = b.getBoundingClientRect();
+      if (p.left < q.right && q.left < p.right && p.top < q.bottom && q.top < p.bottom) out.push(`plates "${name(a.querySelector('.title') || a)}" and "${name(b.querySelector('.title') || b)}" overlap`);
+    }));
+    for (const plate of plates) {
+      const items = [...plate.children].filter(e => !e.matches('.screw, .title, .pager, .rtitle') && getComputedStyle(e).display !== 'none')
+        .map(e => {
+          const r = e.getBoundingClientRect();
+          const round = e.matches('.dialw, .round, .quantum, .knobw');
+          return { e, r, round, cx: (r.left + r.right) / 2, cy: (r.top + r.bottom) / 2, rad: Math.min(r.width, r.height) / 2 - (e.matches('.dialw') ? 10 : 0) };  // a dial's box has 10 px around its bezel
+        }).filter(i => i.r.width && i.r.height);
+      const boxHit = (a, b, g) => a.left < b.right + g && b.left < a.right + g && a.top < b.bottom + g && b.top < a.bottom + g;
+      const circleBox = (c, b, g) => {
+        const x = Math.max(b.left, Math.min(c.cx, b.right)), y = Math.max(b.top, Math.min(c.cy, b.bottom));
+        return Math.hypot(c.cx - x, c.cy - y) < c.rad + g;
+      };
+      for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
+        const a = items[i], b = items[j];
+        if (a.e.contains(b.e) || b.e.contains(a.e)) continue;
+        const hit = a.round && b.round ? Math.hypot(a.cx - b.cx, a.cy - b.cy) < a.rad + b.rad + 2
+          : a.round ? circleBox(a, b.r, 2) : b.round ? circleBox(b, a.r, 2) : boxHit(a.r, b.r, 2);
+        if (hit) out.push(`"${name(a.e)}" and "${name(b.e)}" overlap`);
+      }
+    }
+    return out;
+  });
+  for (const o of overlaps) problems.push(`${id}: ${o}`);
   if (shots) await page.screenshot({ path: join(shots, `${id}.png`) });
 }
 for (const id of ['mining', 'light-fighter', 'onfoot', 'downed']) {

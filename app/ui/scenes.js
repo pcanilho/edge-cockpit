@@ -78,13 +78,15 @@ function fighter() {
       rings: [
         { r0: 94, r1: 188, keys: [{ label: 'Lock 1', a0: -88, a1: -2 }, { label: 'Lock 2', a0: 2, a1: 88 }, { label: 'Lock 3', a0: 92, a1: 178 }, { label: 'Unlock', a0: 182, a1: 268 }] },
         { r0: 196, r1: 238, keys: [{ label: 'Look ahead', a0: -64, a1: -22 }, { label: 'Ping', a0: -20, a1: 20 }, { label: 'Scan mode', a0: 22, a1: 64 },
-          { label: 'Look behind', a0: 136, a1: 178 }, { label: 'Gimbal mode', text: 'Cycle gimbal', a0: 182, a1: 224 }] },
+          { label: 'Next hostile', text: 'Hostile', a0: 68, a1: 100 }, { label: 'Next attacker', text: 'Attacker', a0: 102, a1: 134 },
+          { label: 'Look behind', a0: 136, a1: 178 }, { label: 'Gimbal mode', text: 'Cycle gimbal', a0: 182, a1: 224 },
+          { label: 'Subtarget', a0: 226, a1: 258 }, { label: 'Aim mode', text: 'Aim', a0: 260, a1: 294 }] },
       ],
     }),
     placard(20, 54, 'Missiles'), missileRack(20, 80, 128, 148),
     keycap(20, 238, 128, 92, 'Missiles +', { fs: 13 }),
     keycap(20, 338, 62, 100, 'EMP', { fs: 13, is: 20 }), keycap(86, 338, 62, 100, 'QED', { fs: 13, is: 20 }),
-    keycap(20, 446, 128, 110, 'Missiles reset', { fs: 12 }),
+    keycap(20, 446, 62, 110, 'Missiles reset', { label: 'Reset', fs: 11, is: 20 }), keycap(86, 446, 62, 110, 'Missile mode', { label: 'MSL mode', fs: 11, is: 20, kb: false }),
     keycap(20, 564, 128, 122, 'Combat prep', { label: 'Battle stations', fs: 12, ...cut }),
     placard(670, 54, 'Gimbals'),
     rotary(670, 80, 68, [{ label: 'Locked', angle: -48, key: 'Gimbals locked' }, { label: 'Free', angle: 48, key: 'Gimbals free' }], { radius: 60 }),
@@ -190,7 +192,7 @@ function ground() {
     keycap(566, 256, 234, 96, 'Operator mode', { fs: 13 }),
     keycap(566, 360, 116, 96, 'Guns group 1', { fs: 11 }), keycap(686, 360, 114, 96, 'Guns group 2', { fs: 11 }),
     keycap(566, 464, 234, 96, 'Auto target', { fs: 13 }),
-    keycap(566, 568, 234, 118, 'Look ahead', { fs: 13 }),
+    keycap(566, 568, 116, 118, 'Look ahead', { fs: 12 }), keycap(686, 568, 114, 118, 'Horn', { fs: 13 }),
   ];
 }
 
@@ -247,7 +249,7 @@ function rolePlate(page) {
 
 function weaponWheel(cx, cy) {
   const keys = [['Primary', -36, 36], ['Secondary', 36, 108], ['Sidearm', 108, 180], ['Melee', 180, 252], ['Gadget', 252, 324]];
-  return dial(cx, cy, { bezel: 300, centreR: 96, centre: 'Reload', rings: [{ r0: 110, r1: 250, keys: keys.map(([l, a0, a1]) => ({ label: l, a0: a0 + 1, a1: a1 - 1 })) }] });
+  return dial(cx, cy, { bezel: 270, centreR: 96, centre: 'Reload', rings: [{ r0: 110, r1: 250, keys: keys.map(([l, a0, a1]) => ({ label: l, a0: a0 + 1, a1: a1 - 1 })) }] });
 }
 
 function onFoot() {
@@ -272,7 +274,7 @@ function comms(x, w) {
     keycap(20, 566, half / 2 - 4, 116, 'Reply 5', { fs: 14, icon: 'chat' }),
     pageKey(24 + half / 2, 566, half / 2 - 4, 116, 'Emotes', 'hand', 'emotes'),
     keycap(40 + half, 70, half, 116, 'Local map', { fs: 15 }), keycap(40 + half, 194, half, 116, 'Starmap', { fs: 15 }),
-    keycap(40 + half, 318, half, 116, 'Plan route', { fs: 15 }), keycap(40 + half, 442, half, 116, 'Scoreboard', { fs: 15 }),
+    keycap(40 + half, 318, half, 116, 'Plan route', { fs: 15 }), keycap(40 + half, 442, half / 2 - 4, 116, 'Accept', { fs: 14 }), keycap(44 + half * 1.5, 442, half / 2 - 4, 116, 'Ignore', { fs: 14 }),
     keycap(40 + half, 566, half / 2 - 4, 116, 'Chat window', { label: 'Chat', fs: 14 }),
     keycap(44 + half * 1.5, 566, half / 2 - 4, 116, 'Push to talk', { fs: 13 }));
   return p;
@@ -309,7 +311,7 @@ function mapPage() {
   const a = plate(382, 760, 'Map');
   add(a,
     dial(380, 380, {
-      bezel: 300, centreR: 96, centre: 'Go to selection',
+      bezel: 270, centreR: 96, centre: 'Go to selection',
       rings: [{ r0: 110, r1: 250, keys: [{ label: 'Local map', a0: -44, a1: 44 }, { label: 'My location', a0: 46, a1: 134 }, { label: 'Plan route', a0: 136, a1: 224 }, { label: 'Step back', a0: 226, a1: 314 }] }],
     }),
     keycap(20, 44, 150, 110, 'Clear route', { fs: 13 }), keycap(590, 44, 150, 110, 'QT actions', { fs: 13 }),
@@ -327,7 +329,8 @@ function mapPage() {
   add(c, ...[1, 2, 3, 4, 5].map(n => keycap(20, 50 + (n - 1) * 128, half, 120, `Reply ${n}`, { fs: 16, icon: 'chat' })),
     keycap(410, 50, half, 120, 'ATC request', { fs: 16 }), keycap(410, 178, half / 2 - 4, 120, 'Chat window', { label: 'Chat', fs: 15 }),
     keycap(414 + half / 2, 178, half / 2 - 4, 120, 'Push to talk', { fs: 14 }), keycap(410, 306, half, 120, 'Docking request', { fs: 16 }),
-    keycap(410, 434, half, 120, 'Hail target', { fs: 16 }), keycap(410, 562, half, 116, 'Visor wipe', { fs: 16 }));
+    keycap(410, 434, half, 120, 'Hail target', { fs: 16 }),
+    keycap(410, 562, half / 2 - 4, 116, 'Accept', { fs: 15 }), keycap(414 + half / 2, 562, half / 2 - 4, 116, 'Ignore', { fs: 15 }));
   return [a, b, c];
 }
 

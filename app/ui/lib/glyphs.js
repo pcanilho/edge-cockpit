@@ -108,6 +108,7 @@ export const GLYPHS = {
   layers: '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 12.5l9 5 9-5"/><path d="M3 17l9 5 9-5"/>',
   moon: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
   download: '<path d="M12 4v11M7 10l5 5 5-5"/><path d="M5 20h14"/>',
+  horn: '<path d="M3 10v4h3l7 5V5l-7 5z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/>',
   // Emotes: one pose or gesture each
   'em-wave': '<circle cx="12" cy="4.5" r="2.2"/><path d="M12 7v7M12 14l-3 7M12 14l3 7M12 9l-4 4.5M12 9l4.5-4.5"/><path d="M18.5 2.2a4 4 0 0 1 2.2 2.4M19.6 7.4a2.5 2.5 0 0 0 1.4-.9"/>',
   'em-salute': '<circle cx="12" cy="4.5" r="2.2"/><path d="M12 7v7M12 14l-3 7M12 14l3 7M12 9l-3.5 5M12 9l4.5 1.5-2.6-6"/>',

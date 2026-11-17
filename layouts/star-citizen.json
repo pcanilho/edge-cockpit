@@ -10959,6 +10959,94 @@
      ]
     },
     {
+     "label": "Accept",
+     "action": "ui_notification_accept",
+     "actionmap": "ui_notification",
+     "defaultKey": "lbracket",
+     "activation": "",
+     "press": "tap",
+     "needsKeyboardBind": false,
+     "icon": "em-yes",
+     "role": "action"
+    },
+    {
+     "label": "Ignore",
+     "action": "ui_notification_ignore",
+     "actionmap": "ui_notification",
+     "defaultKey": "rbracket",
+     "activation": "delayed_hold",
+     "press": "tap",
+     "needsKeyboardBind": false,
+     "icon": "x",
+     "role": "action"
+    },
+    {
+     "label": "Next hostile",
+     "action": "v_target_cycle_hostile_fwd",
+     "actionmap": "spaceship_targeting_advanced",
+     "defaultKey": "5",
+     "activation": "tap",
+     "press": "tap",
+     "needsKeyboardBind": false,
+     "icon": "target",
+     "role": "action"
+    },
+    {
+     "label": "Next attacker",
+     "action": "v_target_cycle_attacker_fwd",
+     "actionmap": "spaceship_targeting_advanced",
+     "defaultKey": "4",
+     "activation": "tap",
+     "press": "tap",
+     "needsKeyboardBind": false,
+     "icon": "crosshair",
+     "role": "action"
+    },
+    {
+     "label": "Subtarget",
+     "action": "v_target_cycle_subitem_fwd",
+     "actionmap": "spaceship_targeting_advanced",
+     "defaultKey": "r",
+     "activation": "tap",
+     "press": "tap",
+     "needsKeyboardBind": false,
+     "icon": "focus",
+     "role": "action"
+    },
+    {
+     "label": "Missile mode",
+     "action": "v_toggle_missile_mode",
+     "actionmap": "seat_general",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "missile",
+     "role": "action"
+    },
+    {
+     "label": "Aim mode",
+     "action": "v_weapon_aim_type_cycle",
+     "actionmap": "spaceship_weapons",
+     "defaultKey": "ralt+g",
+     "activation": "tap",
+     "press": "tap",
+     "needsKeyboardBind": false,
+     "icon": "aim",
+     "role": "action"
+    },
+    {
+     "label": "Horn",
+     "action": "v_horn",
+     "actionmap": "vehicle_general",
+     "defaultKey": "space",
+     "activation": "",
+     "press": "hold",
+     "needsKeyboardBind": false,
+     "icon": "horn",
+     "role": "hold"
+    },
+    {
      "label": "Dance",
      "action": "emote_dance",
      "actionmap": "player_emotes",

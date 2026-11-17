@@ -1,7 +1,7 @@
 // Edge Cockpit: builds the cockpit console, turns touches into key presses and
 // follows Game.log for the status display, the moods and the pages.
 import { GLYPHS } from './lib/glyphs.js';
-import { parseLine, reduce, lawless, EMPTY, version, untested, place, tally, stamp, NEW_TALLY, minutes, shipName } from './lib/gamelog.js';
+import { parseLine, reduce, lawless, EMPTY, version, untested, place, tally, stamp, NEW_TALLY, minutes, shipName, alertsFor } from './lib/gamelog.js';
 import { pageFor, pageById } from './lib/pages.js';
 import { lookup } from './lib/ships.js';
 import * as bridge from './bridge.js';
@@ -45,7 +45,7 @@ const KEYS = new Map();
   }
 })(layout);
 // Kit a ship may lack, and the keys that need it.
-const KIT_KEYS = { missiles: ['Missiles +', 'Missiles reset'], emp: ['EMP'], qed: ['QED'], tractor: ['Tractor rotate', 'Tractor detach', 'Beam closer', 'Beam farther'] };
+const KIT_KEYS = { missiles: ['Missiles +', 'Missiles reset', 'Missile mode'], emp: ['EMP'], qed: ['QED'], tractor: ['Tractor rotate', 'Tractor detach', 'Beam closer', 'Beam farther'] };
 
 // ---------- settings ----------
 const store = {
@@ -55,7 +55,7 @@ const store = {
 // Night mode is off, on, or auto (dark from 20:00 to 07:00 by this PC's clock). Older builds stored a boolean.
 const NIGHT_FROM = 20, NIGHT_TO = 7;
 const nightMode = v => (v === true ? 'on' : ['on', 'auto'].includes(v) ? v : 'off');
-const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), anywhere: store.get('anywhere', false) };
+const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), anywhere: store.get('anywhere', false) };
 
 // ---------- binds: the player's actionmaps.xml, then our Xeneon profile, then the defaults ----------
 function parseActionmaps(text) {
@@ -151,6 +151,36 @@ function tick(kind) {
     o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * .55, t + .05);
     g.gain.setValueAtTime(kind === 'detent' ? .05 : .12, t); g.gain.exponentialRampToValueAtTime(.0001, t + .08);
     o.connect(g).connect(audio.destination); o.start(t); o.stop(t + .09);
+  } catch { /* no audio device */ }
+}
+
+// ---------- alerts ----------
+// A banner and a short tone when something changes that needs you: a CrimeStat, armistice, your ship disabled.
+let bannerTimer;
+function raise({ text, tone }) {
+  const b = $('banner');
+  b.className = `banner ${tone}`;
+  b.textContent = text;
+  void b.offsetWidth;
+  b.classList.add('show');
+  stage.classList.remove('flash-bad', 'flash-warn', 'flash-good');
+  void stage.offsetWidth;
+  stage.classList.add(`flash-${tone}`);
+  clearTimeout(bannerTimer);
+  bannerTimer = setTimeout(() => { b.classList.remove('show'); stage.classList.remove(`flash-${tone}`); }, 4000);
+  if (opts.alertSound) alertTone(tone);
+}
+function alertTone(tone) {
+  try {
+    audio ||= new AudioContext();
+    const notes = { bad: [880, 660, 880, 660], warn: [660, 520], good: [520, 780] }[tone] || [660];
+    notes.forEach((f, i) => {
+      const t = audio.currentTime + i * .14, o = audio.createOscillator(), g = audio.createGain();
+      o.type = tone === 'bad' ? 'square' : 'triangle';
+      o.frequency.setValueAtTime(f, t);
+      g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.09, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + .12);
+      o.connect(g).connect(audio.destination); o.start(t); o.stop(t + .13);
+    });
   } catch { /* no audio device */ }
 }
 
@@ -323,6 +353,11 @@ function repaint() {
 // ---------- the console ----------
 // Ship weapon actionmaps, and on-foot weapons by their icon.
 const isWeapon = k => /^spaceship_(weapons|missiles|defensive)$/.test(k.actionmap || '') || /^(rifle|pistol|knife|grenade)$/.test(k.icon || '');
+// Colour family of a key: emergency red, weapons amber, flight cyan, everything else systems white.
+const FLIGHT = /^spaceship_(movement|quantum|docking|view)$/;
+const family = k => !k ? 'sys' : k.role === 'critical' || /eject|self_destruct|panic|emergency/.test(k.action || '') ? 'emg'
+  : isWeapon(k) || /^spaceship_target(ing|ing_advanced|_hailing)$/.test(k.actionmap || '') ? 'wpn'
+  : FLIGHT.test(k.actionmap || '') ? 'flt' : 'sys';
 const theme = page => page.theme || pageById(layout, page.role?.tab || page.tab || 'flight')?.theme || { accent: '#5cc8e6', glyph: 'ship' };
 let current = 'flight', rolePage = null, lastShip = 'flight', pageAccent = '#5cc8e6', makerAccent = null;
 const applyAccent = () => stage.style.setProperty('--accent', makerAccent || pageAccent);
@@ -335,6 +370,7 @@ const K = {
   },
   bindText: k => (k.role === 'macro' ? '' : mine.stick[k.action] ? 'STICK' : keyText(bindOf(k))),
   isWeapon,
+  family,
   bind, fire, wheel, flip, isOn, local, tick, toast, theme,
   fired: node => { if (opts.flash) flash(node, 'fired'); },
   scale: () => Math.min(innerWidth / 2560, innerHeight / 720),
@@ -462,7 +498,7 @@ $('qt').querySelector('svg').innerHTML = GLYPHS.quantum;
 
 // ---------- profile: settings, plate order, ship roles and keyboard binds in one file ----------
 // Saved as Documents\Edge Cockpit\profile.json, to copy to another PC or keep as a backup.
-const PROFILE_OPTS = ['night', 'sound', 'flash', 'auto', 'recap', 'anywhere', 'autostart', 'screen_off'];
+const PROFILE_OPTS = ['night', 'sound', 'flash', 'auto', 'recap', 'alertSound', 'anywhere', 'autostart', 'screen_off'];
 /** The keyboard binds in an actionmaps.xml, as a Control Profile the game can load. */
 function bindsProfile(text) {
   const doc = new DOMParser().parseFromString(text, 'application/xml');
@@ -790,6 +826,7 @@ bridge.onGameLog(({ lines, live, reset }) => {
     if (ev) game = reduce(game, ev);
     session = tally(session, was, game, stamp(line));
     if (live && !was.menu && game.menu) showRecap();
+    if (live && ev) for (const a of alertsFor(was, game)) raise(a);
     if (!game.menu) $('recap').hidden = true;
   }
   follow(!live);
@@ -860,5 +897,5 @@ poll(); setInterval(poll, 2000);
 paintStatus();
 if (demo) { opts.auto = false; show(demo); }
 stage.classList.remove('booting');
-window.xfd = { show, recap: t => { session = { ...NEW_TALLY, ...t }; showRecap(); }, perf: perf.toggle, showSection, bindHealth, bindsProfile, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
+window.xfd = { show, raise, recap: t => { session = { ...NEW_TALLY, ...t }; showRecap(); }, perf: perf.toggle, showSection, bindHealth, bindsProfile, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
 document.body.dataset.ready = '1';

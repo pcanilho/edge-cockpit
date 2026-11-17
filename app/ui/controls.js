@@ -76,16 +76,19 @@ export function keycap(x, y, w, ht, l, o = {}) {
   const k = keyOf(l);
   if (!k || (o.fitted !== undefined ? !o.fitted : !K.fitted(k))) return blank(x, y, w, ht, o.r);
   const tog = k.role === 'toggle' || k.role === 'select';
-  const tag = k.role === 'hold' ? 'HOLD' : k.role === 'macro' ? 'MACRO' : k.role === 'critical' ? 'GUARD' : k.more?.hold ? 'LONG' : k.more?.double ? '2×' : '';
+  const tag = k.role === 'critical' ? 'GUARD' : k.more?.hold ? 'LONG' : k.more?.double ? '2×' : '';
+  // Shape says the type: a ring that fills for hold, a notched corner for a macro.
+  const mark = k.role === 'hold' ? '<svg class="ring-h" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><circle class="f" cx="8" cy="8" r="6" pathLength="1"/></svg>'
+    : k.role === 'macro' ? '<span class="notch"></span>' : '';
   // Long chords don't fit a narrow cap; the keybind check still lists them.
   const bind = o.kb === false ? '' : K.bindText(k);
-  const el = h(`<div class="well key ${K.isWeapon(k) ? 'weapon' : ''} ${o.cut ? 'cut' : ''} ${w < 100 ? 'narrow' : ''}" style="${box(x, y, w, ht)};--lc:${o.lc || 'var(--accent)'};${o.r ? `--r:${o.r}px` : ''}">
+  const el = h(`<div class="well key fam-${K.family(k)} ${K.isWeapon(k) ? 'weapon' : ''} ${o.cut || k.role === 'macro' ? 'cut' : ''} ${w < 100 ? 'narrow' : ''}" style="${box(x, y, w, ht)};--lc:${o.lc || 'var(--fam)'};${o.r ? `--r:${o.r}px` : ''}">
     <div class="cap ${o.lit ? 'lit' : ''}">
       ${tog && !o.noLed && k.state?.kind === 'set' ? '<span class="led"></span>' : ''}
       ${o.icon === false ? '' : icon(o.icon || k.icon, o.is || 22)}
       <span class="lg" style="${o.fs ? `font-size:${o.fs}px` : ''}">${lbl(k, o.label)}</span>
       ${(k.state?.kind === 'set' && k.state.labels) || o.sub ? `<span class="st">${esc(o.sub || '')}</span>` : ''}
-      ${bind ? `<span class="kb">${esc(bind)}</span>` : ''}${tag ? `<span class="tg">${tag}</span>` : ''}
+      ${bind ? `<span class="kb">${esc(bind)}</span>` : ''}${tag ? `<span class="tg">${tag}</span>` : ''}${mark}
       <span class="bar"><i></i></span>
     </div></div>`);
   if (k.state) el.dataset.state = JSON.stringify(k.state);
@@ -119,7 +122,7 @@ export function toggle(x, y, l, o = {}) {
     return b;
   }
   const nut = [0, 60, 120, 180, 240, 300].map(a => polar(42, 84, 17, a + 30).join(',')).join(' ');
-  const el = h(`<div class="tgl ${o.guard ? 'guarded' : ''} ${K.isWeapon(k) ? 'weapon' : ''}" style="${box(x, y, w, 196)}">
+  const el = h(`<div class="tgl fam-${K.family(k)} ${o.guard ? 'guarded' : ''} ${K.isWeapon(k) ? 'weapon' : ''}" style="${box(x, y, w, 196)}">
     <svg viewBox="0 0 84 150" class="sw">
       <circle class="tled" cx="42" cy="10" r="5"/>
       ${o.guard ? '<rect x="12" y="26" width="60" height="116" rx="6" fill="none" stroke="#b3271c" stroke-width="7"/>' : ''}
@@ -145,7 +148,7 @@ export function onOff(x, y, base, o = {}) {
   if (!kOn || !kOff) return toggle(x, y, base, o);
   const w = o.w || 84;
   const nut = [0, 60, 120, 180, 240, 300].map(a => polar(42, 84, 17, a + 30).join(',')).join(' ');
-  const el = h(`<div class="tgl dual ${o.guard ? 'guarded' : ''} ${K.isWeapon(kOn) ? 'weapon' : ''}" style="${box(x, y, w, 196)}">
+  const el = h(`<div class="tgl dual fam-${K.family(kOn)} ${o.guard ? 'guarded' : ''} ${K.isWeapon(kOn) ? 'weapon' : ''}" style="${box(x, y, w, 196)}">
     <svg viewBox="0 0 84 150" class="sw">
       <circle class="tled" cx="42" cy="10" r="5"/>
       ${o.guard ? '<rect x="12" y="26" width="60" height="116" rx="6" fill="none" stroke="#b3271c" stroke-width="7"/>' : ''}
@@ -177,7 +180,7 @@ export function onOff(x, y, base, o = {}) {
 export function onOffKey(x, y, w, ht, base, o = {}) {
   const kOn = keyOf(`${base} on`), kOff = keyOf(`${base} off`);
   if (!kOn || !kOff) return keycap(x, y, w, ht, base, o);
-  const el = h(`<div class="well pair ${K.isWeapon(kOn) ? 'weapon' : ''}" style="${box(x, y, w, ht)}">
+  const el = h(`<div class="well pair fam-${K.family(kOn)} ${K.isWeapon(kOn) ? 'weapon' : ''}" style="${box(x, y, w, ht)}">
     <div class="pt">${icon(o.icon || kOn.icon, 16)}<span>${esc(o.label || base)}</span></div>
     <div class="cap half a"><span class="lg">On</span><span class="led"></span></div>
     <div class="cap half b"><span class="lg">Off</span><span class="led"></span></div></div>`);

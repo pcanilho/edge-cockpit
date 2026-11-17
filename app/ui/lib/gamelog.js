@@ -46,7 +46,7 @@ export const PATTERNS = {
   // <Actor Death> CActor::Kill: 'victim' [id] in zone 'zone' killed by 'killer' [id] using 'weapon' ...
   kill: /<Actor Death> CActor::Kill: '([^']+)' \[\d+\] in zone '[^']*' killed by '([^']+)'/,
   // <Vehicle Destruction> CVehicle::OnAdvanceDestroyLevel: Vehicle 'AEGS_Gladius_123' [123] ... driven by 'me' [1] advanced from destroy level 0 to 1 caused by 'them' ...
-  wreck: /<Vehicle Destruction>.*?Vehicle '([^']+)'.*?advanced from destroy level (\d) to (\d)/,
+  wreck: /<Vehicle Destruction>.*?Vehicle '([^']+)'.*?advanced from destroy level (\d) to (\d)(?: caused by '([^']+)')?/,
   // <RequestLocationInventory> Player[me] requested inventory for Location[Stanton1_Lorville]
   location: /<RequestLocationInventory> Player\[([^\]]+)\] requested inventory for Location\[([^\]]+)\]/,
 };
@@ -146,7 +146,7 @@ export function parseLine(line) {
   m = PATTERNS.changelist.exec(line);
   if (m) return { type: 'build', changelist: m[1] };
   m = PATTERNS.wreck.exec(line);
-  if (m) return { type: 'wreck', ship: shipModel(m[1]), level: Number(m[3]) };
+  if (m) return { type: 'wreck', ship: shipModel(m[1]), level: Number(m[3]), by: m[4] || null };
   m = PATTERNS.location.exec(line);
   if (m) return { type: 'location', who: m[1], place: m[2] };
   m = PATTERNS.kill.exec(line);
@@ -185,7 +185,7 @@ export const lawless = state => state.monitored === 'down' || state.monitored ==
 // build: { branch, changelist } of the running game. wrecked: 1 disabled, 2 destroyed, for the ship you fly.
 // kills: players and NPCs you killed this session. location: where you last opened your inventory.
 export const EMPTY = Object.freeze({ seated: false, ship: null, armistice: false, qtTarget: null, down: false, menu: true, me: null,
-  mission: null, jurisdiction: null, monitored: null, crime: 0, build: null, wrecked: 0, kills: 0, location: null });
+  mission: null, jurisdiction: null, monitored: null, crime: 0, build: null, wrecked: 0, wreckedBy: null, kills: 0, location: null });
 
 /** 'sc-alpha-4.3.2' -> '4.3.2' */
 export const version = branch => (branch || '').replace(/^sc-alpha-/i, '');
@@ -233,7 +233,7 @@ export function reduce(state, ev) {
     case 'build': return { ...state, build: { ...state.build, ...(ev.branch ? { branch: ev.branch } : { changelist: ev.changelist }) } };
     case 'wreck':
       if (!state.seated || state.ship !== ev.ship || ev.level <= state.wrecked) return state;
-      return { ...live, wrecked: ev.level };
+      return { ...live, wrecked: ev.level, wreckedBy: ev.by };
     case 'kill':
       if (state.me && ev.victim === state.me.name) return reduce(state, { type: 'down', who: ev.victim });
       if (!state.me || ev.killer !== state.me.name) return state;
@@ -307,3 +307,26 @@ export function tally(t, a, b, ts) {
 
 /** Minutes between the tally's first and last log line. */
 export const minutes = t => (t.start && t.end ? Math.max(0, Math.round((Date.parse(t.end) - Date.parse(t.start)) / 60000)) : 0);
+
+/** Who a log names as the cause, for people: a player's handle, "an NPC" for spawned AI, null when unknown. */
+export function culprit(name, me) {
+  if (!name || /^unknown$/i.test(name)) return null;
+  if (me && name === me.name) return 'yourself';
+  if (/^(PU_|NPC_|AIModule|Kopion|Shipjacker)|_\d{4,}$/i.test(name)) return 'an NPC';
+  return name;
+}
+
+/** What changed from state a to b that deserves an alert: [{ kind, text, tone }] (tone: bad, warn, good). */
+export function alertsFor(a, b) {
+  if (b.menu || a.menu) return [];
+  const out = [];
+  if (b.crime > a.crime) out.push({ kind: 'crime', text: `CrimeStat ${b.crime}`, tone: 'bad' });
+  else if (a.crime > 0 && b.crime === 0) out.push({ kind: 'crime', text: 'CrimeStat cleared', tone: 'good' });
+  if (b.armistice && !a.armistice) out.push({ kind: 'armistice', text: 'Armistice zone · weapons safe', tone: 'good' });
+  else if (a.armistice && !b.armistice) out.push({ kind: 'armistice', text: 'Leaving armistice', tone: 'warn' });
+  if (b.seated && b.wrecked > a.wrecked && b.ship === a.ship) {
+    const who = culprit(b.wreckedBy, b.me);
+    out.push({ kind: 'wreck', text: `${b.wrecked >= 2 ? 'Ship destroyed' : 'Ship disabled'}${who ? ` by ${who}` : ''}`, tone: 'bad' });
+  }
+  return out;
+}
