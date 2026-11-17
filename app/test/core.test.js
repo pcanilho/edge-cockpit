@@ -183,3 +183,17 @@ test('tallies a session for the recap', async () => {
   assert.equal(t.routes, 1);
   assert.equal(t.missions, 1);
 });
+
+test('alerts on CrimeStat, armistice and a disabled ship', async () => {
+  const { alertsFor, culprit } = await import('../ui/lib/gamelog.js');
+  const live = { ...EMPTY, menu: false, me: { name: 'pilot' } };
+  assert.deepEqual(alertsFor(live, { ...live, crime: 2 }).map(a => a.text), ['CrimeStat 2']);
+  assert.deepEqual(alertsFor({ ...live, crime: 2 }, live).map(a => a.tone), ['good']);
+  assert.deepEqual(alertsFor(live, { ...live, armistice: true }).map(a => a.kind), ['armistice']);
+  const seated = { ...live, seated: true, ship: 'AEGS_Gladius' };
+  const hit = reduce(seated, parseLine("<Vehicle Destruction> CVehicle::OnAdvanceDestroyLevel: Vehicle 'AEGS_Gladius_123' [123] in zone 'space' driven by 'pilot' [2001] advanced from destroy level 0 to 1 caused by 'PU_Pilot_Enemy_78' [78] with 'Combat'"));
+  assert.deepEqual(alertsFor(seated, hit).map(a => a.text), ['Ship disabled by an NPC']);
+  assert.equal(culprit('Raider42', { name: 'pilot' }), 'Raider42');
+  assert.equal(culprit('pilot', { name: 'pilot' }), 'yourself');
+  assert.deepEqual(alertsFor({ ...EMPTY }, { ...EMPTY, crime: 1 }), []);
+});

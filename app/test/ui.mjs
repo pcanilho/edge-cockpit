@@ -53,10 +53,11 @@ async function checkLabels(where, sheet = false) {
     for (let n = walker.nextNode(); n; n = walker.nextNode()) {
       const text = n.textContent.trim();
       const el = n.parentElement;
-      if (!text || !visible(el) || !!el.closest('.sheet') !== sheet || el.closest('.toast')) continue;
+      if (!text || !visible(el) || !!el.closest('.sheet') !== sheet || el.closest('.toast, .banner')) continue;
       if (getComputedStyle(el).textOverflow === 'ellipsis') out.push(`${text}: ellipsis`);
       const range = document.createRange(); range.selectNodeContents(n);
       const frame = el.closest(FRAMES);
+      if (!frame) { out.push(`${text}: outside any frame`); continue; }
       const fr = frame.getBoundingClientRect();
       for (const r of range.getClientRects()) {
         if (!inside(r, fr, 2)) { out.push(`"${text}" spills out of its ${frame.className.split(' ')[0]}`); break; }

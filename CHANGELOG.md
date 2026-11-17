@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Alerts: a banner, a flash of the frame and a short tone when you get or clear a CrimeStat, enter or leave armistice, or your ship is disabled or destroyed (with who did it, when the log says). Settings > General turns the tone off.
 - Session recap when you leave the game: time played, kills, times down, missions, routes set, ships flown and places visited, from that session's log. Settings > General turns it off.
 - Every emote has its own icon.
 - Emotes page, from the Emotes key on the On foot page: squad hand signals and 24 emotes. Reload the keybind profile for their keys.
