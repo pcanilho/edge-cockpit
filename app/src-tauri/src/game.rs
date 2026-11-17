@@ -139,7 +139,8 @@ pub const POLL: Duration = Duration::from_millis(300);
 /// After 30 s with no new lines (menus, the game closed).
 pub const POLL_IDLE: Duration = Duration::from_millis(1500);
 
-/// Markers of the lines the panel reads (plugin/src/gamelog-parse.js). Everything
+/// Markers of the lines the panel reads (app/ui/lib/gamelog.js PATTERNS; app/test checks every
+/// pattern has one). Everything
 /// else, which is nearly all of Game.log, never leaves Rust.
 const MARKERS: &[&str] = &[
     "SetDriver", "ClearDriver", "Armistice Zone", "as their destination", "Join PU", "Context Establisher Done",
@@ -147,6 +148,10 @@ const MARKERS: &[&str] = &[
     "Emergency Services", "Logged an incap", "[ActorState] Dead", "<Actor Death>", "Recv Unbind Batch Add Player",
     "<Spawn Flow>", "\"Contract ", "Objective", "Jurisdiction", "Monitored Space", "CrimeStat",
     "Branch:", "Changelist:", "<Vehicle Destruction>", "RequestLocationInventory",
+    // 4.10 boarding, navigation and quantum, hangars, and the Log page.
+    "You have joined", "You have left", "CSCItemNavigation::", "SetVehicleSpawningInformations", "[Team_GameServices][ASOP]",
+    "Hangar Request Completed", "OnLoadingPlatformStateChanged", "<Actor stall>", "<Changing Solar System>",
+    "Refinery Work Order", "DoesLocationContainHospital", "STOWING ON UNREGISTER",
 ];
 
 pub fn relevant(line: &str) -> bool {

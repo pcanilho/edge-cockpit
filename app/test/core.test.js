@@ -263,3 +263,44 @@ test('Log page: shard, jump, refinery, downed, quantum arrival, lag', async () =
   g = reduce(g, parseLine('[STOWING ON UNREGISTER] Attempting to stow current vehicle [932943782879] due to landing area unregistering'));
   assert.deepEqual(logFor(was, g).map(e => e.text), ['Sabre Firebird stored']);
 });
+
+// The app's Rust side only passes on lines that hold one of its markers: every pattern
+// the panel reads needs a sample here, and the sample must get through.
+test('every log pattern gets past the Rust line filter', async () => {
+  const { PATTERNS } = await import('../ui/lib/gamelog.js');
+  const rs = readFileSync(new URL('../src-tauri/src/game.rs', import.meta.url), 'utf8');
+  const block = /const MARKERS: &\[&str\] = &\[([\s\S]*?)\];/.exec(rs)[1].replace(/\/\/.*$/gm, '');
+  const markers = [...block.matchAll(/"((?:[^"\\]|\\.)*)"/g)].map(m => m[1].replace(/\\"/g, '"'));
+  const SAMPLES = {
+    seat: SET, crew: "You have joined channel 'Drake Cutlass Black : me'",
+    nav: '| NOT AUTH | AEGS_Sabre_Firebird_932943782879[932943782879]|CSCItemNavigation::GetStarmapRouteSegmentData|',
+    armistice: 'Added notification "Entering Armistice Zone - Combat Prohibited: "', qtTarget: 'Player has selected point ArcCorp as their destination',
+    session: '<Join PU> address[1] port[2] shard[pub_euw1b_13165946_031]', loaded: '<Context Establisher Done>', menu: 'CCIGBroker::FastShutdown',
+    me: '<AccountLoginCharacterStatus_Character> Character: createdAt 1 - geid 2001 - name me - state STATE_CURRENT',
+    emergency: 'Emergency Services are en route', incap: 'Logged an incap.! nickname: me, causes: [Bullet (35 damage)]',
+    dead: "<[ActorState] Dead> Actor 'me' [1]", killed: "<Actor Death> CActor::Kill: 'me' [1]", unbind: '<Recv Unbind Batch Add Player> playerGEID=1',
+    spawn: "<Spawn Flow> Player 'me' [1] lost reservation for spawnpoint", contract: 'Added notification "Contract Accepted: Bounty: " [2]',
+    objective: 'Added notification "New Objective: Go to Hurston: " [3]', objectiveAt: 'MissionObjectiveMarker_754[754] - Paired with NavPoint: MISSION_QT_Yela_928306496062[9]',
+    jurisdiction: 'Added notification "Entered Stanton Jurisdiction: " [1]', monitored: 'Added notification "Entered Monitored Space: "',
+    crime: 'Added notification "CrimeStat Rating Increased: " [2] SHUDEvent', branch: 'Branch: sc-alpha-4.10.3', changelist: 'Changelist: 9876543',
+    kill: "<Actor Death> CActor::Kill: 'a' [1] in zone 'space' killed by 'b' [2] using 'W_1' [Class unknown] with damage type 'Ballistic'",
+    wreck: "<Vehicle Destruction> CVehicle::OnAdvanceDestroyLevel: Vehicle 'AEGS_Gladius_1' [1] advanced from destroy level 0 to 1 caused by 'x' [2]",
+    qtRoute: '| AEGS_Sabre_1[1]|CSCItemNavigation::CalculateRoute|Projected Start Location is Nyx I for route to destination Keeger',
+    qtArrived: '| AEGS_Sabre_1[1]|CSCItemNavigation::OnQuantumDriveArrived|', stall: '<Actor stall> Actor stall detected, Player: me, Type: downstream, Length: 3.2.',
+    shard: '<Join PU> address[1] shard[pub_euw1b_13165946_031] locationId[1]',
+    jump: '<Changing Solar System> Solar system changed: Client entity me [1] is changing system from Stanton to Nyx',
+    refinery: 'Added notification "Refinery Work Orders have been Completed at Levski: " [4]',
+    hospital: `<Corpse> Player 'me' <local client>: DoesLocationContainHospital: Searching landing zone location "Orison" for the closest hospital.`,
+    stowed: '[STOWING ON UNREGISTER] Attempting to stow current vehicle [932943782879] due to landing area unregistering',
+    hangarCall: "SetVehicleSpawningInformations - VehicleEntityId: [1], LandingArea: me's [Team_GameServices][ASOP]",
+    hangarName: '<2026-11-17T08:00:01.123Z> XL Hangar [Team_GameServices][ASOP]', hangarGranted: 'Added notification "Hangar Request Completed: "',
+    lift: '<CSCLoadingPlatformManager::OnLoadingPlatformStateChanged> [LoadingPlatformManager_ShipElevator_1] Platform state changed to OpenIdle',
+    location: '<RequestLocationInventory> Player[me] requested inventory for Location[Stanton1_Lorville]',
+  };
+  for (const [name, re] of Object.entries(PATTERNS)) {
+    const line = SAMPLES[name];
+    assert.ok(line, `no sample for pattern ${name}`);
+    assert.match(line, re, name);
+    assert.ok(markers.some(m => line.includes(m)), `${name}: the Rust filter drops "${line}"`);
+  }
+});
