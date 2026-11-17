@@ -24,7 +24,7 @@ That's all. Edge Cockpit starts with Windows and waits in the tray with its scre
 
 ## The console
 
-Every ship page has a power plate, a module for your ship's role, a flight plate and a gear plate. The role module is a target dial for fighters, a laser power knob for mining, a beam head for salvage, a tractor beam slider for cargo, and so on. Swipe it sideways to see the others. On foot you get a weapon wheel, your suit and comms. Downed, a big revive button.
+Every ship page has a power plate, a module for your ship's role, a flight plate and a gear plate. The role module is a target dial for fighters, a laser power knob for mining, a beam head for salvage, a tractor beam slider for cargo, and so on. Swipe it sideways to see the others. To rearrange the plates, long-press a plate's title, drag the plates and tap **Done**. The order is saved for each role. On foot you get a weapon wheel, your suit and comms. Downed, a big revive button.
 
 | | |
 | --- | --- |

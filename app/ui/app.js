@@ -8,6 +8,7 @@ import * as bridge from './bridge.js';
 import * as controls from './controls.js';
 import { scene, init as initScenes, SWIPE, moduleOf } from './scenes.js';
 import { outline } from './outlines.js';
+import * as arrange from './arrange.js';
 
 const $ = id => document.getElementById(id);
 const stage = $('stage');
@@ -283,13 +284,15 @@ function render() {
   applyAccent();
   if (!cache.has(current)) cache.set(current, scene(page));
   $('console').replaceChildren(...cache.get(current));
+  const role = moduleOf(current);
+  if (role) arrange.place($('console'), arrange.orderFor(role));
   repaint();
   paintQuantum();
   paintSoftkeys();
 }
 
 function show(id) {
-  if (!pageById(layout, id)) return;
+  if (!pageById(layout, id) || arrange.isEditing()) return;
   if (moduleOf(id)) lastShip = id;
   const changed = id !== current;
   current = id;
@@ -531,6 +534,11 @@ fit(); clock();
 // Wake once a minute, on the minute, and not more.
 setTimeout(() => { clock(); setInterval(clock, 60_000); }, 60_000 - Date.now() % 60_000 + 50);
 buildSoftkeys();
+const ROLE_NAMES = { fighter: 'fighter', crew: 'multi-crew', mining: 'mining', salvage: 'salvage', cargo: 'cargo', medical: 'medical', ground: 'ground vehicle', systems: 'ship systems' };
+arrange.init($('console'), {
+  store, tick, scale: K.scale, role: () => moduleOf(current), roleName: () => ROLE_NAMES[moduleOf(current)] || 'ship',
+  onDone: () => toast('Layout saved for this role'),
+});
 const prefs = await bridge.getPrefs().catch(() => ({ autostart: false, screen_off: false, backlight: null, version: '' }));
 opts.autostart = prefs.autostart; opts.screen_off = prefs.screen_off;
 $('version').textContent = prefs.version;

@@ -299,5 +299,7 @@ export function scene(page) {
   if (page.id === 'onfoot') return onFoot();
   if (page.id === 'map') return mapPage();
   if (page.id === 'downed') return downed();
-  return [powerPlate(), rolePlate(page), flightPlate(), gearPlate()];
+  const plates = { power: powerPlate(), role: rolePlate(page), flight: flightPlate(), gear: gearPlate() };
+  for (const [slot, p] of Object.entries(plates)) p.dataset.slot = slot;
+  return Object.values(plates);
 }

@@ -120,6 +120,15 @@ const touch = await page.evaluate(async () => {
   return times.length ? Math.max(...times) : null;
 });
 
+// A rearranged console: plates in reverse order still fit, labels and all.
+await page.evaluate(() => { localStorage.setItem('xfd-order:fighter', JSON.stringify(['gear', 'flight', 'role', 'power'])); window.xfd.show('mining'); window.xfd.show('light-fighter'); });
+await checkLabels('light-fighter rearranged');
+const slots = await page.evaluate(() => [...document.querySelectorAll('#console .plate[data-slot]')].sort((a, b) => a.offsetLeft - b.offsetLeft).map(p => p.dataset.slot).join());
+if (slots !== 'gear,flight,role,power') problems.push(`rearranged plates came out as ${slots}`);
+const right = await page.evaluate(() => Math.max(...[...document.querySelectorAll('#console .plate')].map(p => p.getBoundingClientRect().right)));
+if (right > 2560) problems.push(`rearranged plates run off screen (${right})`);
+await page.evaluate(() => { localStorage.removeItem('xfd-order:fighter'); window.xfd.show('mining'); });
+
 // Settings, with release notes showing.
 await page.evaluate(() => {
   document.getElementById('sheet').hidden = false;
