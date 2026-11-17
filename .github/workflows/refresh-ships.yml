@@ -1,0 +1,53 @@
+name: Refresh ships
+
+# Once a month: rebuild the ship list (roles and kit) from the Star Citizen Wiki
+# API, check it, and open a pull request if anything changed. The commit is made
+# through the GitHub API, so it is signed. Ship outlines are not bundled: the app
+# fetches them from FleetYards when it first sees a ship. Run it by hand from the
+# Actions tab after a big patch.
+on:
+  schedule:
+    - cron: '17 4 1 * *'   # the 1st of each month, 04:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency: refresh-ships
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Rebuild ship list
+        run: |
+          before=$(python -c "import json; print(len(json.load(open('layouts/ships.json'))['ships']))")
+          python scripts/build_ships.py --fetch
+          after=$(python -c "import json; print(len(json.load(open('layouts/ships.json'))['ships']))")
+          # A half-empty answer from the API should never replace the list.
+          [ "$after" -ge $(( before * 9 / 10 )) ] || { echo "Only $after ships, was $before. Not committing."; exit 1; }
+      - name: Check
+        run: |
+          python scripts/check_layout.py
+          cd app && npm test
+      - name: Open a pull request if changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet layouts/ships.json; then echo "No changes."; exit 0; fi
+          version=$(python -c "import json; print(json.load(open('layouts/ships.json'))['gameVersion'])")
+          branch="refresh-ships-$(date +%Y-%m)"
+          gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/heads/$branch" -f sha="$GITHUB_SHA" >/dev/null
+          sha=$(gh api "repos/$GITHUB_REPOSITORY/contents/layouts/ships.json?ref=$branch" --jq .sha)
+          base64 -w0 layouts/ships.json > /tmp/ships.b64
+          gh api -X PUT "repos/$GITHUB_REPOSITORY/contents/layouts/ships.json" -f message="Refresh ships for $version" \
+            -f branch="$branch" -f sha="$sha" -F content=@/tmp/ships.b64 >/dev/null
+          gh pr create --head "$branch" --title "Refresh ships for $version" --body "Monthly ship list refresh from the Star Citizen Wiki API."

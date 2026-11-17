@@ -1,0 +1,71 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Edge Cockpit",
+  "version": "0.3.0",
+  "identifier": "com.pcanilho.edgecockpit",
+  "build": {
+    "frontendDist": "../ui",
+    "beforeBuildCommand": "node scripts/sync.mjs"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Edge Cockpit",
+        "width": 2560,
+        "height": 720,
+        "decorations": false,
+        "resizable": false,
+        "visible": false,
+        "focus": false,
+        "focusable": false,
+        "skipTaskbar": true,
+        "alwaysOnTop": true,
+        "shadow": false,
+        "backgroundColor": "#05080c",
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,Translate,AutofillServerCommunication,MediaRouter --disable-background-networking --disable-component-update --disable-sync --disable-default-apps --no-first-run --renderer-process-limit=1"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' https://api.fleetyards.net; img-src 'self' data: https://api.fleetyards.net https://storage.fltyrd.net; style-src 'self' 'unsafe-inline'; font-src 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis"
+    ],
+    "publisher": "pcanilho",
+    "shortDescription": "A lightweight cockpit-style touch console for Star Citizen",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": false,
+        "installerHooks": "installer-hooks.nsh"
+      }
+    },
+    "copyright": "Copyright (c) 2026 pcanilho. MIT License.",
+    "createUpdaterArtifacts": false
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDY5MUYwOTIyOEVEODQ5OUMKUldTY1NkaU9JZ2tmYVJBZTh0Y1J4aHpFRFJ3UGd1VG13MnRlTnowNmRlU1hhOW00eURHU1FtaUUK",
+      "endpoints": [
+        "https://github.com/pcanilho/edge-cockpit/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}

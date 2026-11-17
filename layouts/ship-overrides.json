@@ -1,0 +1,6 @@
+{
+ "_help": "Pin a ship to another deck role, or fix its kit. Key: the ship class name from Game.log, e.g. DRAK_Cutlass_Black. Value: a role, or {\"role\": ..., \"has\": [\"missiles\", \"qed\", \"emp\", \"tractor\"]}. Roles: light-fighter, heavy-fighter, multi-crew, mining, salvage, cargo, medical, ground.",
+ "ships": {
+  "DRAK_Cutlass_Black": {"role": "multi-crew", "has": ["missiles", "tractor"]}
+ }
+}

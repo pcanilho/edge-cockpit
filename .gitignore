@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+defaultProfile.xml
+Data.p4k
+.DS_Store
+node_modules/
+.cache/
