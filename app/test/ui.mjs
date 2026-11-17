@@ -135,6 +135,13 @@ if (health.missing.length) problems.push(`keys with no default keyboard bind: ${
 if (health.shared.length) problems.push(`default binds that collide: ${health.shared.join('; ')}`);
 report.push(`keybind check: ${health.total} keys, ${health.missing.length} missing, ${health.shared.length} shared`);
 
+// A profile carries the player's keyboard binds as a Control Profile the game can load.
+const profileXml = await page.evaluate(() => window.xfd.bindsProfile(`<ActionMaps><ActionProfiles profileName="default">
+  <actionmap name="spaceship_movement"><action name="v_vtol_toggle"><rebind input="js1_button3"/><rebind input="kb1_n"/></action>
+  <action name="v_autoland"><rebind input="js1_button4"/></action></actionmap></ActionProfiles></ActionMaps>`));
+if (!/<actionmap name="spaceship_movement">\s*<action name="v_vtol_toggle">\s*<rebind input="kb1_n"\/>/.test(profileXml || '') || /js1_|v_autoland/.test(profileXml))
+  problems.push(`profile binds are wrong:\n${profileXml}`);
+
 // Settings, with release notes showing.
 await page.evaluate(() => {
   document.getElementById('sheet').hidden = false;

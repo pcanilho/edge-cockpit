@@ -51,6 +51,7 @@
       <button class="tab" data-sec="screen"><svg class="i" viewBox="0 0 24 24"></svg><span>Screen</span></button>
       <button class="tab" data-sec="feedback"><svg class="i" viewBox="0 0 24 24"></svg><span>Touch feedback</span></button>
       <button class="tab" data-sec="binds"><svg class="i" viewBox="0 0 24 24"></svg><span>Keybinds</span><i class="dot warn" id="binds-dot" hidden></i></button>
+      <button class="tab" data-sec="profile"><svg class="i" viewBox="0 0 24 24"></svg><span>Profile</span></button>
       <button class="tab" data-sec="about"><svg class="i" viewBox="0 0 24 24"></svg><span>About</span><i class="dot" id="tab-dot" hidden></i></button>
       <button class="tab quit" id="act-quit"><svg class="i" viewBox="0 0 24 24"></svg><span>Quit</span></button>
     </nav>
@@ -86,6 +87,14 @@
           <button class="act" id="act-binds"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Reload my binds<small id="binds-note">Default binds</small></span></button>
           <button class="act" id="act-install"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Add the console's binds to the game<small>Then pick "xeneon" in Control Profiles</small></span></button>
           <button class="act" id="act-admin"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Run as administrator<small>Only if the game runs as administrator</small></span></button>
+        </div>
+      </section>
+      <section class="pane" data-sec="profile" hidden>
+        <h3>Profile</h3>
+        <p class="lead">One file with your settings, plate order, ship roles and keyboard binds, to move to another PC or keep as a backup. It lives in Documents\Edge Cockpit\profile.json.</p>
+        <div class="rows">
+          <button class="act" id="act-save"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Save profile<small>Writes profile.json, replacing the last one</small></span></button>
+          <button class="act" id="act-load"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Load profile<small>Applies profile.json and adds its binds to the game's Control Profiles</small></span></button>
         </div>
       </section>
       <section class="pane" data-sec="about" hidden>

@@ -372,9 +372,10 @@ function setOpt(name, v) {
   stage.classList.toggle('night', opts.night);
   document.querySelectorAll('.opt').forEach(o => o.classList.toggle('on', !!opts[o.dataset.opt]));
   $('auto').classList.toggle('on', opts.auto);
+  if (name === 'anywhere') paintIdle();
   if (name === 'auto' && v) follow(true);
 }
-const TAB_ICONS = { general: 'cog', screen: 'bulb', feedback: 'pulse', binds: 'list', about: 'download' };
+const TAB_ICONS = { general: 'cog', screen: 'bulb', feedback: 'pulse', binds: 'list', profile: 'person', about: 'download' };
 function showSection(sec) {
   document.querySelectorAll('.tab[data-sec]').forEach(t => t.classList.toggle('cur', t.dataset.sec === sec));
   document.querySelectorAll('.pane').forEach(p => { p.hidden = p.dataset.sec !== sec; });
@@ -394,12 +395,76 @@ async function installBinds() {
 }
 const acts = { 'act-binds': [() => reloadBinds().then(() => toast('Binds reloaded')), 'reload'], 'act-install': [installBinds, 'layers'],
   'act-admin': [bridge.runAsAdmin, 'shield'], 'act-sleep': [() => { openSheet(false); bridge.sleepScreen(); }, 'moon'],
-  'act-update': [installUpdate, 'download'], 'act-quit': [bridge.quit, 'power'] };
+  'act-update': [installUpdate, 'download'], 'act-save': [saveProfile, 'download'], 'act-load': [loadProfile, 'reload'], 'act-quit': [bridge.quit, 'power'] };
 for (const [id, [run, icon]] of Object.entries(acts)) {
   $(id).querySelector('svg').innerHTML = GLYPHS[icon] || '';
   controls.pressable($(id), { up: () => { tick('tap'); run(); } });
 }
 $('qt').querySelector('svg').innerHTML = GLYPHS.quantum;
+
+// ---------- profile: settings, plate order, ship roles and keyboard binds in one file ----------
+// Saved as Documents\Edge Cockpit\profile.json, to copy to another PC or keep as a backup.
+const PROFILE_OPTS = ['night', 'sound', 'flash', 'auto', 'anywhere', 'autostart', 'screen_off'];
+/** The keyboard binds in an actionmaps.xml, as a Control Profile the game can load. */
+function bindsProfile(text) {
+  const doc = new DOMParser().parseFromString(text, 'application/xml');
+  if (doc.querySelector('parsererror')) return null;
+  const e = controls.esc, maps = [];
+  doc.querySelectorAll('actionmap').forEach(m => {
+    const acts = [];
+    m.querySelectorAll(':scope > action').forEach(a => {
+      const kb = [...a.querySelectorAll('rebind')].map(r => r.getAttribute('input') || '').find(i => /^kb\d*_/.test(i));
+      if (kb !== undefined) acts.push(`  <action name="${e(a.getAttribute('name'))}">\n   <rebind input="${e(kb)}"/>\n  </action>`);
+    });
+    if (acts.length) maps.push(` <actionmap name="${e(m.getAttribute('name'))}">\n${acts.join('\n')}\n </actionmap>`);
+  });
+  if (!maps.length) return null;
+  return `<ActionMaps version="1" optionsVersion="2" rebindVersion="2" profileName="edge-cockpit-profile">
+ <CustomisationUIHeader label="edge-cockpit-profile" description="Keyboard binds from an Edge Cockpit profile" image="">
+  <devices>
+   <keyboard instance="1"/>
+  </devices>
+ </CustomisationUIHeader>
+ <modifiers/>
+${maps.join('\n')}
+</ActionMaps>
+`;
+}
+async function saveProfile() {
+  const plates = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k?.startsWith('xfd-order:')) plates[k.slice(10)] = store.get(k.slice(4), null);
+  }
+  const ships = await bridge.userShips().catch(() => null);
+  const binds = await bridge.readBinds().catch(() => null);
+  const profile = {
+    app: 'edge-cockpit', format: 1, version: prefs.version, saved: new Date().toISOString(),
+    settings: Object.fromEntries(PROFILE_OPTS.map(k => [k, !!opts[k]])),
+    plates,
+    ships: (() => { try { return ships ? JSON.parse(ships) : null; } catch { return null; } })(),
+    binds: binds ? bindsProfile(binds) : null,
+  };
+  try { toast(`Profile saved to ${await bridge.saveProfile(JSON.stringify(profile, null, 2))}`); }
+  catch (e) { toast(`The profile was not saved: ${e?.message || e}`); }
+}
+async function loadProfile() {
+  let p = null;
+  try { p = JSON.parse(await bridge.loadProfile() || 'null'); } catch { /* not JSON */ }
+  if (p?.app !== 'edge-cockpit') { toast('No profile found. Put a profile.json in Documents\\Edge Cockpit, then load it.'); return; }
+  for (const k of PROFILE_OPTS) if (typeof p.settings?.[k] === 'boolean') setOpt(k, p.settings[k]);
+  for (const [role, order] of Object.entries(p.plates || {})) if (Array.isArray(order)) store.set(`order:${role}`, order);
+  if (p.ships && typeof p.ships === 'object') await bridge.saveUserShips(JSON.stringify(p.ships, null, 2)).catch(() => {});
+  let note = 'Profile loaded.';
+  if (typeof p.binds === 'string') {
+    try { await bridge.installProfileBinds(p.binds); note += ' For its binds, pick "edge-cockpit-profile" in the game\'s Control Profiles.'; }
+    catch (e) { note += ` Its binds were not added: ${e?.message || e}`; }
+  }
+  await loadUserShips();
+  cache.clear();
+  render();
+  toast(note);
+}
 
 // ---------- screen off ----------
 // The app turns the screen off when the game isn't running. The console then shows
@@ -468,6 +533,8 @@ function paintFigure(fig, cls, fallback) {
   outline(cls).then(svg => { if (svg && figureFor === cls) fig.innerHTML = svg; });
 }
 
+// With no game to send to, the controls grey out (not in Test mode, which sends anywhere).
+const paintIdle = () => stage.classList.toggle('idle', !info.running && !opts.anywhere);
 function paintStatus() {
   const fig = $('figure');
   fig.classList.remove('wait');
@@ -487,6 +554,7 @@ function paintStatus() {
   makerAccent = maker;
   applyAccent();
   stage.style.setProperty('--ship', maker || 'var(--accent)');
+  paintIdle();
   $('ship-name').textContent = name;
   $('ship-role').textContent = role;
 
@@ -614,5 +682,5 @@ poll(); setInterval(poll, 2000);
 paintStatus();
 if (demo) { opts.auto = false; show(demo); }
 stage.classList.remove('booting');
-window.xfd = { show, bindHealth, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
+window.xfd = { show, bindHealth, bindsProfile, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
 document.body.dataset.ready = '1';
