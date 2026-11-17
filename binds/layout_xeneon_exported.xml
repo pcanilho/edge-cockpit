@@ -1,0 +1,126 @@
+<ActionMaps version="1" optionsVersion="2" rebindVersion="2" profileName="xeneon">
+ <CustomisationUIHeader label="xeneon" description="Edge Cockpit: keys for console actions with no default keyboard bind" image="">
+  <devices>
+   <keyboard instance="1"/>
+  </devices>
+ </CustomisationUIHeader>
+ <modifiers/>
+ <actionmap name="spaceship_general">
+  <!-- Doors -->
+  <action name="v_toggle_all_doors">
+   <rebind input="kb1_rctrl+f1"/>
+  </action>
+  <!-- Door locks -->
+  <action name="v_toggle_all_doorlocks">
+   <rebind input="kb1_rshift+f6"/>
+  </action>
+ </actionmap>
+ <actionmap name="spaceship_movement">
+  <!-- Speed limiter -->
+  <action name="v_ifcs_speed_limiter_toggle">
+   <rebind input="kb1_rctrl+f2"/>
+  </action>
+  <!-- G-safe -->
+  <action name="v_ifcs_toggle_gforce_safety">
+   <rebind input="kb1_rctrl+f3"/>
+  </action>
+  <!-- ESP -->
+  <action name="v_ifcs_toggle_esp">
+   <rebind input="kb1_rctrl+f4"/>
+  </action>
+  <!-- Proximity assist -->
+  <action name="v_ifcs_proximity_assist_toggle">
+   <rebind input="kb1_rctrl+f5"/>
+  </action>
+  <!-- Advanced HUD -->
+  <action name="v_flight_advanced_hud_toggle">
+   <rebind input="kb1_rctrl+rshift+f3"/>
+  </action>
+ </actionmap>
+ <actionmap name="spaceship_quantum">
+  <!-- Quantum -->
+  <action name="v_toggle_qdrive_engagement">
+   <rebind input="kb1_rctrl+f6"/>
+  </action>
+ </actionmap>
+ <actionmap name="spaceship_weapons">
+  <!-- Gimbals locked -->
+  <action name="v_weapon_gimbals_state_set_locked">
+   <rebind input="kb1_rctrl+f7"/>
+  </action>
+  <!-- Gimbals free -->
+  <action name="v_weapon_gimbals_state_set_unlocked">
+   <rebind input="kb1_rctrl+f8"/>
+  </action>
+  <!-- Guns group 1 -->
+  <action name="v_weapon_preset_guns0">
+   <rebind input="kb1_rctrl+f9"/>
+  </action>
+  <!-- Guns group 2 -->
+  <action name="v_weapon_preset_guns1">
+   <rebind input="kb1_rctrl+f10"/>
+  </action>
+  <!-- Guns group 3 -->
+  <action name="v_weapon_preset_guns2">
+   <rebind input="kb1_rctrl+f11"/>
+  </action>
+  <!-- Stagger fire -->
+  <action name="v_weapon_staggered_fire_toggle">
+   <rebind input="kb1_rshift+f5"/>
+  </action>
+  <!-- EMP -->
+  <action name="v_weapon_preset_emp">
+   <rebind input="kb1_rshift+f1"/>
+  </action>
+  <!-- QED -->
+  <action name="v_weapon_preset_qid">
+   <rebind input="kb1_rshift+f2"/>
+  </action>
+  <!-- Guns group 4 -->
+  <action name="v_weapon_preset_guns3">
+   <rebind input="kb1_rctrl+f12"/>
+  </action>
+ </actionmap>
+ <actionmap name="spaceship_mining">
+  <!-- Laser type -->
+  <action name="v_toggle_mining_laser_type">
+   <rebind input="kb1_rshift+f7"/>
+  </action>
+ </actionmap>
+ <actionmap name="spaceship_salvage">
+  <!-- Beam axis -->
+  <action name="v_salvage_toggle_beam_spacing_axis">
+   <rebind input="kb1_rshift+f8"/>
+  </action>
+ </actionmap>
+ <actionmap name="seat_general">
+  <!-- Operator mode -->
+  <action name="v_operator_mode_cycle_forward">
+   <rebind input="kb1_rshift+f9"/>
+  </action>
+ </actionmap>
+ <actionmap name="player">
+  <!-- Walk -->
+  <action name="walk">
+   <rebind input="kb1_rctrl+rshift+f2"/>
+  </action>
+  <!-- Consume -->
+  <action name="consume">
+   <rebind input="kb1_rshift+f10"/>
+  </action>
+  <!-- Heal target -->
+  <action name="combathealtarget">
+   <rebind input="kb1_rshift+f11"/>
+  </action>
+ </actionmap>
+ <actionmap name="tractor_beam">
+  <!-- Beam closer -->
+  <action name="tractor_beam_decrease_distance">
+   <rebind input="kb1_rshift+f12"/>
+  </action>
+  <!-- Beam farther -->
+  <action name="tractor_beam_increase_distance">
+   <rebind input="kb1_rctrl+rshift+f1"/>
+  </action>
+ </actionmap>
+</ActionMaps>

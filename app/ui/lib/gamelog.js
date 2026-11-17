@@ -1,0 +1,175 @@
+// Read Star Citizen's Game.log: which ship's pilot seat you are in, armistice zones,
+// the quantum destination, going down and respawning, and the menu or loading
+// screen. The game logs nothing about landing gear, gimbals, weapons or the
+// quantum drive itself, so those keys show what you last pressed.
+//
+// The death and respawn lines change from patch to patch. These follow what
+// community log readers see in 4.x builds; any line that names a player is only
+// counted when it names you.
+
+export const PATTERNS = {
+  // CVehicleMovementBase::SetDriver: Local client node [204721322607] granted control token for 'DRAK_Clipper_771690342710' [771690342710]
+  seat: /CVehicleMovementBase::(SetDriver|ClearDriver):.*?control token for '([^']+)'/,
+  armistice: /\b(Entering|Leaving) Armistice Zone\b/,
+  qtTarget: /Player has selected point (\S+) as their destination/,
+  // A new session starts loading with Join PU, and is in the game once loaded.
+  session: /<Join PU>|\{Join PU\}/,
+  loaded: /<Context Establisher Done>|Loading screen for \S+ : \S+ closed after/,
+  menu: /CCIGBroker::FastShutdown|Disconnecting from \w+\b|\bSystemQuit\b/,
+  // <AccountLoginCharacterStatus_Character> Character: ... geid 201990709919 - ... - name space-man-rob - ...
+  me: /<AccountLoginCharacterStatus_Character>.*?\bgeid (\d+).*?\bname ([\w-]+)/,
+  // HUD notice that only the local player gets.
+  emergency: /Emergency Services.*en route/i,
+  incap: /Logged an incap\.! nickname: ([^,]+),/,
+  dead: /<\[ActorState\] Dead>.*?Actor '([^']+)'/,
+  killed: /<Actor Death>.*?CActor::Kill: '([^']+)'/,
+  // The old body is unbound when you respawn.
+  unbind: /<Recv Unbind Batch Add Player>.*?playerGEID=(\d+)/,
+  spawn: /<Spawn Flow>.*?Player '([^']+)'.*?lost reservation for spawnpoint/,
+  // HUD notifications, e.g. Added notification "New Objective: Go to Hurston: " [12]. The same
+  // notice is repeated on UpdateNotificationItem lines, which are skipped.
+  contract: /"Contract (Accepted|Complete|Failed|Withdrawn):\s*(.*?):?\s*"/,
+  objective: /"(New Objective|Objective Complete|Objective Withdrawn):\s*(.*?):?\s*"/,
+  jurisdiction: /"Entered (.+?) Jurisdiction/,
+  monitored: /\b(Entered|Exited) Monitored Space\b|\bMonitored Space (Down|Restored)\b/,
+  crime: /CrimeStat(?: Rating)?\s*(Increased|Decreased|Cleared|Removed|Lost)?\D{0,12}(\d)?/i,
+  // The build, near the top of every log: Branch: sc-alpha-4.3.2 and Changelist: 9876543
+  branch: /^\s*Branch:\s*(sc-alpha-\S+)/i,
+  changelist: /^\s*Changelist:\s*(\d+)/,
+  // <Actor Death> CActor::Kill: 'victim' [id] in zone 'zone' killed by 'killer' [id] using 'weapon' ...
+  kill: /<Actor Death> CActor::Kill: '([^']+)' \[\d+\] in zone '[^']*' killed by '([^']+)'/,
+  // <Vehicle Destruction> CVehicle::OnAdvanceDestroyLevel: Vehicle 'AEGS_Gladius_123' [123] ... driven by 'me' [1] advanced from destroy level 0 to 1 caused by 'them' ...
+  wreck: /<Vehicle Destruction>.*?Vehicle '([^']+)'.*?advanced from destroy level (\d) to (\d)/,
+  // <RequestLocationInventory> Player[me] requested inventory for Location[Stanton1_Lorville]
+  location: /<RequestLocationInventory> Player\[([^\]]+)\] requested inventory for Location\[([^\]]+)\]/,
+};
+
+/** Game builds this panel was tested on. A different major version shows an "untested" badge. */
+export const TESTED_MAJOR = 4;
+
+/** 'DRAK_Clipper_771690342710' -> 'DRAK_Clipper' */
+export const shipModel = entity => entity.replace(/_\d+$/, '');
+
+/** 'MISC_Prospector' -> 'Prospector', 'DRAK_Cutlass_Black' -> 'Cutlass Black' */
+export const shipName = model => model.replace(/^[A-Z]{3,5}_/, '').replace(/_/g, ' ');
+
+export function parseLine(line) {
+  if (line.includes('UpdateNotificationItem')) return null;
+  let m = PATTERNS.seat.exec(line);
+  if (m) return { type: 'seat', seated: m[1] === 'SetDriver', ship: shipModel(m[2]) };
+  m = PATTERNS.armistice.exec(line);
+  if (m) return { type: 'armistice', inside: m[1] === 'Entering' };
+  m = PATTERNS.qtTarget.exec(line);
+  if (m) return { type: 'qt', target: m[1] };
+  if (PATTERNS.session.test(line)) return { type: 'session' };
+  if (PATTERNS.loaded.test(line)) return { type: 'loaded' };
+  if (PATTERNS.menu.test(line)) return { type: 'menu' };
+  m = PATTERNS.me.exec(line);
+  if (m) return { type: 'me', geid: m[1], name: m[2] };
+  if (PATTERNS.emergency.test(line)) return { type: 'down', who: null };
+  m = PATTERNS.branch.exec(line);
+  if (m) return { type: 'build', branch: m[1] };
+  m = PATTERNS.changelist.exec(line);
+  if (m) return { type: 'build', changelist: m[1] };
+  m = PATTERNS.wreck.exec(line);
+  if (m) return { type: 'wreck', ship: shipModel(m[1]), level: Number(m[3]) };
+  m = PATTERNS.location.exec(line);
+  if (m) return { type: 'location', who: m[1], place: m[2] };
+  m = PATTERNS.kill.exec(line);
+  if (m && m[1] !== m[2]) return { type: 'kill', victim: m[1], killer: m[2] };
+  m = PATTERNS.incap.exec(line) || PATTERNS.dead.exec(line) || PATTERNS.killed.exec(line);
+  if (m) return { type: 'down', who: m[1].trim() };
+  m = PATTERNS.unbind.exec(line);
+  if (m) return { type: 'respawn', geid: m[1] };
+  m = PATTERNS.spawn.exec(line);
+  if (m) return { type: 'respawn', who: m[1] };
+  m = PATTERNS.contract.exec(line);
+  if (m) return { type: 'mission', kind: m[1].toLowerCase(), text: m[2].trim() };
+  m = PATTERNS.objective.exec(line);
+  if (m) return { type: 'objective', kind: { 'New Objective': 'new', 'Objective Complete': 'done', 'Objective Withdrawn': 'withdrawn' }[m[1]], text: m[2].trim() };
+  m = PATTERNS.jurisdiction.exec(line);
+  if (m) return { type: 'jurisdiction', name: m[1].trim() };
+  m = PATTERNS.monitored.exec(line);
+  if (m) return { type: 'monitored', value: { Entered: 'yes', Exited: 'no', Down: 'down', Restored: 'yes' }[m[1] || m[2]] };
+  m = PATTERNS.crime.exec(line);
+  if (m && /notification|SHUDEvent|CrimeStat Rating/i.test(line)) {
+    const how = (m[1] || '').toLowerCase();
+    return { type: 'crime', how: ['cleared', 'removed', 'lost'].includes(how) ? 'clear' : how === 'decreased' ? 'down' : 'up', level: m[2] ? Number(m[2]) : null };
+  }
+  return null;
+}
+
+/** Ungoverned space, or space where the comm array is down: crimes go unreported, and so do calls for help. */
+export const lawless = state => state.monitored === 'down' || state.monitored === 'no'
+  || /ungoverned|lawless|unclaimed/i.test(state.jurisdiction || '');
+
+// menu: at the main menu or a loading screen. down: incapacitated or dead.
+// mission: { contract, objective, status: active | complete | failed | withdrawn, seq } (seq counts changes).
+// monitored: yes, no (left monitored space) or down (comm array offline). crime: CrimeStat level.
+// build: { branch, changelist } of the running game. wrecked: 1 disabled, 2 destroyed, for the ship you fly.
+// kills: players and NPCs you killed this session. location: where you last opened your inventory.
+export const EMPTY = Object.freeze({ seated: false, ship: null, armistice: false, qtTarget: null, down: false, menu: true, me: null,
+  mission: null, jurisdiction: null, monitored: null, crime: 0, build: null, wrecked: 0, kills: 0, location: null });
+
+/** 'sc-alpha-4.3.2' -> '4.3.2' */
+export const version = branch => (branch || '').replace(/^sc-alpha-/i, '');
+/** True when the game's major version differs from the one the panel was tested on. */
+export const untested = state => !!state.build?.branch && Number(version(state.build.branch).split('.')[0]) !== TESTED_MAJOR;
+/** 'Stanton1_Lorville' -> 'Lorville', 'RR_HUR_LEO' -> 'RR HUR LEO' */
+export const placeName = p => (p || '').replace(/^(Stanton|Pyro|Nyx)\d*[a-z]?_/i, '').replace(/_/g, ' ');
+
+const isMe = (state, ev) =>
+  (ev.who == null && ev.geid == null) || (state.me && (ev.who === state.me.name || ev.geid === state.me.geid));
+
+export function reduce(state, ev) {
+  const live = state.menu ? { ...state, menu: false } : state;  // anything in the world means we're in it
+  switch (ev.type) {
+    case 'seat':
+      if (ev.seated) return { ...live, seated: true, ship: ev.ship, down: false, wrecked: state.ship === ev.ship ? state.wrecked : 0 };
+      // Leaving another seat than ours (a turret, a second ship) changes nothing.
+      return state.ship === ev.ship ? { ...live, seated: false, qtTarget: null } : state;
+    case 'armistice': return { ...live, armistice: ev.inside };
+    case 'qt': return { ...live, qtTarget: ev.target };
+    case 'session': return { ...EMPTY, me: state.me, mission: state.mission, build: state.build, kills: state.kills };
+    case 'loaded': return state.menu ? { ...EMPTY, me: state.me, mission: state.mission, build: state.build, kills: state.kills, menu: false } : state;
+    case 'menu': return state.menu ? state : { ...EMPTY, me: state.me, mission: state.mission, build: state.build, kills: state.kills };
+    case 'build': return { ...state, build: { ...state.build, ...(ev.branch ? { branch: ev.branch } : { changelist: ev.changelist }) } };
+    case 'wreck':
+      if (!state.seated || state.ship !== ev.ship || ev.level <= state.wrecked) return state;
+      return { ...live, wrecked: ev.level };
+    case 'kill':
+      if (state.me && ev.victim === state.me.name) return reduce(state, { type: 'down', who: ev.victim });
+      if (!state.me || ev.killer !== state.me.name) return state;
+      return { ...live, kills: state.kills + 1 };
+    case 'location':
+      if (state.me && ev.who !== state.me.name) return state;
+      return state.location === ev.place ? live : { ...live, location: ev.place };
+    case 'me': return state.me?.geid === ev.geid ? state : { ...state, me: { geid: ev.geid, name: ev.name } };
+    case 'down':
+      // Without knowing who we are, only the local-only HUD notice counts.
+      if (state.down || !isMe(state, ev) || (ev.who != null && !state.me)) return state;
+      return { ...state, down: true, seated: false, qtTarget: null };
+    case 'respawn':
+      if (!state.down || (state.me && !isMe(state, ev))) return state;
+      return { ...state, down: false };
+    case 'mission': {
+      const m = state.mission;
+      if (ev.kind === 'accepted') return { ...live, mission: { contract: ev.text, objective: null, status: 'active', seq: (m?.seq || 0) + 1 } };
+      if (!m || m.status !== 'active') return live;
+      return { ...live, mission: { ...m, status: ev.kind, seq: m.seq + 1 } };
+    }
+    case 'objective': {
+      const m = state.mission || { contract: null, objective: null, status: 'active', seq: 0 };
+      if (ev.kind === 'new') return m.objective === ev.text && m.status === 'active' ? live : { ...live, mission: { ...m, objective: ev.text, status: 'active', seq: m.seq + 1 } };
+      return { ...live, mission: { ...m, objective: m.objective === ev.text ? null : m.objective } };
+    }
+    case 'jurisdiction': return state.jurisdiction === ev.name ? live : { ...live, jurisdiction: ev.name };
+    case 'monitored': return state.monitored === ev.value ? live : { ...live, monitored: ev.value };
+    case 'crime': {
+      const level = ev.how === 'clear' ? 0 : ev.level ?? Math.max(0, Math.min(5, state.crime + (ev.how === 'down' ? -1 : 1)));
+      return level === state.crime ? live : { ...live, crime: level };
+    }
+    default: return state;
+  }
+}
+

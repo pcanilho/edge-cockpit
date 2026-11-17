@@ -1,0 +1,19 @@
+{
+  "name": "edge-cockpit",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sync": "node scripts/sync.mjs",
+    "tauri": "tauri",
+    "build": "tauri build",
+    "test": "node --test test/*.test.js",
+    "test:ui": "node scripts/sync.mjs && node test/ui.mjs"
+  },
+  "devDependencies": {
+    "@fontsource/chakra-petch": "5.3.0",
+    "@fontsource/inter": "5.3.0",
+    "@fontsource/jetbrains-mono": "5.3.0",
+    "@tauri-apps/cli": "2.12.5"
+  }
+}

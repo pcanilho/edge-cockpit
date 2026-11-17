@@ -1,0 +1,38 @@
+name: Bug report
+description: Something on the console doesn't work as it should
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you pressed or did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: input
+    id: app
+    attributes:
+      label: Edge Cockpit version
+      description: Shown at the top of the updates panel in settings.
+      placeholder: "0.3.0"
+    validations:
+      required: true
+  - type: input
+    id: game
+    attributes:
+      label: Star Citizen build
+      description: Shown on the status screen next to the channel, for example LIVE 4.10.3.
+      placeholder: LIVE 4.10.3
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Game.log lines
+      description: The lines around the moment it went wrong, from StarCitizen\LIVE\Game.log. Remove anything you would rather not share.
+      render: text
+  - type: textarea
+    id: shot
+    attributes:
+      label: Screenshot
+      description: A photo or screenshot of the console helps.
