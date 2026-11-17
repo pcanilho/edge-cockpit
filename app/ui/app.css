@@ -574,7 +574,7 @@ body.is-dark #stage { visibility: hidden; }
 .logp .stats b { position: static; font: 600 30px/1 var(--body); color: var(--paint); }
 .logp .stats small { position: static; font: 700 10px/1.4 var(--hud); letter-spacing: .2em; text-transform: uppercase; color: var(--muted); margin-top: 8px; }
 
-/* Maker themes: the plates, ink and trim follow the maker of the ship you sit in. No logos. */
+/* Maker themes: the plates, ink and trim follow the maker of the ship you sit in (or one picked in Settings). No logos. */
 #stage[data-maker] .plate { background: var(--brush), linear-gradient(180deg, var(--p0) 0%, var(--p1) 55%, var(--p2) 100%); }
 #stage[data-maker] .title { color: var(--paint); }
 /* Drake: rugged, warm steel, hazard stripes on plate titles. */
@@ -597,3 +597,5 @@ body.is-dark #stage { visibility: hidden; }
 #stage[data-maker=ANVL] { --p0: #2a2e21; --p1: #1e2118; --p2: #171912; --paint: #d0d5bf; --muted: #8f957c; }
 #stage[data-maker=ANVL] .title::before, #stage[data-maker=ANVL] .title::after { background: var(--accent); opacity: .7; width: 14px; height: 14px; clip-path: polygon(0 50%, 100% 0, 100% 100%); }
 #stage[data-maker=ANVL] .title::after { transform: scaleX(-1); }
+
+.theme-row { flex-wrap: wrap; row-gap: 12px; } .theme-row .seg button { min-width: 64px; padding: 0 10px; }
