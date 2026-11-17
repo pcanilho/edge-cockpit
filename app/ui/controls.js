@@ -62,8 +62,9 @@ export const placard = (x, y, text, cls = '') => h(`<div class="placard ${cls}" 
 export const label = (x, y, w, text, cls = '') => h(`<div class="lab ${cls}" style="left:${x}px;top:${y}px;width:${w}px">${esc(text)}</div>`);
 export const screen = (x, y, w, ht, html = '', cls = '') => h(`<div class="screen ${cls}" style="${box(x, y, w, ht)}">${html}</div>`);
 
-/** A blank cover where a ship has no such kit. */
-const blank = (x, y, w, ht, r) => h(`<div class="well blank" style="${box(x, y, w, ht)};${r ? `border-radius:${r}px` : ''}"><div class="cap"><span class="lg">Not fitted</span></div></div>`);
+/** A blank cover where a ship has no such kit. The app may make it a spare slot that takes a key of your choice. */
+export const blank = (x, y, w, ht, r, hint = '') => h(`<div class="well blank" style="${box(x, y, w, ht)};${r ? `border-radius:${r}px` : ''}"><div class="cap"><span class="lg">Not fitted</span>${hint ? `<span class="st ${hint === '+' ? 'plus' : ''}">${esc(hint)}</span>` : ''}</div></div>`);
+const spare = (x, y, w, ht, r) => (K.spare ? K.spare(x, y, w, ht, r) : blank(x, y, w, ht, r));
 
 // ---------- keycap ----------
 
@@ -74,7 +75,7 @@ const blank = (x, y, w, ht, r) => h(`<div class="well blank" style="${box(x, y, 
  */
 export function keycap(x, y, w, ht, l, o = {}) {
   const k = keyOf(l);
-  if (!k || (o.fitted !== undefined ? !o.fitted : !K.fitted(k))) return blank(x, y, w, ht, o.r);
+  if (!k || (o.fitted !== undefined ? !o.fitted : !K.fitted(k))) return spare(x, y, w, ht, o.r);
   const tog = k.role === 'toggle' || k.role === 'select';
   const tag = k.role === 'critical' ? 'GUARD' : k.more?.hold ? 'LONG' : k.more?.double ? '2×' : '';
   // Shape says the type: a ring that fills for hold, a notched corner for a macro.
@@ -345,7 +346,7 @@ export function slideConfirm(x, y, w, ht, l, { text = 'SLIDE', colour = '#e0301f
 /** A hinged red cover: the first tap lifts it, a second tap within 3 s sends the key. */
 export function guard(x, y, w, ht, l, { text } = {}) {
   const k = keyOf(l);
-  if (!k || !K.fitted(k)) return blank(x, y, w, ht);
+  if (!k || !K.fitted(k)) return spare(x, y, w, ht);
   const el = h(`<div class="guard ${w > ht * 3 ? 'row' : ''}" style="${box(x, y, w, ht)}">
     <div class="under">${icon(k.icon, 22)}<span>${lbl(k, text)}</span><span class="kb">${esc(K.bindText(k) || '')}</span></div>
     <div class="cover"><span class="hinge"></span>${icon(k.icon, 20)}<span>LIFT COVER</span></div></div>`);

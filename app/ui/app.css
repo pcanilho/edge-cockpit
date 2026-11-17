@@ -96,6 +96,9 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: ro
 .unbound .kb { color: var(--danger); }
 .blank .cap { background: repeating-linear-gradient(-45deg, #15181c 0 8px, #101215 8px 16px); box-shadow: inset 0 1px 0 #ffffff12; cursor: default; }
 .blank .lg { color: var(--dim); font-size: 10px; }
+.blank .st { color: var(--dim); font-size: 9px; opacity: .8; }
+.blank.spare .st { white-space: nowrap; }
+.spare.blank .cap { cursor: pointer; }
 
 .narrow .cap { padding: 12px 4px 10px; gap: 4px; }
 .narrow .cap .kb { letter-spacing: -.02em; }
@@ -527,3 +530,15 @@ body.is-dark #stage { visibility: hidden; }
 .held .ring-h .f { stroke-dashoffset: 0; transition: stroke-dashoffset var(--hold-ms, 350ms) linear; }
 .cap .notch { position: absolute; right: 0; top: 0; width: 14px; height: 14px; background: linear-gradient(225deg, color-mix(in oklab, var(--fam) 75%, transparent) 50%, transparent 50%); }
 .cut .cap .notch { right: 0; top: 0; }
+
+/* ---------- key picker for a spare slot ---------- */
+.picker { left: 6px; z-index: 31; }
+.picker .tabs { width: 300px; }
+.pick-now { margin: -6px 0 10px 14px; font: 600 13px/1.4 var(--body); color: var(--muted); }
+.picker .tab { height: 72px; }
+.pick-grid { position: absolute; inset: 104px 36px 28px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); grid-auto-rows: 84px; gap: 12px; align-content: start; }
+.pick { display: flex; align-items: center; gap: 14px; padding: 0 18px; border-radius: 12px; text-align: left; font: 700 13px/1.25 var(--hud); letter-spacing: .06em; text-transform: uppercase; color: var(--paint);
+  background: linear-gradient(180deg, #2a3038, #1b2026); box-shadow: inset 0 1px 0 #ffffff1c, 0 4px 0 #0d1013; }
+.pick svg { flex: none; width: 24px; height: 24px; color: var(--fam); }
+.pick.pressed { transform: translateY(2px); box-shadow: inset 0 1px 0 #ffffff1c, 0 2px 0 #0d1013; }
+.blank .st.plus { font-size: 20px; line-height: 1; opacity: .6; }

@@ -382,6 +382,74 @@ const K = {
   },
   go: id => { tick('page'); show(id); },
 };
+// ---------- spare slots ----------
+// Where the ship lacks the kit (no missiles, no EMP), the slot can take any tap key you pick:
+// long-press it to choose, long-press again to change or clear. Kept per page and slot.
+let slotN = 0;
+const pickable = k => !k.more && k.role !== 'hold' && k.role !== 'critical';
+function longPress(node, fn) {
+  let t = null, done = false, at = null;
+  const stop = e => { clearTimeout(t); t = null; if (done) { e.stopImmediatePropagation(); node.classList.remove('pressed', 'lit'); } };
+  node.addEventListener('pointerdown', e => {
+    done = false; at = e;
+    if (!node.hasPointerCapture?.(e.pointerId)) node.setPointerCapture?.(e.pointerId);
+    t = setTimeout(() => { done = true; node.classList.remove('pressed'); tick('toggle'); fn(); }, 700);
+  }, true);
+  node.addEventListener('pointermove', e => { if (t && at && Math.hypot(e.clientX - at.clientX, e.clientY - at.clientY) > 12) { clearTimeout(t); t = null; } }, true);
+  node.addEventListener('pointerup', stop, true);
+  node.addEventListener('pointercancel', stop, true);
+}
+K.spare = (x, y, w, ht, r) => {
+  const id = `slot:${current}:${slotN++}`;
+  const k = KEYS.get(store.get(id, null));
+  const el = k && pickable(k) ? controls.keycap(x, y, w, ht, k, { fitted: true, r, kb: w >= 100 }) : controls.blank(x, y, w, ht, r, w >= 100 ? 'Hold to add a key' : '+');
+  el.classList.add('spare');
+  longPress(el, () => openPicker(id, k));
+  return el;
+};
+
+const PICK_GROUPS = [
+  ['flight', 'Flight', /^spaceship_(movement|quantum|docking|view)$/],
+  ['weapons', 'Weapons', /^spaceship_(weapons|missiles|defensive|targeting|targeting_advanced|target_hailing)$/],
+  ['systems', 'Systems', /^(spaceship_(power|hud|general|radar|scanning)|lights_controller|seat_general|vehicle_\w+|ui_notification|default)$/],
+  ['work', 'Mining & salvage', /^(spaceship_(mining|salvage)|tractor_beam)$/],
+  ['foot', 'On foot', /^(player|player_emotes|incapacitated|mapui|player_input_optical_tracking)$/],
+];
+const groupOf = k => PICK_GROUPS.find(g => g[2].test(k.actionmap || ''))?.[0] || 'systems';
+let picking = null;
+function openPicker(id, k) {
+  picking = id;
+  $('pick-clear').hidden = !k;
+  $('pick-now').textContent = k ? `Now: ${k.label}` : 'Empty';
+  showPickGroup(k ? groupOf(k) : 'flight');
+  $('picker').hidden = false;
+}
+function showPickGroup(g) {
+  document.querySelectorAll('#pick-tabs .tab[data-g]').forEach(t => t.classList.toggle('cur', t.dataset.g === g));
+  const keys = [...KEYS.values()].filter(k => pickable(k) && groupOf(k) === g).sort((a, b) => a.label.localeCompare(b.label));
+  $('pick-grid').replaceChildren(...keys.map(k => {
+    const b = controls.h(`<button class="pick fam-${family(k)}">${controls.icon(k.icon, 22)}<span>${controls.esc(k.label)}</span></button>`);
+    controls.pressable(b, { up: () => setSlot(k.label) });
+    return b;
+  }));
+  $('pick-grid').scrollTop = 0;
+}
+function setSlot(label) {
+  tick('toggle');
+  if (label) store.set(picking, label); else { try { localStorage.removeItem('xfd-' + picking); } catch { /* private mode */ } }
+  $('picker').hidden = true;
+  cache.delete(picking.split(':')[1]);
+  picking = null;
+  render();
+}
+$('pick-tabs').append(...PICK_GROUPS.map(([g, name]) => {
+  const t = controls.h(`<button class="tab" data-g="${g}"><span>${name}</span></button>`);
+  controls.pressable(t, { up: () => { tick('page'); showPickGroup(g); } });
+  return t;
+}), $('pick-clear'));
+controls.pressable($('pick-clear'), { up: () => setSlot(null) });
+controls.pressable($('pick-close'), { up: () => { $('picker').hidden = true; picking = null; } });
+
 controls.init(K);
 initScenes(K);
 
@@ -390,7 +458,7 @@ function render() {
   const page = pageById(layout, current);
   pageAccent = theme(page).accent;
   applyAccent();
-  if (!cache.has(current)) cache.set(current, scene(page));
+  if (!cache.has(current)) { slotN = 0; cache.set(current, scene(page)); }
   $('console').replaceChildren(...cache.get(current));
   const role = moduleOf(current);
   if (role) arrange.place($('console'), arrange.orderFor(role));
@@ -525,10 +593,11 @@ ${maps.join('\n')}
 `;
 }
 async function saveProfile() {
-  const plates = {};
+  const plates = {}, slots = {};
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
     if (k?.startsWith('xfd-order:')) plates[k.slice(10)] = store.get(k.slice(4), null);
+    if (k?.startsWith('xfd-slot:')) slots[k.slice(9)] = store.get(k.slice(4), null);
   }
   const ships = await bridge.userShips().catch(() => null);
   const binds = await bridge.readBinds().catch(() => null);
@@ -536,6 +605,7 @@ async function saveProfile() {
     app: 'edge-cockpit', format: 1, version: prefs.version, saved: new Date().toISOString(),
     settings: Object.fromEntries(PROFILE_OPTS.map(k => [k, k === 'night' ? opts.night : !!opts[k]])),
     plates,
+    slots,
     ships: (() => { try { return ships ? JSON.parse(ships) : null; } catch { return null; } })(),
     binds: binds ? bindsProfile(binds) : null,
   };
@@ -552,6 +622,7 @@ async function loadProfile() {
     else if (typeof v === 'boolean') setOpt(k, v);
   }
   for (const [role, order] of Object.entries(p.plates || {})) if (Array.isArray(order)) store.set(`order:${role}`, order);
+  for (const [slot, label] of Object.entries(p.slots || {})) if (typeof label === 'string' && KEYS.has(label)) store.set(`slot:${slot}`, label);
   if (p.ships && typeof p.ships === 'object') await bridge.saveUserShips(JSON.stringify(p.ships, null, 2)).catch(() => {});
   let note = 'Profile loaded.';
   if (typeof p.binds === 'string') {
