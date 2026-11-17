@@ -136,6 +136,59 @@ export function toggle(x, y, l, o = {}) {
   return el;
 }
 
+/**
+ * A switch with separate on and off binds: tap the top half for on, the bottom for off. The
+ * bat shows what the console last set, and sits level until it has set something.
+ */
+export function onOff(x, y, base, o = {}) {
+  const kOn = keyOf(`${base} on`), kOff = keyOf(`${base} off`);
+  if (!kOn || !kOff) return toggle(x, y, base, o);
+  const w = o.w || 84;
+  const nut = [0, 60, 120, 180, 240, 300].map(a => polar(42, 84, 17, a + 30).join(',')).join(' ');
+  const el = h(`<div class="tgl dual ${o.guard ? 'guarded' : ''} ${K.isWeapon(kOn) ? 'weapon' : ''}" style="${box(x, y, w, 196)}">
+    <svg viewBox="0 0 84 150" class="sw">
+      <circle class="tled" cx="42" cy="10" r="5"/>
+      ${o.guard ? '<rect x="12" y="26" width="60" height="116" rx="6" fill="none" stroke="#b3271c" stroke-width="7"/>' : ''}
+      <rect x="18" y="32" width="48" height="104" rx="6" fill="#07090b" stroke="#ffffff10"/>
+      <text x="42" y="28" class="tk">ON</text><text x="42" y="148" class="tk">OFF</text>
+      <polygon points="${nut}" fill="url(#nut)" stroke="#000"/>
+      <circle cx="42" cy="84" r="10" fill="#15191d" stroke="#ffffff20"/>
+      <g class="bat-up" filter="url(#drop)"><path d="M37 84 L34 44 L50 44 L47 84 Z" fill="url(#chrome)"/><ellipse cx="42" cy="42" rx="10" ry="7" fill="url(#ball)"/></g>
+      <g class="bat-dn" filter="url(#drop)"><path d="M37 84 L34 124 L50 124 L47 84 Z" fill="url(#chrome)"/><ellipse cx="42" cy="126" rx="10" ry="7" fill="url(#ball)"/></g>
+      <g class="bat-mid" filter="url(#drop)"><ellipse cx="42" cy="84" rx="12" ry="12" fill="url(#ball)"/></g>
+    </svg>
+    <div class="placard">${esc(o.label || base)}</div>
+    <div class="st"></div>
+    <div class="zone z-on"></div><div class="zone z-off"></div></div>`);
+  K.bind(el.querySelector('.z-on'), kOn);
+  K.bind(el.querySelector('.z-off'), kOff);
+  el.paint = () => {
+    const on = K.isOn(kOn.state), off = K.isOn(kOff.state);
+    el.classList.toggle('on', on);
+    el.classList.toggle('off', off);
+    el.querySelector('.st').textContent = on ? 'ON' : off ? 'OFF' : '';
+  };
+  el.classList.add('painted');
+  el.paint();
+  return el;
+}
+
+/** The same in a keycap's space: the name on top, ON and OFF halves below, the last one set lit. */
+export function onOffKey(x, y, w, ht, base, o = {}) {
+  const kOn = keyOf(`${base} on`), kOff = keyOf(`${base} off`);
+  if (!kOn || !kOff) return keycap(x, y, w, ht, base, o);
+  const el = h(`<div class="well pair ${K.isWeapon(kOn) ? 'weapon' : ''}" style="${box(x, y, w, ht)}">
+    <div class="pt">${icon(o.icon || kOn.icon, 16)}<span>${esc(o.label || base)}</span></div>
+    <div class="cap half a"><span class="lg">On</span><span class="led"></span></div>
+    <div class="cap half b"><span class="lg">Off</span><span class="led"></span></div></div>`);
+  const a = el.querySelector('.a'), b = el.querySelector('.b');
+  a.dataset.state = JSON.stringify(kOn.state);
+  b.dataset.state = JSON.stringify(kOff.state);
+  K.bind(a, kOn);
+  K.bind(b, kOff);
+  return el;
+}
+
 // ---------- knobs ----------
 
 const knurl = n => `repeating-conic-gradient(#59626b 0 ${180 / n}deg, #23282d ${180 / n}deg ${360 / n}deg)`;
@@ -160,12 +213,12 @@ export function rotary(x, y, size, positions, { title, cycle, stateKey, pointer,
   const keys = positions.map(p => keyOf(p.key));
   const current = () => {
     if (cycle) return K.local[stateKey] ?? 0;
-    const i = keys.findIndex(k => k?.state && K.isOn(k.state));
-    return i < 0 ? 0 : i;
+    // -1 until the console has set a position: the pointer stands straight up.
+    return keys.findIndex(k => k?.state && K.isOn(k.state));
   };
   const paint = () => {
     const i = current();
-    ptr.style.transform = `rotate(${positions[i].angle}deg)`;
+    ptr.style.transform = `rotate(${i < 0 ? 0 : positions[i].angle}deg)`;
     el.querySelectorAll('.pos').forEach((b, j) => b.classList.toggle('on', j === i));
   };
   const go = async i => {

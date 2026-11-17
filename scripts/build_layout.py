@@ -27,6 +27,38 @@ CATALOG = {
     'Open doors': ('v_open_all_doors', 'tap', 'door'),
     'Close doors': ('v_close_all_doors', 'tap', 'door'),
     'Chat window': ('toggle_chat', 'tap', 'chat'),
+    'Power on': ('v_power_set_on', 'tap', 'power'),
+    'Power off': ('v_power_set_off', 'tap', 'power'),
+    'Thrusters on': ('v_power_set_thrusters_on', 'tap', 'flame'),
+    'Thrusters off': ('v_power_set_thrusters_off', 'tap', 'flame'),
+    'Shields on': ('v_power_set_shields_on', 'tap', 'shield'),
+    'Shields off': ('v_power_set_shields_off', 'tap', 'shield'),
+    'Weapons on': ('v_power_set_weapons_on', 'tap', 'crosshair'),
+    'Weapons off': ('v_power_set_weapons_off', 'tap', 'crosshair'),
+    'Lights on': ('v_lights_on', 'tap', 'bulb'),
+    'Lights off': ('v_lights_off', 'tap', 'bulb'),
+    'VTOL on': ('v_vtol_on', 'tap', 'vtol'),
+    'VTOL off': ('v_vtol_off', 'tap', 'vtol'),
+    'Speed limiter on': ('v_ifcs_speed_limiter_on', 'tap', 'limiter'),
+    'Speed limiter off': ('v_ifcs_speed_limiter_off', 'tap', 'limiter'),
+    'Decoupled on': ('v_ifcs_vector_decoupling_on', 'tap', 'split'),
+    'Decoupled off': ('v_ifcs_vector_decoupling_off', 'tap', 'split'),
+    'G-safe on': ('v_ifcs_gsafe_on', 'tap', 'person'),
+    'G-safe off': ('v_ifcs_gsafe_off', 'tap', 'person'),
+    'Proximity assist on': ('v_ifcs_proximity_assist_on', 'tap', 'proximity'),
+    'Proximity assist off': ('v_ifcs_proximity_assist_off', 'tap', 'proximity'),
+    'Advanced HUD on': ('v_flight_advanced_hud_on', 'tap', 'layers'),
+    'Advanced HUD off': ('v_flight_advanced_hud_off', 'tap', 'layers'),
+    'Stability on': ('v_ifcs_stability_on', 'tap', 'assist'),
+    'Stability off': ('v_ifcs_stability_off', 'tap', 'assist'),
+    'Gravity comp on': ('v_ifcs_gravity_compensation_on', 'tap', 'gauge'),
+    'Gravity comp off': ('v_ifcs_gravity_compensation_off', 'tap', 'gauge'),
+    'Staggered fire on': ('v_weapon_staggered_fire_on', 'tap', 'guns'),
+    'Staggered fire off': ('v_weapon_staggered_fire_off', 'tap', 'guns'),
+    'Set NAV': ('v_master_mode_set_nav', 'tap', 'gauge'),
+    'Set SCM': ('v_master_mode_set_scm', 'tap', 'gauge'),
+    'Panic decoy': ('v_weapon_countermeasure_decoy_launch_panic', 'tap', 'flare'),
+    'Hail target': ('v_target_hail', 'tap', 'chat'),
     'Push to talk': ('foip_pushtotalk', 'hold', 'chat'),
     'Landing gear': ('v_toggle_landing_system', 'tap', 'gear'),
     'Autoland': ('v_autoland', 'hold', 'land'),
@@ -271,6 +303,7 @@ LEFT = [
 # press sends another action. Only on plain keys, and only tap actions, so the
 # main action stays where it was.
 MORE = {
+    'Decoy': {'hold': 'Panic decoy'},
     'Shields +': {'hold': 'Shields −'},
     'Weapons +': {'hold': 'Weapons −'},
     'Engines +': {'hold': 'Engines −'},
@@ -292,6 +325,7 @@ MORE = {
 MACROS = {
     'Startup': {'glyph': 'ready', 'steps': ['Flight ready', 3000, 'ATC request']},
     'Combat prep': {'glyph': 'crosshair', 'steps': ['Power reset', 'Weapons +', 'Weapons +', 'Shields +', ('page', 'combat')]},
+    'All systems on': {'glyph': 'power', 'steps': ['Power on', 'Thrusters on', 'Shields on', 'Weapons on', 300, 'Flight ready']},
     'Evade': {'glyph': 'flame', 'steps': ['Power reset', 'Engines +', 'Engines +', 'Shields +', 'Decoy', 'Noise']},
 }
 
@@ -346,6 +380,36 @@ TOGGLES = {
 }
 # Keys that set one value of a shared state directly: (state key, value, [on label]).
 SETS = {
+    'v_power_set_on': ('power', True),
+    'v_power_set_off': ('power', False),
+    'v_power_set_thrusters_on': ('pwr_thr', True),
+    'v_power_set_thrusters_off': ('pwr_thr', False),
+    'v_power_set_shields_on': ('pwr_shd', True),
+    'v_power_set_shields_off': ('pwr_shd', False),
+    'v_power_set_weapons_on': ('pwr_wpn', True),
+    'v_power_set_weapons_off': ('pwr_wpn', False),
+    'v_lights_on': ('lights', True),
+    'v_lights_off': ('lights', False),
+    'v_vtol_on': ('vtol', True),
+    'v_vtol_off': ('vtol', False),
+    'v_ifcs_speed_limiter_on': ('limiter', True),
+    'v_ifcs_speed_limiter_off': ('limiter', False),
+    'v_ifcs_vector_decoupling_on': ('decoupled', True),
+    'v_ifcs_vector_decoupling_off': ('decoupled', False),
+    'v_ifcs_gsafe_on': ('gsafe', True),
+    'v_ifcs_gsafe_off': ('gsafe', False),
+    'v_ifcs_proximity_assist_on': ('prox', True),
+    'v_ifcs_proximity_assist_off': ('prox', False),
+    'v_flight_advanced_hud_on': ('advhud', True),
+    'v_flight_advanced_hud_off': ('advhud', False),
+    'v_ifcs_stability_on': ('stability', True),
+    'v_ifcs_stability_off': ('stability', False),
+    'v_ifcs_gravity_compensation_on': ('gravcomp', True),
+    'v_ifcs_gravity_compensation_off': ('gravcomp', False),
+    'v_weapon_staggered_fire_on': ('stagger', True),
+    'v_weapon_staggered_fire_off': ('stagger', False),
+    'v_master_mode_set_nav': ('navmode', 'nav'),
+    'v_master_mode_set_scm': ('navmode', 'scm'),
     'v_weapon_gimbals_state_set_locked': ('gimbal', True),
     'v_weapon_gimbals_state_set_unlocked': ('gimbal', False),
     'v_weapon_preset_guns0': ('guns', 0),
@@ -382,7 +446,8 @@ def load_actions(path):
 
 
 # Keys only the console's own plates use.
-EXTRAS = ['Open doors', 'Close doors', 'Chat window', 'Push to talk']
+EXTRAS = ['Open doors', 'Close doors', 'Chat window', 'Push to talk',
+          'Power on', 'Power off', 'Thrusters on', 'Thrusters off', 'Shields on', 'Shields off', 'Weapons on', 'Weapons off', 'Lights on', 'Lights off', 'VTOL on', 'VTOL off', 'Speed limiter on', 'Speed limiter off', 'Decoupled on', 'Decoupled off', 'G-safe on', 'G-safe off', 'Proximity assist on', 'Proximity assist off', 'Advanced HUD on', 'Advanced HUD off', 'Stability on', 'Stability off', 'Gravity comp on', 'Gravity comp off', 'Staggered fire on', 'Staggered fire off', 'Set NAV', 'Set SCM', 'Panic decoy', 'Hail target', 'All systems on']
 
 
 def make_cell(cell, acts, missing):
@@ -410,7 +475,8 @@ def make_macro(label, acts, missing):
             steps.append({'page': st[1]})
         else:
             sub = make_key(spec_of(st), acts, missing)
-            assert sub is None or (sub['press'] == 'tap' and 'state' not in sub), f'{label}: {st} must be a plain tap key'
+            # Toggles would leave the result unknown; keys that set a state are fine.
+            assert sub is None or (sub['press'] == 'tap' and sub.get('state', {}).get('kind', 'set') == 'set'), f'{label}: {st} must be a tap key that toggles nothing'
             steps.append({'key': sub})
     return {'label': label, 'action': None, 'actionmap': None, 'defaultKey': None, 'activation': '',
             'press': 'tap', 'needsKeyboardBind': False, 'icon': MACROS[label]['glyph'], 'role': 'macro', 'steps': steps}
@@ -511,7 +577,7 @@ def main(path):
             k['type'] = 'action'
             rail.append(k)
     # Keys the console uses that no deck page shows.
-    extras = [make_key(spec_of(label), acts, missing) for label in EXTRAS]
+    extras = [make_cell(label, acts, missing) for label in EXTRAS]
     if missing:
         sys.exit('Unknown actions: ' + ', '.join(sorted(set(missing))))
 

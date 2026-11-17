@@ -195,7 +195,10 @@ async function fire(k, node) {
   if (k.role === 'macro') {
     for (const step of k.steps) {
       if (step.delay) await sleep(step.delay);
-      else if (step.key && !(await send(step.key, 'tap', holdMs(step.key), node))) return false;
+      else if (step.key) {
+        if (!(await send(step.key, 'tap', holdMs(step.key), node))) return false;
+        if (step.key.state) flip(step.key.state);
+      }
     }
     return true;
   }
@@ -297,6 +300,8 @@ const tracked = st => st.kind === 'set' || TRACKED.has(st.key);
 const isOn = st => st.kind === 'set' ? states[st.key] === st.value : TRACKED.has(st.key) && !!states[st.key];
 function flip(st) {
   if (tracked(st)) { states[st.key] = st.kind === 'set' ? st.value : !states[st.key]; repaint(); return; }
+  // A toggle flips whatever the game had, so the matching switch no longer knows.
+  if (st.key in states) { delete states[st.key]; repaint(); }
   for (const node of document.querySelectorAll(`#console [data-state]`)) {
     if (JSON.parse(node.dataset.state).key !== st.key) continue;
     node.classList.add('on');
@@ -737,7 +742,17 @@ function paintQuantum() {
 }
 
 /** Opens the page for the moment when that changes, unless you turned auto pages off. */
+// Switches show what the console last set. A different ship, or none, starts unknown again.
+let stateShip = null;
+function forgetStates() {
+  const ship = game.seated ? game.ship : null;
+  if (ship === stateShip) return;
+  stateShip = ship;
+  for (const key of Object.keys(states)) if (key !== 'gear') delete states[key];
+  repaint();
+}
 function follow(force) {
+  forgetStates();
   ship = game.seated ? lookup(shipsDb.ships, overrides.ships, game.ship) : null;
   const { id } = pageFor(layout, game, shipsDb.ships, overrides.ships);
   rolePage = moduleOf(id) && id !== 'flight' ? id : null;
