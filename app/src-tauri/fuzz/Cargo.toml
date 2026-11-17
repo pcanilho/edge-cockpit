@@ -1,0 +1,23 @@
+[package]
+name = "edge-cockpit-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+license = "MIT"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+
+# Its own workspace, so the app's build never sees it.
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "key_chord"
+path = "fuzz_targets/key_chord.rs"
+test = false
+doc = false
+bench = false
