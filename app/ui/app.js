@@ -1,7 +1,7 @@
 // Edge Cockpit: builds the cockpit console, turns touches into key presses and
 // follows Game.log for the status display, the moods and the pages.
 import { GLYPHS } from './lib/glyphs.js';
-import { parseLine, reduce, lawless, EMPTY, version, untested, place } from './lib/gamelog.js';
+import { parseLine, reduce, lawless, EMPTY, version, untested, place, tally, stamp, NEW_TALLY, minutes, shipName } from './lib/gamelog.js';
 import { pageFor, pageById } from './lib/pages.js';
 import { lookup } from './lib/ships.js';
 import * as bridge from './bridge.js';
@@ -55,7 +55,7 @@ const store = {
 // Night mode is off, on, or auto (dark from 20:00 to 07:00 by this PC's clock). Older builds stored a boolean.
 const NIGHT_FROM = 20, NIGHT_TO = 7;
 const nightMode = v => (v === true ? 'on' : ['on', 'auto'].includes(v) ? v : 'off');
-const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), anywhere: store.get('anywhere', false) };
+const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), anywhere: store.get('anywhere', false) };
 
 // ---------- binds: the player's actionmaps.xml, then our Xeneon profile, then the defaults ----------
 function parseActionmaps(text) {
@@ -321,7 +321,8 @@ function repaint() {
 }
 
 // ---------- the console ----------
-const WEAPON = /spaceship_weapons|spaceship_missiles|spaceship_defensive|\b(rifle|pistol|knife|grenade)$/;
+// Ship weapon actionmaps, and on-foot weapons by their icon.
+const isWeapon = k => /^spaceship_(weapons|missiles|defensive)$/.test(k.actionmap || '') || /^(rifle|pistol|knife|grenade)$/.test(k.icon || '');
 const theme = page => page.theme || pageById(layout, page.role?.tab || page.tab || 'flight')?.theme || { accent: '#5cc8e6', glyph: 'ship' };
 let current = 'flight', rolePage = null, lastShip = 'flight', pageAccent = '#5cc8e6', makerAccent = null;
 const applyAccent = () => stage.style.setProperty('--accent', makerAccent || pageAccent);
@@ -333,7 +334,7 @@ const K = {
     return !lacks.some(kit => KIT_KEYS[kit]?.includes(k.label));
   },
   bindText: k => (k.role === 'macro' ? '' : mine.stick[k.action] ? 'STICK' : keyText(bindOf(k))),
-  isWeapon: k => WEAPON.test(`${k.actionmap} ${k.icon}`),
+  isWeapon,
   bind, fire, wheel, flip, isOn, local, tick, toast, theme,
   fired: node => { if (opts.flash) flash(node, 'fired'); },
   scale: () => Math.min(innerWidth / 2560, innerHeight / 720),
@@ -343,6 +344,7 @@ const K = {
     tick('page');
     show(rolePage?.startsWith(base) ? rolePage : base);
   },
+  go: id => { tick('page'); show(id); },
 };
 controls.init(K);
 initScenes(K);
@@ -372,7 +374,7 @@ function show(id) {
 // Soft keys under the status display.
 const SOFT = [
   { label: 'Ship', icon: 'ship', go: () => rolePage || lastShip, is: id => !!moduleOf(id) },
-  { label: 'On foot', icon: 'helmet', go: () => 'onfoot', is: id => id === 'onfoot' },
+  { label: 'On foot', icon: 'helmet', go: () => 'onfoot', is: id => id === 'onfoot' || id === 'emotes' },
   { label: 'Map', icon: 'map', go: () => 'map', is: id => id === 'map' },
   { label: 'Downed', icon: 'medical', go: () => 'downed', is: id => id === 'downed' },
   { label: 'Settings', icon: 'cog', go: null },
@@ -460,7 +462,7 @@ $('qt').querySelector('svg').innerHTML = GLYPHS.quantum;
 
 // ---------- profile: settings, plate order, ship roles and keyboard binds in one file ----------
 // Saved as Documents\Edge Cockpit\profile.json, to copy to another PC or keep as a backup.
-const PROFILE_OPTS = ['night', 'sound', 'flash', 'auto', 'anywhere', 'autostart', 'screen_off'];
+const PROFILE_OPTS = ['night', 'sound', 'flash', 'auto', 'recap', 'anywhere', 'autostart', 'screen_off'];
 /** The keyboard binds in an actionmaps.xml, as a Control Profile the game can load. */
 function bindsProfile(text) {
   const doc = new DOMParser().parseFromString(text, 'application/xml');
@@ -563,6 +565,25 @@ function paintUpdate() {
   $('upd-notes').innerHTML = notesHtml(notes);
   paintPrompt();
 }
+// ---------- session recap ----------
+// When you leave the game: how long you played and what the log saw, from this session's lines only.
+let session = { ...NEW_TALLY };
+function showRecap() {
+  const t = session, mins = minutes(t);
+  if (!opts.recap || !t.start || mins < 1) return;
+  const ships = t.ships.map(m => lookup(shipsDb.ships, overrides.ships, m)?.name || shipName(m));
+  const stat = (n, label) => `<div class="rc-stat"><b>${n}</b><span>${label}</span></div>`;
+  $('rc-time').textContent = mins >= 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${mins} min`;
+  $('rc-stats').innerHTML = [stat(t.kills, 'Kills'), stat(t.deaths, t.deaths === 1 ? 'Time down' : 'Times down'),
+    stat(t.missions, t.missions === 1 ? 'Mission done' : 'Missions done'), stat(t.routes, t.routes === 1 ? 'Route set' : 'Routes set'),
+    t.failed ? stat(t.failed, 'Failed') : '', t.crimeMax ? stat(t.crimeMax, 'Top CrimeStat') : ''].join('');
+  const row = (k, v) => (v.length ? `<p><small>${k}</small>${v.map(controls.esc).join(' · ')}</p>` : '');
+  $('rc-lists').innerHTML = row('Flew', ships) + row('Visited', t.places);
+  $('recap').hidden = false;
+  session = { ...NEW_TALLY };
+}
+controls.pressable($('rc-close'), { up: () => { tick('tap'); $('recap').hidden = true; } });
+
 /** Asks once per version, with its notes, and only while the game isn't running. Later waits for the next version. */
 function paintPrompt() {
   const ask = !!update && !info.running && store.get('upd-later', null) !== update.version;
@@ -762,10 +783,14 @@ function follow(force) {
 
 bridge.onGameLog(({ lines, live, reset }) => {
   // A new Game.log means a new channel or a restart: its binds may differ too.
-  if (reset) { game = { ...EMPTY }; lastSeq = 0; if (bridge.inApp) { reloadBinds(); loadUserShips(); } }
+  if (reset) { game = { ...EMPTY }; session = { ...NEW_TALLY }; lastSeq = 0; if (bridge.inApp) { reloadBinds(); loadUserShips(); } }
   for (const line of lines) {
     const ev = parseLine(line);
+    const was = game;
     if (ev) game = reduce(game, ev);
+    session = tally(session, was, game, stamp(line));
+    if (live && !was.menu && game.menu) showRecap();
+    if (!game.menu) $('recap').hidden = true;
   }
   follow(!live);
   paintStatus();
@@ -788,7 +813,7 @@ async function poll() {
   link.classList.toggle('focused', info.focused);
   paintChannel();
   $('act-admin').hidden = info.elevated;
-  if (!info.running && !game.menu) { game = { ...EMPTY, me: game.me }; follow(false); }
+  if (!info.running && !game.menu) { game = { ...EMPTY, me: game.me }; follow(false); showRecap(); }
   paintPrompt();
   paintStatus();
 }
@@ -835,5 +860,5 @@ poll(); setInterval(poll, 2000);
 paintStatus();
 if (demo) { opts.auto = false; show(demo); }
 stage.classList.remove('booting');
-window.xfd = { show, perf: perf.toggle, showSection, bindHealth, bindsProfile, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
+window.xfd = { show, recap: t => { session = { ...NEW_TALLY, ...t }; showRecap(); }, perf: perf.toggle, showSection, bindHealth, bindsProfile, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
 document.body.dataset.ready = '1';

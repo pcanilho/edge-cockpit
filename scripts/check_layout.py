@@ -2,7 +2,9 @@
 
 Usage: python scripts/check_layout.py
 
-Fails when the layout is malformed or a key names a glyph that doesn't exist.
+Fails when the layout is malformed, a key names a glyph that doesn't exist, or a key presses an
+action that isn't in the game's 4.x keybinds (layouts/sc-actions-4x.json, the action names from
+the game's defaultProfile.xml). Refresh that list when a patch renames actions.
 """
 import json
 import re
@@ -121,6 +123,27 @@ for where, pid in layout.get('defaultPages', {}).items():
     if pid not in page_ids:
         err(f'defaultPages.{where}: unknown page {pid!r}')
 
+# Every action the console presses must exist in the game's 4.x keybinds, in the same actionmap.
+GAME = {m: set(a) for m, a in json.loads((ROOT / 'layouts/sc-actions-4x.json').read_text(encoding='utf-8'))['actions'].items()}
+
+
+def walk(node, where=''):
+    if isinstance(node, dict):
+        if node.get('action') and node.get('actionmap'):
+            am, act = node['actionmap'], node['action']
+            if am not in GAME:
+                err(f'{node.get("label", where)}: actionmap {am!r} not in the 4.x keybinds')
+            elif act not in GAME[am]:
+                elsewhere = [m for m, a in GAME.items() if act in a]
+                err(f'{node.get("label", where)}: {act!r} not in {am}' + (f' (found in {", ".join(elsewhere)})' if elsewhere else ' (gone from 4.x)'))
+        for k, v in node.items():
+            walk(v, node.get('label', where))
+    elif isinstance(node, list):
+        for v in node:
+            walk(v, where)
+
+
+walk(layout)
 if errors:
     print('\n'.join(errors))
     sys.exit(f'{len(errors)} problem(s) found')

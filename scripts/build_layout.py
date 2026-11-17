@@ -176,6 +176,37 @@ CATALOG = {
     'Stabilize': ('stabilize', 'hold', 'hand'),
     'Revive request': ('downedRevivalRequest', 'hold', 'pulse'),
     'Give up': ('incapacitatedRespawn', 'hold', 'back'),
+    # Emotes and hand signals (player_emotes); only the signals have default keys.
+    'Signal forward': ('emote_cs_forward', 'tap', 'up'),
+    'Signal left': ('emote_cs_left', 'tap', 'left'),
+    'Signal right': ('emote_cs_right', 'tap', 'right'),
+    'Signal stop': ('emote_cs_stop', 'tap', 'hand'),
+    'Signal yes': ('emote_cs_yes', 'tap', 'em-yes'),
+    'Signal no': ('emote_cs_no', 'tap', 'x'),
+    'Wave': ('emote_wave', 'tap', 'em-wave'),
+    'Salute': ('emote_salute', 'tap', 'em-salute'),
+    'Point': ('emote_point', 'tap', 'em-point'),
+    'Come': ('emote_come', 'tap', 'em-come'),
+    'Wait': ('emote_wait', 'tap', 'em-wait'),
+    'Agree': ('emote_agree', 'tap', 'em-agree'),
+    'Disagree': ('emote_disagree', 'tap', 'em-disagree'),
+    'Cheer': ('emote_cheer', 'tap', 'em-cheer'),
+    'Clap': ('emote_clap', 'tap', 'em-clap'),
+    'Laugh': ('emote_laugh', 'tap', 'em-laugh'),
+    'Dance': ('emote_dance', 'tap', 'em-dance'),
+    'Bow': ('emote_bow', 'tap', 'em-bow'),
+    'Greet': ('emote_greet', 'tap', 'em-greet'),
+    'Threaten': ('emote_threaten', 'tap', 'em-threaten'),
+    'Taunt': ('emote_taunt', 'tap', 'em-taunt'),
+    'Rude': ('emote_rude', 'tap', 'em-rude'),
+    'Sit': ('emote_sit', 'tap', 'em-sit'),
+    'Sleep': ('emote_sleep', 'tap', 'em-sleep'),
+    'Flex': ('emote_flex', 'tap', 'em-flex'),
+    'Gloat': ('emote_gloat', 'tap', 'em-gloat'),
+    'Angry': ('emote_angry', 'tap', 'em-angry'),
+    'At ease': ('emote_atease', 'tap', 'em-atease'),
+    'Attention': ('emote_attention', 'tap', 'em-attention'),
+    'Whistle': ('emote_whistle', 'tap', 'em-whistle'),
     'Local map': ('mapui_action_goto_localmap', 'tap', 'map'),
     'My location': ('mapui_action_mylocation', 'tap', 'locate'),
     'Go to selection': ('mapui_action_goto_selection', 'tap', 'pin'),
@@ -283,6 +314,10 @@ ROLES = {
 # Pages the panel opens on game events rather than from a rail tab.
 # 'tab' is the rail tab that lights up while the page shows.
 EVENT_PAGES = {
+    'emotes': {'name': 'Emotes', 'tab': 'onfoot', 'rows': [
+        ('Signals', ['Signal forward', 'Signal left', 'Signal right', 'Signal stop', 'Signal yes', 'Signal no', 'Wave', 'Salute']),
+        ('Emotes', ['Point', 'Come', 'Wait', 'Agree', 'Disagree', 'Cheer', 'Clap', 'Laugh']),
+    ]},
     'downed': {'name': 'Downed', 'tab': 'onfoot', 'rows': [
         ('Medical', ['Revive request', 'Give up', 'Consume', 'Heal target', 'mobiGlas', 'Visor wipe', 'Helmet on/off', 'Third person']),
         ('Comms & map', ['Reply 1', 'Reply 2', 'Reply 3', 'Reply 4', 'Local map', 'Plan route', 'Scoreboard', 'Flashlight']),
@@ -447,7 +482,8 @@ def load_actions(path):
 
 # Keys only the console's own plates use.
 EXTRAS = ['Open doors', 'Close doors', 'Chat window', 'Push to talk',
-          'Power on', 'Power off', 'Thrusters on', 'Thrusters off', 'Shields on', 'Shields off', 'Weapons on', 'Weapons off', 'Lights on', 'Lights off', 'VTOL on', 'VTOL off', 'Speed limiter on', 'Speed limiter off', 'Decoupled on', 'Decoupled off', 'G-safe on', 'G-safe off', 'Proximity assist on', 'Proximity assist off', 'Advanced HUD on', 'Advanced HUD off', 'Stability on', 'Stability off', 'Gravity comp on', 'Gravity comp off', 'Staggered fire on', 'Staggered fire off', 'Set NAV', 'Set SCM', 'Panic decoy', 'Hail target', 'All systems on']
+          'Power on', 'Power off', 'Thrusters on', 'Thrusters off', 'Shields on', 'Shields off', 'Weapons on', 'Weapons off', 'Lights on', 'Lights off', 'VTOL on', 'VTOL off', 'Speed limiter on', 'Speed limiter off', 'Decoupled on', 'Decoupled off', 'G-safe on', 'G-safe off', 'Proximity assist on', 'Proximity assist off', 'Advanced HUD on', 'Advanced HUD off', 'Stability on', 'Stability off', 'Gravity comp on', 'Gravity comp off', 'Staggered fire on', 'Staggered fire off', 'Set NAV', 'Set SCM', 'Panic decoy', 'Hail target', 'All systems on',
+          'Dance', 'Bow', 'Greet', 'Threaten', 'Taunt', 'Rude', 'Sit', 'Sleep', 'Flex', 'Gloat', 'Angry', 'At ease', 'Attention', 'Whistle']
 
 
 def make_cell(cell, acts, missing):

@@ -28,6 +28,10 @@
   <action name="v_ifcs_speed_limiter_toggle">
    <rebind input="kb1_rctrl+f2"/>
   </action>
+  <!-- Advanced HUD -->
+  <action name="v_flight_advanced_hud_toggle">
+   <rebind input="kb1_rctrl+rshift+f3"/>
+  </action>
   <!-- G-safe -->
   <action name="v_ifcs_toggle_gforce_safety">
    <rebind input="kb1_rctrl+f3"/>
@@ -39,10 +43,6 @@
   <!-- Proximity assist -->
   <action name="v_ifcs_proximity_assist_toggle">
    <rebind input="kb1_rctrl+f5"/>
-  </action>
-  <!-- Advanced HUD -->
-  <action name="v_flight_advanced_hud_toggle">
-   <rebind input="kb1_rctrl+rshift+f3"/>
   </action>
   <!-- VTOL on -->
   <action name="v_vtol_on">
@@ -123,6 +123,12 @@
    <rebind input="kb1_rctrl+f6"/>
   </action>
  </actionmap>
+ <actionmap name="spaceship_defensive">
+  <!-- Panic decoy -->
+  <action name="v_weapon_countermeasure_decoy_launch_panic">
+   <rebind input="kb1_rctrl+rshift+home"/>
+  </action>
+ </actionmap>
  <actionmap name="spaceship_weapons">
   <!-- Gimbals locked -->
   <action name="v_weapon_gimbals_state_set_locked">
@@ -140,14 +146,6 @@
   <action name="v_weapon_preset_guns1">
    <rebind input="kb1_rctrl+f10"/>
   </action>
-  <!-- Guns group 3 -->
-  <action name="v_weapon_preset_guns2">
-   <rebind input="kb1_rctrl+f11"/>
-  </action>
-  <!-- Stagger fire -->
-  <action name="v_weapon_staggered_fire_toggle">
-   <rebind input="kb1_rshift+f5"/>
-  </action>
   <!-- EMP -->
   <action name="v_weapon_preset_emp">
    <rebind input="kb1_rshift+f1"/>
@@ -155,10 +153,6 @@
   <!-- QED -->
   <action name="v_weapon_preset_qid">
    <rebind input="kb1_rshift+f2"/>
-  </action>
-  <!-- Guns group 4 -->
-  <action name="v_weapon_preset_guns3">
-   <rebind input="kb1_rctrl+f12"/>
   </action>
   <!-- Staggered fire on -->
   <action name="v_weapon_staggered_fire_on">
@@ -175,12 +169,6 @@
    <rebind input="kb1_rshift+f7"/>
   </action>
  </actionmap>
- <actionmap name="spaceship_salvage">
-  <!-- Beam axis -->
-  <action name="v_salvage_toggle_beam_spacing_axis">
-   <rebind input="kb1_rshift+f8"/>
-  </action>
- </actionmap>
  <actionmap name="seat_general">
   <!-- Operator mode -->
   <action name="v_operator_mode_cycle_forward">
@@ -188,10 +176,6 @@
   </action>
  </actionmap>
  <actionmap name="player">
-  <!-- Walk -->
-  <action name="walk">
-   <rebind input="kb1_rctrl+rshift+f2"/>
-  </action>
   <!-- Consume -->
   <action name="consume">
    <rebind input="kb1_rshift+f10"/>
@@ -199,6 +183,104 @@
   <!-- Heal target -->
   <action name="combathealtarget">
    <rebind input="kb1_rshift+f11"/>
+  </action>
+ </actionmap>
+ <actionmap name="player_emotes">
+  <!-- Wave -->
+  <action name="emote_wave">
+   <rebind input="kb1_rctrl+f11"/>
+  </action>
+  <!-- Salute -->
+  <action name="emote_salute">
+   <rebind input="kb1_rctrl+f12"/>
+  </action>
+  <!-- Point -->
+  <action name="emote_point">
+   <rebind input="kb1_rshift+f5"/>
+  </action>
+  <!-- Come -->
+  <action name="emote_come">
+   <rebind input="kb1_rshift+f8"/>
+  </action>
+  <!-- Wait -->
+  <action name="emote_wait">
+   <rebind input="kb1_rctrl+rshift+f2"/>
+  </action>
+  <!-- Agree -->
+  <action name="emote_agree">
+   <rebind input="kb1_rctrl+rshift+pgup"/>
+  </action>
+  <!-- Disagree -->
+  <action name="emote_disagree">
+   <rebind input="kb1_rctrl+rshift+delete"/>
+  </action>
+  <!-- Cheer -->
+  <action name="emote_cheer">
+   <rebind input="kb1_rctrl+rshift+end"/>
+  </action>
+  <!-- Clap -->
+  <action name="emote_clap">
+   <rebind input="kb1_rctrl+rshift+pgdn"/>
+  </action>
+  <!-- Laugh -->
+  <action name="emote_laugh">
+   <rebind input="kb1_rctrl+lalt+f1"/>
+  </action>
+  <!-- Dance -->
+  <action name="emote_dance">
+   <rebind input="kb1_rctrl+lalt+f2"/>
+  </action>
+  <!-- Bow -->
+  <action name="emote_bow">
+   <rebind input="kb1_rctrl+lalt+f3"/>
+  </action>
+  <!-- Greet -->
+  <action name="emote_greet">
+   <rebind input="kb1_rctrl+lalt+f4"/>
+  </action>
+  <!-- Threaten -->
+  <action name="emote_threaten">
+   <rebind input="kb1_rctrl+lalt+f5"/>
+  </action>
+  <!-- Taunt -->
+  <action name="emote_taunt">
+   <rebind input="kb1_rctrl+lalt+f6"/>
+  </action>
+  <!-- Rude -->
+  <action name="emote_rude">
+   <rebind input="kb1_rctrl+lalt+f7"/>
+  </action>
+  <!-- Sit -->
+  <action name="emote_sit">
+   <rebind input="kb1_rctrl+lalt+f8"/>
+  </action>
+  <!-- Sleep -->
+  <action name="emote_sleep">
+   <rebind input="kb1_rctrl+lalt+f9"/>
+  </action>
+  <!-- Flex -->
+  <action name="emote_flex">
+   <rebind input="kb1_rctrl+lalt+f10"/>
+  </action>
+  <!-- Gloat -->
+  <action name="emote_gloat">
+   <rebind input="kb1_rctrl+lalt+f11"/>
+  </action>
+  <!-- Angry -->
+  <action name="emote_angry">
+   <rebind input="kb1_rctrl+lalt+f12"/>
+  </action>
+  <!-- At ease -->
+  <action name="emote_atease">
+   <rebind input="kb1_rctrl+lalt+insert"/>
+  </action>
+  <!-- Attention -->
+  <action name="emote_attention">
+   <rebind input="kb1_rctrl+lalt+home"/>
+  </action>
+  <!-- Whistle -->
+  <action name="emote_whistle">
+   <rebind input="kb1_rctrl+lalt+pgup"/>
   </action>
  </actionmap>
  <actionmap name="tractor_beam">
@@ -253,12 +335,6 @@
   <!-- Lights off -->
   <action name="v_lights_off">
    <rebind input="kb1_rctrl+insert"/>
-  </action>
- </actionmap>
- <actionmap name="spaceship_defensive">
-  <!-- Panic decoy -->
-  <action name="v_weapon_countermeasure_decoy_launch_panic">
-   <rebind input="kb1_rctrl+rshift+home"/>
   </action>
  </actionmap>
 </ActionMaps>
