@@ -55,7 +55,7 @@ const store = {
 // Night mode is off, on, or auto (dark from 20:00 to 07:00 by this PC's clock). Older builds stored a boolean.
 const NIGHT_FROM = 20, NIGHT_TO = 7;
 const nightMode = v => (v === true ? 'on' : ['on', 'auto'].includes(v) ? v : 'off');
-const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), anywhere: store.get('anywhere', false) };
+const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), anywhere: store.get('anywhere', false), stack: store.get('stack', true) };
 
 // ---------- binds: the player's actionmaps.xml, then our Xeneon profile, then the defaults ----------
 function parseActionmaps(text) {
@@ -373,7 +373,7 @@ const K = {
   family,
   bind, fire, wheel, flip, isOn, local, tick, toast, theme,
   fired: node => { if (opts.flash) flash(node, 'fired'); },
-  scale: () => Math.min(innerWidth / 2560, innerHeight / 720),
+  scale: () => (stacked ? twoRows() : oneRow()),
   swipe: dir => {
     const i = SWIPE.findIndex(s => current.startsWith(s));
     const base = SWIPE[(i + dir + SWIPE.length) % SWIPE.length];
@@ -462,6 +462,7 @@ function render() {
   $('console').replaceChildren(...cache.get(current));
   const role = moduleOf(current);
   if (role) arrange.place($('console'), arrange.orderFor(role));
+  stack();
   repaint();
   paintQuantum();
   paintSoftkeys();
@@ -504,6 +505,7 @@ const APP_OPTS = ['autostart', 'screen_off'];
 function setOpt(name, v) {
   opts[name] = v;
   if (APP_OPTS.includes(name)) bridge.setPref(name, v); else store.set(name, v);
+  if (name === 'stack') fit();
   paintNight();
   document.querySelectorAll('.opt[data-opt]').forEach(o => o.classList.toggle('on', !!opts[o.dataset.opt]));
   $('auto').classList.toggle('on', opts.auto);
@@ -566,7 +568,7 @@ $('qt').querySelector('svg').innerHTML = GLYPHS.quantum;
 
 // ---------- profile: settings, plate order, ship roles and keyboard binds in one file ----------
 // Saved as Documents\Edge Cockpit\profile.json, to copy to another PC or keep as a backup.
-const PROFILE_OPTS = ['night', 'sound', 'flash', 'auto', 'recap', 'alertSound', 'anywhere', 'autostart', 'screen_off'];
+const PROFILE_OPTS = ['night', 'sound', 'flash', 'auto', 'recap', 'alertSound', 'anywhere', 'stack', 'autostart', 'screen_off'];
 /** The keyboard binds in an actionmaps.xml, as a Control Profile the game can load. */
 function bindsProfile(text) {
   const doc = new DOMParser().parseFromString(text, 'application/xml');
@@ -934,7 +936,40 @@ function clock() {
   $('clock').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
   if (opts.night === 'auto') paintNight();
 }
-function fit() { stage.style.transform = `scale(${K.scale()})`; }
+// On a screen that isn't ultra-wide (16:10, 4:3, portrait, a tablet) the console stacks in two
+// rows when that makes the keys bigger: the status display and first plates on top, the rest below.
+const ROW_W = 1662;
+let stacked = false;
+const oneRow = () => Math.min(innerWidth / 2560, innerHeight / 720);
+const twoRows = () => Math.min(innerWidth / ROW_W, innerHeight / 1440);
+function stack() {
+  const status = $('status');
+  const plates = [...$('console').querySelectorAll(':scope > .plate')].sort((a, b) => a.offsetLeft - b.offsetLeft);
+  for (const p of [status, ...plates]) p.style.translate = '';
+  if (!stacked || !plates.length) return;
+  // Split where the longer row is shortest, then centre both rows.
+  const right = plates.at(-1).offsetLeft + plates.at(-1).offsetWidth;
+  let best = null;
+  for (let i = 1; i < plates.length; i++) {
+    const a = plates[i - 1].offsetLeft + plates[i - 1].offsetWidth + 6, b = right - plates[i].offsetLeft + 12;
+    if (!best || Math.max(a, b) < best.w) best = { i, w: Math.max(a, b), a, b };
+  }
+  if (!best) return;
+  const top = Math.max(0, Math.round((ROW_W - best.a) / 2));
+  const bottom = Math.round((ROW_W - best.b) / 2) + 6 - plates[best.i].offsetLeft;
+  [status, ...plates.slice(0, best.i)].forEach(p => { if (top) p.style.translate = `${top}px 0`; });
+  plates.slice(best.i).forEach(p => { p.style.translate = `${bottom}px 720px`; });
+}
+function fit() {
+  const was = stacked;
+  stacked = opts.stack && twoRows() > oneRow() * 1.08;
+  stage.classList.toggle('stacked', stacked);
+  stage.style.width = stacked ? `${ROW_W}px` : '';
+  stage.style.height = stacked ? '1440px' : '';
+  if (stacked !== was || stacked) stack();
+  const s = K.scale();
+  stage.style.transform = `translate(${Math.max(0, (innerWidth - (stacked ? ROW_W : 2560) * s) / 2)}px, ${Math.max(0, (innerHeight - (stacked ? 1440 : 720) * s) / 2)}px) scale(${s})`;
+}
 addEventListener('resize', fit);
 // Lifting a finger outside the panel, or the panel hiding, must never leave a key down.
 addEventListener('blur', () => bridge.releaseKeys());
