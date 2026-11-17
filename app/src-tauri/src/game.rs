@@ -15,8 +15,8 @@ const ROOTS: &[&str] = &[
 const CHANNELS: &[&str] = &["LIVE", "PTU", "EPTU", "HOTFIX", "TECH-PREVIEW"];
 
 /// Our keybind file for actions that have no default key; the player loads it once in game.
-pub const BINDS_XML: &str = include_str!("../../../binds/layout_xeneon_exported.xml");
-pub const BINDS_NAME: &str = "layout_xeneon_exported.xml";
+pub const BINDS_XML: &str = include_str!("../../../binds/layout_edge_cockpit_exported.xml");
+pub const BINDS_NAME: &str = "layout_edge_cockpit_exported.xml";
 
 /// Every place a channel folder (…\StarCitizen\LIVE) usually is, or the ones under `game_dir`.
 pub fn candidates(game_dir: Option<&Path>) -> Vec<PathBuf> {

@@ -1,7 +1,7 @@
 """After a Star Citizen patch, check what changed for the deck.
 
 Usage:
-    python scripts/check_patch.py path/to/new/defaultProfile.xml [--binds binds/layout_xeneon_exported.xml]
+    python scripts/check_patch.py path/to/new/defaultProfile.xml [--binds binds/layout_edge_cockpit_exported.xml]
 
 Compares the deck layout with the patch's defaultProfile.xml and reports:
   - deck actions the patch removed or renamed, with the closest new names
@@ -123,7 +123,7 @@ def check(profile, binds_path):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('profile', type=Path, help="the patch's defaultProfile.xml")
-    ap.add_argument('--binds', type=Path, default=ROOT / 'binds/layout_xeneon_exported.xml')
+    ap.add_argument('--binds', type=Path, default=ROOT / 'binds/layout_edge_cockpit_exported.xml')
     args = ap.parse_args()
     sections, n = check(args.profile, args.binds)
     for title, items in sections:

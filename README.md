@@ -21,7 +21,7 @@ Unofficial fan project, not affiliated with Cloud Imperium Games.
 
 1. Download `Edge-Cockpit-<version>-setup.exe` from the [latest release](../../releases/latest) and run it.
    Windows SmartScreen warns because the app is not code signed: click **More info**, then **Run anyway**. Each release lists SHA-256 checksums and a VirusTotal scan, and carries a build provenance attestation ([how to verify](SECURITY.md#verifying-a-download)).
-2. In game, open **Options > Keybindings > Advanced Controls Customization > Control Profiles**, pick **xeneon** and tick only **Keyboard**. This gives the console's actions that have no default key a free key. Your own binds stay as they are.
+2. In game, open **Options > Keybindings > Advanced Controls Customization > Control Profiles**, pick **edge-cockpit** and tick only **Keyboard**. This gives the console's actions that have no default key a free key. Your own binds stay as they are.
 
 That's all. Edge Cockpit starts with Windows and waits in the tray with its screen dark. It wakes when Star Citizen starts and turns the screen off again when you quit. When a new release is out it asks you, with the release notes, and only while you're not playing.
 

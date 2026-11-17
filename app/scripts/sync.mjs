@@ -14,7 +14,7 @@ const copy = (from, to) => cpSync(join(repo, from), join(out, to));
 copy('layouts/star-citizen.json', 'star-citizen.json');
 copy('layouts/ships.json', 'ships.json');
 copy('layouts/ship-overrides.json', 'ship-overrides.json');
-copy('binds/layout_xeneon_exported.xml', 'xeneon-binds.xml');
+copy('binds/layout_edge_cockpit_exported.xml', 'binds.xml');
 const fonts = { 'chakra-petch': [500, 600, 700], inter: [400, 500, 600], 'jetbrains-mono': [500] };
 for (const [name, weights] of Object.entries(fonts))
   for (const w of weights)
