@@ -19,7 +19,8 @@ export const releaseKeys = () => tauri?.core.invoke('release_keys');
 const demoOn = !!new URLSearchParams(location.search).get('demo');
 export const gameInfo = () => tauri ? tauri.core.invoke('game_info') : Promise.resolve({ channel: demoOn ? 'LIVE' : null, elevated: false, focused: demoOn, running: demoOn });
 export const userShips = () => tauri ? tauri.core.invoke('user_ships') : Promise.resolve(null);
-export const readBinds = () => tauri ? tauri.core.invoke('read_binds') : Promise.resolve(null);
+// Outside the app (UI tests, mocks) a page may supply its own actionmaps.xml.
+export const readBinds = () => tauri ? tauri.core.invoke('read_binds') : Promise.resolve(window.xfdTestBinds ?? null);
 export const installBinds = () => tauri ? tauri.core.invoke('install_binds') : Promise.reject(new Error('Only in the app'));
 export const runAsAdmin = () => tauri?.core.invoke('run_as_admin');
 export const getPrefs = () => tauri ? tauri.core.invoke('get_prefs') : Promise.resolve({ autostart: true, screen_off: true, backlight: null, version: '0.3.0' });
