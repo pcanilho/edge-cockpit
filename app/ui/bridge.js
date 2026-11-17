@@ -81,4 +81,10 @@ const DEMO = {
   alert: ['<Context Establisher Done>', "CVehicleMovementBase::SetDriver: Local client node [1] granted control token for 'ANVL_Hornet_F7C_Mk2_1' [1]",
     'Added notification "Entered Pyro Jurisdiction: " [1]', 'Added notification "CrimeStat Rating Increased: " [2] SHUDEvent', 'Player has selected point Ruin_Station as their destination'],
   downed: ['<Context Establisher Done>', 'Emergency Services are en route'],
+  hangar: ['<AccountLoginCharacterStatus_Character> Character: createdAt 1 - updatedAt 1 - geid 2001 - accountId 1 - name Argoneth - state STATE_CURRENT',
+    '<Context Establisher Done>', 'Entering Armistice Zone', '<RequestLocationInventory> Player[Argoneth] requested inventory for Location[AsteroidClusterBase_Nyx_Social_Keeger_001]',
+    "<x> [Notice] <CEntityComponentShipListProvider::SetVehicleSpawningInformations> SetVehicleSpawningInformations - VehicleEntityId: [1], LandingArea: Argoneth's",
+    '<x> XL Hangar [Team_GameServices][ASOP]',
+    '<x> [Notice] <CSCLoadingPlatformManager::OnLoadingPlatformStateChanged> [Loading Platform] Loading Platform Manager [LoadingPlatformManager_ShipElevator_HangarXLTop_Nyx] Platform state changed to RaisingPlatform [Team_CoreGameplayFeatures][Cargo]',
+    '<x> [Notice] <CSCLoadingPlatformManager::OnLoadingPlatformStateChanged> [Loading Platform] Loading Platform Manager [LoadingPlatformManager_ShipElevator_HangarXLTop_Nyx] Platform state changed to OpenIdle [Team_CoreGameplayFeatures][Cargo]'],
 };

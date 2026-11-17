@@ -197,3 +197,33 @@ test('alerts on CrimeStat, armistice and a disabled ship', async () => {
   assert.equal(culprit('pilot', { name: 'pilot' }), 'yourself');
   assert.deepEqual(alertsFor({ ...EMPTY }, { ...EMPTY, crime: 1 }), []);
 });
+
+test('hangar: a called ship and its lift, a landing clearance', async () => {
+  const { alertsFor, hangarText } = await import('../ui/lib/gamelog.js');
+  const lift = to => `<2026-11-17T17:38:38.925Z> [Notice] <CSCLoadingPlatformManager::OnLoadingPlatformStateChanged> [Loading Platform] Loading Platform Manager [LoadingPlatformManager_ShipElevator_HangarXLTop_Nyx] Platform state changed to ${to} [Team_CoreGameplayFeatures][Cargo]`;
+  const me = { geid: '204717092667', name: 'Argoneth' };
+  let s = { ...EMPTY, menu: false, me };
+  // Lifts settle as hangars stream in: nothing to show without a call.
+  s = reduce(s, parseLine(lift('OpenIdle')));
+  assert.equal(s.hangar, null);
+  // Freight lifts are not the ship lift.
+  assert.equal(parseLine(lift('RaisingPlatform').replace('ShipElevator_HangarXLTop', 'FreightElevator_Util_HangarXL')), null);
+  for (const l of [
+    "<2026-11-17T17:38:36.758Z> [Notice] <CEntityComponentShipListProvider::SetVehicleSpawningInformations> SetVehicleSpawningInformations - VehicleEntityId: [932943782879], LandingArea: Argoneth's",
+    '<2026-11-17T17:38:36.758Z> XL Hangar [Team_GameServices][ASOP]',
+  ]) s = reduce(s, parseLine(l));
+  assert.equal(hangarText(s), 'XL Hangar · ship called');
+  s = reduce(s, parseLine(lift('OpeningLoadingGate')));
+  assert.equal(hangarText(s), 'XL Hangar · lift rising');
+  const up = reduce(s, parseLine(lift('OpenIdle')));
+  assert.equal(hangarText(up), 'XL Hangar · ship ready');
+  assert.deepEqual(alertsFor(s, up).map(a => a.text), ['Ship ready · XL Hangar']);
+  // Boarding ends the call.
+  s = reduce(up, parseLine(SET));
+  assert.equal(s.hangar, null);
+  // ATC clearance lasts until you leave the seat.
+  const granted = reduce(s, parseLine('<2026-11-17T18:06:55.076Z> [Notice] <SHUDEvent_OnNotification> Added notification "Hangar Request Completed: " [7] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]'));
+  assert.equal(hangarText(granted), 'Hangar assigned');
+  assert.deepEqual(alertsFor(s, granted).map(a => a.text), ['Hangar assigned']);
+  assert.equal(reduce(granted, parseLine(CLEAR)).hangar, null);
+});

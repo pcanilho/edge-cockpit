@@ -1,7 +1,7 @@
 // Edge Cockpit: builds the cockpit console, turns touches into key presses and
 // follows Game.log for the status display, the moods and the pages.
 import { GLYPHS } from './lib/glyphs.js';
-import { parseLine, reduce, lawless, EMPTY, version, untested, place, tally, stamp, NEW_TALLY, minutes, shipName, alertsFor } from './lib/gamelog.js';
+import { parseLine, reduce, lawless, EMPTY, version, untested, place, tally, stamp, NEW_TALLY, minutes, shipName, alertsFor, hangarText } from './lib/gamelog.js';
 import { pageFor, pageById } from './lib/pages.js';
 import { lookup } from './lib/ships.js';
 import * as bridge from './bridge.js';
@@ -728,6 +728,9 @@ function paintStatus() {
   const chip = (id, text, cls = '') => { const c = $(id); c.hidden = !text || game.menu; c.className = 'chip ' + cls; c.querySelector('span').textContent = text || ''; };
   chip('kills', game.kills ? `Kills ${game.kills}` : null, 'info');
   chip('wreck', game.wrecked && game.seated ? (game.wrecked > 1 ? 'Ship destroyed' : 'Ship disabled') : null, 'bad');
+  // The ship you called at a fleet terminal, or the hangar ATC gave you, as far as the log tells.
+  const hangar = hangarText(game);
+  chip('hangar', hangar, /ready|assigned/.test(hangar || '') ? 'ok' : 'info');
   // A game build of another major version than the panel knows: say so, and carry on.
   const odd = untested(game);
   $('build').hidden = !odd;
