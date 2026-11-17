@@ -1,0 +1,26 @@
+name: Device request
+description: Ask for another touchscreen to be supported
+labels: [device]
+body:
+  - type: markdown
+    attributes:
+      value: Only the Corsair Xeneon Edge is fully supported for now. More devices will come if there is demand, so add a thumbs up to an existing request for your screen rather than opening a new one.
+  - type: input
+    id: device
+    attributes:
+      label: Device
+      placeholder: Make and model
+    validations:
+      required: true
+  - type: input
+    id: resolution
+    attributes:
+      label: Resolution
+      placeholder: 1920 x 480
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: How you connect it, and how you would use it.

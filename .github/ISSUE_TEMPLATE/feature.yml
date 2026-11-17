@@ -1,0 +1,16 @@
+name: Feature request
+description: An idea for a control, a page or something the console could follow
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: What you would like, and when you would use it in game.
+    validations:
+      required: true
+  - type: input
+    id: ship
+    attributes:
+      label: Ship or activity
+      description: If it is for a ship, a role or an activity (mining, salvage, on foot, and so on).

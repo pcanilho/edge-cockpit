@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a434d"/><stop offset="1" stop-color="#191e24"/></linearGradient>
+    <linearGradient id="hull" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3fb0d6"/><stop offset=".5" stop-color="#8ae2f6"/><stop offset="1" stop-color="#3fb0d6"/></linearGradient>
+    <path id="ship" d="M0 -185L10 -140L18 -60L26 4L124 66L130 94L58 84L50 104L72 146L40 138L16 152L0 140L-16 152L-40 138L-72 146L-50 104L-58 84L-130 94L-124 66L-26 4L-18 -60L-10 -140Z"/>
+    <mask id="gap" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024">
+      <rect width="1024" height="1024" fill="#fff"/>
+      <use href="#ship" transform="translate(612 372) rotate(45) scale(1.5)" fill="#000" stroke="#000" stroke-width="24" stroke-linejoin="round"/>
+    </mask>
+  </defs>
+  <rect x="64" y="64" width="896" height="896" rx="160" fill="url(#tile)"/>
+  <rect x="66" y="66" width="892" height="892" rx="158" fill="none" stroke="#ffffff18" stroke-width="4"/>
+  <rect x="176" y="476" width="672" height="250" rx="6" fill="none" stroke="#ffb547" stroke-width="46" mask="url(#gap)"/>
+  <g transform="translate(612 372) rotate(45) scale(1.5)">
+    <use href="#ship" fill="url(#hull)"/>
+    <path d="M0-140L8-112L0-88L-8-112Z" fill="#14202a"/>
+    <path d="M14 148h10M-24 148h10" stroke="#ffb547" stroke-width="7" stroke-linecap="round"/>
+  </g>
+</svg>
