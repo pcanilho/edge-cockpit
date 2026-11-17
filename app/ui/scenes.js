@@ -268,12 +268,41 @@ function comms(x, w) {
   const p = plate(x, w, 'Comms and map');
   const half = (w - 60) / 2;
   add(p, placard(20, 44, 'Replies'),
-    ...[1, 2, 3, 4, 5].map(n => keycap(20, 70 + (n - 1) * 124, half, 116, `Reply ${n}`, { fs: 16, icon: 'chat' })),
+    ...[1, 2, 3, 4].map(n => keycap(20, 70 + (n - 1) * 124, half, 116, `Reply ${n}`, { fs: 16, icon: 'chat' })),
+    keycap(20, 566, half / 2 - 4, 116, 'Reply 5', { fs: 14, icon: 'chat' }),
+    pageKey(24 + half / 2, 566, half / 2 - 4, 116, 'Emotes', 'hand', 'emotes'),
     keycap(40 + half, 70, half, 116, 'Local map', { fs: 15 }), keycap(40 + half, 194, half, 116, 'Starmap', { fs: 15 }),
     keycap(40 + half, 318, half, 116, 'Plan route', { fs: 15 }), keycap(40 + half, 442, half, 116, 'Scoreboard', { fs: 15 }),
     keycap(40 + half, 566, half / 2 - 4, 116, 'Chat window', { label: 'Chat', fs: 14 }),
     keycap(44 + half * 1.5, 566, half / 2 - 4, 116, 'Push to talk', { fs: 13 }));
   return p;
+}
+
+/** A key that opens another console page rather than pressing a game key. */
+function pageKey(x, y, w, ht, text, glyph, page) {
+  const el = h(`<div class="well key page-key" style="left:${x}px;top:${y}px;width:${w}px;height:${ht}px">
+    <div class="cap">${icon(glyph, 22)}<span class="lg" style="font-size:14px">${esc(text)}</span><span class="tg">PAGE</span></div></div>`);
+  pressable(el, { up: () => K.go(page) });
+  return el;
+}
+
+const EMOTES = ['Wave', 'Salute', 'Point', 'Come', 'Wait', 'Agree', 'Disagree', 'Cheer', 'Clap', 'Laugh', 'Dance', 'Bow',
+  'Greet', 'Threaten', 'Taunt', 'Rude', 'Sit', 'Sleep', 'Flex', 'Gloat', 'Angry', 'At ease', 'Attention', 'Whistle'];
+
+function emotes() {
+  const a = plate(382, 760, 'Hand signals');
+  add(a,
+    keycap(280, 50, 200, 140, 'Signal forward', { label: 'Forward', fs: 15 }),
+    keycap(70, 200, 200, 140, 'Signal left', { label: 'Left', fs: 15 }),
+    keycap(280, 200, 200, 140, 'Signal stop', { label: 'Stop', fs: 15 }),
+    keycap(490, 200, 200, 140, 'Signal right', { label: 'Right', fs: 15 }),
+    keycap(70, 380, 305, 140, 'Signal yes', { label: 'Yes', fs: 15 }),
+    keycap(385, 380, 305, 140, 'Signal no', { label: 'No', fs: 15 }),
+    pageKey(70, 560, 620, 120, 'Back to on foot', 'back', 'onfoot'));
+  const b = plate(1148, 1406, 'Emotes');
+  const cw = (1406 - 40 - 5 * 8) / 6, rh = 150;
+  add(b, ...EMOTES.map((l, i) => keycap(20 + (i % 6) * (cw + 8), 50 + Math.floor(i / 6) * (rh + 8), cw, rh, l, { fs: 16 })));
+  return [a, b];
 }
 
 function mapPage() {
@@ -324,6 +353,7 @@ function downed() {
 export function scene(page) {
   if (page.id === 'onfoot') return onFoot();
   if (page.id === 'map') return mapPage();
+  if (page.id === 'emotes') return emotes();
   if (page.id === 'downed') return downed();
   const plates = { power: powerPlate(), role: rolePlate(page), flight: flightPlate(), gear: gearPlate() };
   for (const [slot, p] of Object.entries(plates)) p.dataset.slot = slot;

@@ -1472,20 +1472,7 @@
            "press": "tap",
            "needsKeyboardBind": false,
            "icon": "flare",
-           "role": "action",
-           "more": {
-            "hold": {
-             "label": "Panic decoy",
-             "action": "v_weapon_countermeasure_decoy_launch_panic",
-             "actionmap": "spaceship_defensive",
-             "defaultKey": null,
-             "activation": "press",
-             "press": "tap",
-             "needsKeyboardBind": true,
-             "icon": "flare",
-             "role": "action"
-            }
-           }
+           "role": "action"
           }
          },
          {
@@ -2650,6 +2637,350 @@
           "role": "menu"
          }
         }
+       }
+      ],
+      [
+       {
+        "label": "Flight ready",
+        "action": "v_flightready",
+        "actionmap": "spaceship_general",
+        "defaultKey": "ralt+r",
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "ready",
+        "role": "action"
+       },
+       {
+        "label": "Landing gear",
+        "action": "v_toggle_landing_system",
+        "actionmap": "spaceship_movement",
+        "defaultKey": "n",
+        "activation": "tap",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "gear",
+        "state": {
+         "key": "gear",
+         "kind": "toggle",
+         "labels": [
+          "DOWN",
+          "UP"
+         ]
+        },
+        "role": "toggle"
+       },
+       {
+        "label": "Quantum",
+        "action": "v_toggle_qdrive_engagement",
+        "actionmap": "spaceship_quantum",
+        "defaultKey": null,
+        "activation": "delayed_press",
+        "press": "hold",
+        "needsKeyboardBind": true,
+        "icon": "quantum",
+        "anim": "spool",
+        "role": "hold"
+       },
+       {
+        "label": "Decoupled",
+        "action": "v_ifcs_vector_decoupling_toggle",
+        "actionmap": "spaceship_movement",
+        "defaultKey": "c",
+        "activation": "tap",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "split",
+        "state": {
+         "key": "decoupled",
+         "kind": "toggle",
+         "labels": [
+          "DECOUPLED",
+          "COUPLED"
+         ]
+        },
+        "role": "toggle"
+       },
+       {
+        "label": "Space brake",
+        "action": "v_space_brake",
+        "actionmap": "spaceship_movement",
+        "defaultKey": "x",
+        "activation": "",
+        "press": "hold",
+        "needsKeyboardBind": false,
+        "icon": "stop",
+        "role": "hold"
+       },
+       {
+        "label": "Decoy",
+        "action": "v_weapon_countermeasure_decoy_launch",
+        "actionmap": "spaceship_defensive",
+        "defaultKey": "h",
+        "activation": "",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "flare",
+        "role": "action",
+        "more": {
+         "hold": {
+          "label": "Panic decoy",
+          "action": "v_weapon_countermeasure_decoy_launch_panic",
+          "actionmap": "spaceship_defensive",
+          "defaultKey": null,
+          "activation": "press",
+          "press": "tap",
+          "needsKeyboardBind": true,
+          "icon": "flare",
+          "role": "action"
+         }
+        }
+       },
+       {
+        "label": "Noise",
+        "action": "v_weapon_countermeasure_noise_launch",
+        "actionmap": "spaceship_defensive",
+        "defaultKey": "j",
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "noise",
+        "role": "action"
+       },
+       {
+        "label": "Eject",
+        "action": "v_eject",
+        "actionmap": "seat_general",
+        "defaultKey": "ralt+y",
+        "activation": "press",
+        "press": "danger",
+        "needsKeyboardBind": false,
+        "icon": "eject",
+        "role": "critical"
+       }
+      ]
+     ]
+    },
+    {
+     "id": "emotes",
+     "name": "Emotes",
+     "theme": {
+      "accent": "#6fd08c",
+      "code": "FPS",
+      "glyph": "helmet"
+     },
+     "profile": "main",
+     "tab": "onfoot",
+     "event": true,
+     "groups": [
+      {
+       "label": "Signals",
+       "row": 0,
+       "col": 0,
+       "w": 8,
+       "h": 1
+      },
+      {
+       "label": "Emotes",
+       "row": 1,
+       "col": 0,
+       "w": 8,
+       "h": 1
+      },
+      {
+       "label": "Flight",
+       "row": 2,
+       "col": 0,
+       "w": 4,
+       "h": 1
+      },
+      {
+       "label": "Panic",
+       "row": 2,
+       "col": 4,
+       "w": 4,
+       "h": 1
+      }
+     ],
+     "rows": [
+      [
+       {
+        "label": "Signal forward",
+        "action": "emote_cs_forward",
+        "actionmap": "player_emotes",
+        "defaultKey": "np_5",
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "up",
+        "role": "action"
+       },
+       {
+        "label": "Signal left",
+        "action": "emote_cs_left",
+        "actionmap": "player_emotes",
+        "defaultKey": "np_1",
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "left",
+        "role": "action"
+       },
+       {
+        "label": "Signal right",
+        "action": "emote_cs_right",
+        "actionmap": "player_emotes",
+        "defaultKey": "np_3",
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "right",
+        "role": "action"
+       },
+       {
+        "label": "Signal stop",
+        "action": "emote_cs_stop",
+        "actionmap": "player_emotes",
+        "defaultKey": "np_2",
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "stop",
+        "role": "action"
+       },
+       {
+        "label": "Signal yes",
+        "action": "emote_cs_yes",
+        "actionmap": "player_emotes",
+        "defaultKey": "np_4",
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "person",
+        "role": "action"
+       },
+       {
+        "label": "Signal no",
+        "action": "emote_cs_no",
+        "actionmap": "player_emotes",
+        "defaultKey": "np_6",
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "x",
+        "role": "action"
+       },
+       {
+        "label": "Wave",
+        "action": "emote_wave",
+        "actionmap": "player_emotes",
+        "defaultKey": null,
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": true,
+        "icon": "hand",
+        "role": "action"
+       },
+       {
+        "label": "Salute",
+        "action": "emote_salute",
+        "actionmap": "player_emotes",
+        "defaultKey": null,
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": true,
+        "icon": "hand",
+        "role": "action"
+       }
+      ],
+      [
+       {
+        "label": "Point",
+        "action": "emote_point",
+        "actionmap": "player_emotes",
+        "defaultKey": null,
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": true,
+        "icon": "right",
+        "role": "action"
+       },
+       {
+        "label": "Come",
+        "action": "emote_come",
+        "actionmap": "player_emotes",
+        "defaultKey": null,
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": true,
+        "icon": "pull",
+        "role": "action"
+       },
+       {
+        "label": "Wait",
+        "action": "emote_wait",
+        "actionmap": "player_emotes",
+        "defaultKey": null,
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": true,
+        "icon": "hand",
+        "role": "action"
+       },
+       {
+        "label": "Agree",
+        "action": "emote_agree",
+        "actionmap": "player_emotes",
+        "defaultKey": null,
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": true,
+        "icon": "person",
+        "role": "action"
+       },
+       {
+        "label": "Disagree",
+        "action": "emote_disagree",
+        "actionmap": "player_emotes",
+        "defaultKey": null,
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": true,
+        "icon": "person",
+        "role": "action"
+       },
+       {
+        "label": "Cheer",
+        "action": "emote_cheer",
+        "actionmap": "player_emotes",
+        "defaultKey": null,
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": true,
+        "icon": "person",
+        "role": "action"
+       },
+       {
+        "label": "Clap",
+        "action": "emote_clap",
+        "actionmap": "player_emotes",
+        "defaultKey": null,
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": true,
+        "icon": "person",
+        "role": "action"
+       },
+       {
+        "label": "Laugh",
+        "action": "emote_laugh",
+        "actionmap": "player_emotes",
+        "defaultKey": null,
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": true,
+        "icon": "person",
+        "role": "action"
        }
       ],
       [
@@ -9954,20 +10285,7 @@
            "press": "tap",
            "needsKeyboardBind": false,
            "icon": "flare",
-           "role": "action",
-           "more": {
-            "hold": {
-             "label": "Panic decoy",
-             "action": "v_weapon_countermeasure_decoy_launch_panic",
-             "actionmap": "spaceship_defensive",
-             "defaultKey": null,
-             "activation": "press",
-             "press": "tap",
-             "needsKeyboardBind": true,
-             "icon": "flare",
-             "role": "action"
-            }
-           }
+           "role": "action"
           }
          },
          {
@@ -10049,11 +10367,7 @@
      "state": {
       "key": "power",
       "kind": "set",
-      "value": true,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": true
      },
      "role": "select"
     },
@@ -10069,11 +10383,7 @@
      "state": {
       "key": "power",
       "kind": "set",
-      "value": false,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": false
      },
      "role": "select"
     },
@@ -10089,11 +10399,7 @@
      "state": {
       "key": "pwr_thr",
       "kind": "set",
-      "value": true,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": true
      },
      "role": "select"
     },
@@ -10109,11 +10415,7 @@
      "state": {
       "key": "pwr_thr",
       "kind": "set",
-      "value": false,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": false
      },
      "role": "select"
     },
@@ -10129,11 +10431,7 @@
      "state": {
       "key": "pwr_shd",
       "kind": "set",
-      "value": true,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": true
      },
      "role": "select"
     },
@@ -10149,11 +10447,7 @@
      "state": {
       "key": "pwr_shd",
       "kind": "set",
-      "value": false,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": false
      },
      "role": "select"
     },
@@ -10169,11 +10463,7 @@
      "state": {
       "key": "pwr_wpn",
       "kind": "set",
-      "value": true,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": true
      },
      "role": "select"
     },
@@ -10189,11 +10479,7 @@
      "state": {
       "key": "pwr_wpn",
       "kind": "set",
-      "value": false,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": false
      },
      "role": "select"
     },
@@ -10209,11 +10495,7 @@
      "state": {
       "key": "lights",
       "kind": "set",
-      "value": true,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": true
      },
      "role": "select"
     },
@@ -10229,11 +10511,7 @@
      "state": {
       "key": "lights",
       "kind": "set",
-      "value": false,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": false
      },
      "role": "select"
     },
@@ -10249,11 +10527,7 @@
      "state": {
       "key": "vtol",
       "kind": "set",
-      "value": true,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": true
      },
      "role": "select"
     },
@@ -10269,11 +10543,7 @@
      "state": {
       "key": "vtol",
       "kind": "set",
-      "value": false,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": false
      },
      "role": "select"
     },
@@ -10289,11 +10559,7 @@
      "state": {
       "key": "limiter",
       "kind": "set",
-      "value": true,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": true
      },
      "role": "select"
     },
@@ -10309,11 +10575,7 @@
      "state": {
       "key": "limiter",
       "kind": "set",
-      "value": false,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": false
      },
      "role": "select"
     },
@@ -10329,11 +10591,7 @@
      "state": {
       "key": "decoupled",
       "kind": "set",
-      "value": true,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": true
      },
      "role": "select"
     },
@@ -10349,11 +10607,7 @@
      "state": {
       "key": "decoupled",
       "kind": "set",
-      "value": false,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": false
      },
      "role": "select"
     },
@@ -10369,11 +10623,7 @@
      "state": {
       "key": "gsafe",
       "kind": "set",
-      "value": true,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": true
      },
      "role": "select"
     },
@@ -10389,11 +10639,7 @@
      "state": {
       "key": "gsafe",
       "kind": "set",
-      "value": false,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": false
      },
      "role": "select"
     },
@@ -10409,11 +10655,7 @@
      "state": {
       "key": "prox",
       "kind": "set",
-      "value": true,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": true
      },
      "role": "select"
     },
@@ -10429,11 +10671,7 @@
      "state": {
       "key": "prox",
       "kind": "set",
-      "value": false,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": false
      },
      "role": "select"
     },
@@ -10449,11 +10687,7 @@
      "state": {
       "key": "advhud",
       "kind": "set",
-      "value": true,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": true
      },
      "role": "select"
     },
@@ -10469,11 +10703,7 @@
      "state": {
       "key": "advhud",
       "kind": "set",
-      "value": false,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": false
      },
      "role": "select"
     },
@@ -10489,11 +10719,7 @@
      "state": {
       "key": "stability",
       "kind": "set",
-      "value": true,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": true
      },
      "role": "select"
     },
@@ -10509,11 +10735,7 @@
      "state": {
       "key": "stability",
       "kind": "set",
-      "value": false,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": false
      },
      "role": "select"
     },
@@ -10529,11 +10751,7 @@
      "state": {
       "key": "gravcomp",
       "kind": "set",
-      "value": true,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": true
      },
      "role": "select"
     },
@@ -10549,11 +10767,7 @@
      "state": {
       "key": "gravcomp",
       "kind": "set",
-      "value": false,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": false
      },
      "role": "select"
     },
@@ -10569,11 +10783,7 @@
      "state": {
       "key": "stagger",
       "kind": "set",
-      "value": true,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": true
      },
      "role": "select"
     },
@@ -10589,11 +10799,7 @@
      "state": {
       "key": "stagger",
       "kind": "set",
-      "value": false,
-      "labels": [
-       "ON",
-       "OFF"
-      ]
+      "value": false
      },
      "role": "select"
     },
@@ -10675,11 +10881,7 @@
         "state": {
          "key": "power",
          "kind": "set",
-         "value": true,
-         "labels": [
-          "ON",
-          "OFF"
-         ]
+         "value": true
         },
         "role": "select"
        }
@@ -10697,11 +10899,7 @@
         "state": {
          "key": "pwr_thr",
          "kind": "set",
-         "value": true,
-         "labels": [
-          "ON",
-          "OFF"
-         ]
+         "value": true
         },
         "role": "select"
        }
@@ -10719,11 +10917,7 @@
         "state": {
          "key": "pwr_shd",
          "kind": "set",
-         "value": true,
-         "labels": [
-          "ON",
-          "OFF"
-         ]
+         "value": true
         },
         "role": "select"
        }
@@ -10741,11 +10935,7 @@
         "state": {
          "key": "pwr_wpn",
          "kind": "set",
-         "value": true,
-         "labels": [
-          "ON",
-          "OFF"
-         ]
+         "value": true
         },
         "role": "select"
        }
@@ -10767,6 +10957,160 @@
        }
       }
      ]
+    },
+    {
+     "label": "Dance",
+     "action": "emote_dance",
+     "actionmap": "player_emotes",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "person",
+     "role": "action"
+    },
+    {
+     "label": "Bow",
+     "action": "emote_bow",
+     "actionmap": "player_emotes",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "person",
+     "role": "action"
+    },
+    {
+     "label": "Greet",
+     "action": "emote_greet",
+     "actionmap": "player_emotes",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "person",
+     "role": "action"
+    },
+    {
+     "label": "Threaten",
+     "action": "emote_threaten",
+     "actionmap": "player_emotes",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "person",
+     "role": "action"
+    },
+    {
+     "label": "Taunt",
+     "action": "emote_taunt",
+     "actionmap": "player_emotes",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "person",
+     "role": "action"
+    },
+    {
+     "label": "Rude",
+     "action": "emote_rude",
+     "actionmap": "player_emotes",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "person",
+     "role": "action"
+    },
+    {
+     "label": "Sit",
+     "action": "emote_sit",
+     "actionmap": "player_emotes",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "crouch",
+     "role": "action"
+    },
+    {
+     "label": "Sleep",
+     "action": "emote_sleep",
+     "actionmap": "player_emotes",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "moon",
+     "role": "action"
+    },
+    {
+     "label": "Flex",
+     "action": "emote_flex",
+     "actionmap": "player_emotes",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "person",
+     "role": "action"
+    },
+    {
+     "label": "Gloat",
+     "action": "emote_gloat",
+     "actionmap": "player_emotes",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "person",
+     "role": "action"
+    },
+    {
+     "label": "Angry",
+     "action": "emote_angry",
+     "actionmap": "player_emotes",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "person",
+     "role": "action"
+    },
+    {
+     "label": "At ease",
+     "action": "emote_atease",
+     "actionmap": "player_emotes",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "person",
+     "role": "action"
+    },
+    {
+     "label": "Attention",
+     "action": "emote_attention",
+     "actionmap": "player_emotes",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "person",
+     "role": "action"
+    },
+    {
+     "label": "Whistle",
+     "action": "emote_whistle",
+     "actionmap": "player_emotes",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "person",
+     "role": "action"
     }
    ]
   }

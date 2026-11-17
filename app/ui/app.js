@@ -343,6 +343,7 @@ const K = {
     tick('page');
     show(rolePage?.startsWith(base) ? rolePage : base);
   },
+  go: id => { tick('page'); show(id); },
 };
 controls.init(K);
 initScenes(K);
@@ -372,7 +373,7 @@ function show(id) {
 // Soft keys under the status display.
 const SOFT = [
   { label: 'Ship', icon: 'ship', go: () => rolePage || lastShip, is: id => !!moduleOf(id) },
-  { label: 'On foot', icon: 'helmet', go: () => 'onfoot', is: id => id === 'onfoot' },
+  { label: 'On foot', icon: 'helmet', go: () => 'onfoot', is: id => id === 'onfoot' || id === 'emotes' },
   { label: 'Map', icon: 'map', go: () => 'map', is: id => id === 'map' },
   { label: 'Downed', icon: 'medical', go: () => 'downed', is: id => id === 'downed' },
   { label: 'Settings', icon: 'cog', go: null },

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Emotes page, from the Emotes key on the On foot page: squad hand signals and 24 emotes. Reload the keybind profile for their keys.
+- Panic decoy now has a key in the keybind profile (it had none, so the long press did nothing).
 - Every key is checked on each change against the game's 4.x action list, so a renamed or removed action fails the build instead of a key doing nothing.
 - ON/OFF switches for power (all, thrusters, shields, weapons), lights, VTOL, speed limiter, decoupled, G-safe, proximity assist, advanced HUD, stability, gravity compensation and staggered fire. They use the game's separate on and off binds, so a tap sets the state rather than flipping it. Unlit until set; reset when you leave the seat or change ship.
 - All systems on: one macro that powers everything up and runs Flight Ready.
