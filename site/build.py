@@ -7,6 +7,7 @@ download links point at the latest release page.
 """
 import argparse
 import html
+import re
 import json
 import shutil
 import time
@@ -58,7 +59,8 @@ def main():
     (out / "fonts").mkdir()
 
     fields = release_fields(args.release)
-    fields["BASE_URL"] = args.base_url.rstrip("/") + "/"
+    # Pages reports http:// until HTTPS is enforced; the site is served over HTTPS.
+    fields["BASE_URL"] = re.sub(r"^http://", "https://", args.base_url.rstrip("/") + "/")
     fields["STAMP"] = str(int(time.time()))
     page = (SITE / "index.html").read_text(encoding="utf-8")
     page = page.replace('<html lang="en">', f'<html lang="en" data-version="{html.escape(fields["VERSION"])}">', 1)
