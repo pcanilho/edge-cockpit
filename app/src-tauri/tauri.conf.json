@@ -28,7 +28,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; connect-src 'self' ipc: http://ipc.localhost https://api.fleetyards.net; img-src 'self' data: https://api.fleetyards.net https://storage.fltyrd.net; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'",
+      "csp": "default-src 'self'; script-src 'self'; connect-src 'self' ipc: http://ipc.localhost https://api.fleetyards.net https://fleetyards.net https://storage.fltyrd.net; img-src 'self' data: https://api.fleetyards.net https://fleetyards.net https://storage.fltyrd.net; style-src 'self' 'unsafe-inline'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'",
       "freezePrototype": true
     }
   },
