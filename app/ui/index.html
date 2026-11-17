@@ -33,6 +33,7 @@
         <button class="chip" id="wreck" hidden><i></i><span></span></button>
         <button class="chip warn" id="build" hidden><i></i><span></span></button>
         <button class="chip new" id="update" hidden><i></i><span></span></button>
+        <button class="chip warn" id="binds-chip" hidden><i></i><span></span></button>
         <button class="chip auto" id="auto"><i></i><span>Auto pages</span></button>
       </div>
       <div class="qt" id="qt" hidden><svg class="i" viewBox="0 0 24 24"></svg><div><small>Quantum target</small><span id="qt-name"></span></div></div>
@@ -49,7 +50,7 @@
       <button class="tab" data-sec="general"><svg class="i" viewBox="0 0 24 24"></svg><span>General</span></button>
       <button class="tab" data-sec="screen"><svg class="i" viewBox="0 0 24 24"></svg><span>Screen</span></button>
       <button class="tab" data-sec="feedback"><svg class="i" viewBox="0 0 24 24"></svg><span>Touch feedback</span></button>
-      <button class="tab" data-sec="binds"><svg class="i" viewBox="0 0 24 24"></svg><span>Keybinds</span></button>
+      <button class="tab" data-sec="binds"><svg class="i" viewBox="0 0 24 24"></svg><span>Keybinds</span><i class="dot warn" id="binds-dot" hidden></i></button>
       <button class="tab" data-sec="about"><svg class="i" viewBox="0 0 24 24"></svg><span>About</span><i class="dot" id="tab-dot" hidden></i></button>
       <button class="tab quit" id="act-quit"><svg class="i" viewBox="0 0 24 24"></svg><span>Quit</span></button>
     </nav>
@@ -80,6 +81,7 @@
       </section>
       <section class="pane" data-sec="binds" hidden>
         <h3>Keybinds</h3>
+        <div class="health" id="bind-health"><i></i><div class="txt"><b></b><p></p></div></div>
         <div class="rows">
           <button class="act" id="act-binds"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Reload my binds<small id="binds-note">Default binds</small></span></button>
           <button class="act" id="act-install"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Add the console's binds to the game<small>Then pick "xeneon" in Control Profiles</small></span></button>

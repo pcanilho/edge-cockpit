@@ -129,6 +129,12 @@ const right = await page.evaluate(() => Math.max(...[...document.querySelectorAl
 if (right > 2560) problems.push(`rearranged plates run off screen (${right})`);
 await page.evaluate(() => { localStorage.removeItem('xfd-order:fighter'); window.xfd.show('mining'); });
 
+// With the game's default binds, every key the console uses can be pressed and none collide.
+const health = await page.evaluate(() => window.xfd.bindHealth());
+if (health.missing.length) problems.push(`keys with no default keyboard bind: ${health.missing.join(', ')}`);
+if (health.shared.length) problems.push(`default binds that collide: ${health.shared.join('; ')}`);
+report.push(`keybind check: ${health.total} keys, ${health.missing.length} missing, ${health.shared.length} shared`);
+
 // Settings, with release notes showing.
 await page.evaluate(() => {
   document.getElementById('sheet').hidden = false;

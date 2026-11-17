@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Keybind check: at start and whenever your binds change, the console checks every key it can send. Keys with no keyboard bind, joystick-only binds and two actions sharing a key show in Settings, Keybinds, and a chip on the status screen points there.
 - Press flash: a control lights up for a moment when its key goes out, including the power corners. Turn it off in Settings.
 - Settings are grouped into sections (General, Screen, Touch feedback, Keybinds, About) with room to grow. The update chip opens About.
 - With no game running, the status screen reads "Standing by" instead of a title that wrapped over its subtitle.
