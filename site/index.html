@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Edge Cockpit · Touch cockpit for Star Citizen</title>
+<meta name="description" content="A free cockpit console for Star Citizen on a touchscreen. It presses your own keybinds, never takes focus from the game, and follows what you do in game.">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0b0d10">
+<link rel="canonical" href="{{BASE_URL}}">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Edge Cockpit">
+<meta property="og:description" content="A free cockpit console for Star Citizen on a touchscreen.">
+<meta property="og:url" content="{{BASE_URL}}">
+<meta property="og:image" content="{{BASE_URL}}img/social-preview.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="640">
+<meta property="og:image:alt" content="Edge Cockpit: touch cockpit for Star Citizen">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="img/logo.svg" type="image/svg+xml">
+<link rel="icon" href="img/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+<link rel="preload" href="fonts/chakra-petch-700.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css?v={{STAMP}}">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Edge Cockpit","operatingSystem":"Windows 10, Windows 11","applicationCategory":"GameApplication","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"softwareVersion":"{{VERSION}}","downloadUrl":"{{SETUP_URL}}","license":"https://opensource.org/licenses/MIT"}</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <a class="brand" href="./"><img src="img/logo.svg" alt="" width="32" height="32"><span>Edge <b>Cockpit</b></span></a>
+  <nav aria-label="Sections">
+    <a href="#features">Features</a>
+    <a href="#install">Install</a>
+    <a href="#safety">Safety</a>
+    <a href="#faq">FAQ</a>
+    <a class="nav-sponsor" href="https://github.com/sponsors/pcanilho"><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M8 14.25.345 6.756A4.5 4.5 0 0 1 6.71.388L8 1.6 9.29.388a4.5 4.5 0 0 1 6.365 6.368Z"/></svg>Sponsor</a>
+    <a class="gh" href="https://github.com/pcanilho/edge-cockpit" aria-label="Source on GitHub"><svg viewBox="0 0 16 16" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
+  </nav>
+</header>
+
+<main id="main">
+
+<section class="hero">
+  <div class="hero-text">
+    <p class="eyebrow">Star Citizen · Touch cockpit</p>
+    <h1>Your ship's console, <span>on a touchscreen.</span></h1>
+    <p class="lead">Edge Cockpit turns a touchscreen into a cockpit panel. It presses your own keybinds, never takes focus from the game, and changes page as you board, step out or go down.</p>
+    <div class="cta">
+      <a class="key primary" href="{{SETUP_URL}}" data-rel="setup">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Download for Windows
+      </a>
+      <a class="key" href="#install">How to install</a>
+    </div>
+    <p class="meta" data-rel="meta"><span data-rel="version">{{VERSION}}</span>{{DATE_SEP}}<span data-rel="date">{{DATE}}</span> · Windows 10 and 11 · <a href="{{PORTABLE_URL}}" data-rel="portable">Portable exe</a> · <a href="{{RELEASE_URL}}" data-rel="notes">Release notes</a></p>
+    <ul class="pills" aria-label="At a glance">
+      <li>Free</li><li>Open source</li><li>No account</li><li>Game files untouched</li>
+    </ul>
+  </div>
+</section>
+
+<figure class="device">
+  <div class="bezel"><a href="img/panel.png"><img src="img/panel.png" width="2560" height="720" alt="The console on a fighter: status display, power plate with Flight Ready, a target wheel, flight and gear plates"></a></div>
+  <figcaption>Built for the Corsair Xeneon Edge, 2560 × 720. Other screens on request.</figcaption>
+</figure>
+
+<section id="features" class="features">
+  <h2 class="plate-title">What it does</h2>
+
+  <article class="feat">
+    <div class="feat-text">
+      <h3>Follows the game</h3>
+      <p>It reads the game's log while you play. Board a ship and its page opens in the maker's colours, with its outline, role and quantum target. Step out and you get On foot. Go down and a big revive button is waiting.</p>
+    </div>
+    <a class="shot" href="img/panel-onfoot.png"><img src="img/panel-onfoot.png" width="2560" height="720" loading="lazy" alt="On-foot page with weapon wheel, suit and comms"></a>
+  </article>
+
+  <article class="feat">
+    <div class="feat-text">
+      <h3>A page for each role</h3>
+      <p>A target dial for fighters, a laser power knob for miners, a beam head for salvage, a tractor beam slider for cargo. Every ship page also has power, flight and gear plates and one big Flight Ready button. No key appears twice on a page.</p>
+    </div>
+    <a class="shot" href="img/panel-mining.png"><img src="img/panel-mining.png" width="2560" height="720" loading="lazy" alt="Mining page with laser power knob and mining modules"></a>
+  </article>
+
+  <article class="feat">
+    <div class="feat-text">
+      <h3>Knows where you stand</h3>
+      <p>Your location, mission objective and contract rewards sit on a glass display. Weapons grey out in armistice zones. The frame goes red only for a CrimeStat or a disabled ship. Nothing is guessed: a switch the game doesn't report stays a push-button.</p>
+    </div>
+    <a class="shot" href="img/panel-alert.png"><img src="img/panel-alert.png" width="2560" height="720" loading="lazy" alt="Red alert frame with a CrimeStat"></a>
+  </article>
+
+  <article class="feat">
+    <div class="feat-text">
+      <h3>Your keys, not new ones</h3>
+      <p>It reads your <code>actionmaps.xml</code>, so keys you rebound in game just work. The game keeps focus while you tap. Settings lists any key the console can't press.</p>
+    </div>
+    <a class="shot" href="img/panel-settings.png"><img src="img/panel-settings.png" width="2560" height="720" loading="lazy" alt="Settings with keybind check and what's new"></a>
+  </article>
+
+  <ul class="grid">
+    <li><b>Out of the way</b><span>Starts with Windows and waits in the tray. The screen goes dark when you quit and wakes when the game starts.</span></li>
+    <li><b>Your layout</b><span>Long-press a plate's title, drag the plates, tap Done. The order is kept for each role.</span></li>
+    <li><b>Night mode</b><span>On, off, or automatic from 20:00 to 07:00.</span></li>
+    <li><b>Updates when you're docked</b><span>A new release is offered with its notes, and only while you're not playing.</span></li>
+    <li><b>Light</b><span>A 1.5 MB installer. Nothing animates while the console is idle.</span></li>
+    <li><b>No accidents</b><span>Eject is a slide and self-destruct sits under a red cover, so neither fires on a stray tap.</span></li>
+  </ul>
+</section>
+
+<section id="install" class="install">
+  <h2 class="plate-title">Install</h2>
+  <ol class="steps">
+    <li>
+      <b>Download and run the installer</b>
+      <span>Windows SmartScreen will warn, because the app isn't code signed. Click <em>More info</em>, then <em>Run anyway</em>.</span>
+    </li>
+    <li>
+      <b>Pick the control profile</b>
+      <span>In game: <em>Options › Keybindings › Advanced Controls Customization › Control Profiles</em>. Choose <em>xeneon</em> and tick only <em>Keyboard</em>. This gives the console's extra actions a free key. Your own binds stay as they are.</span>
+    </li>
+    <li>
+      <b>Launch Star Citizen</b>
+      <span>The console wakes, finds the touchscreen and opens the right page.</span>
+    </li>
+  </ol>
+  <div class="cta center">
+    <a class="key primary" href="{{SETUP_URL}}" data-rel="setup">Download <span data-rel="version">{{VERSION}}</span></a>
+    <a class="key" href="{{SUMS_URL}}" data-rel="sums">SHA-256 checksums</a>
+  </div>
+</section>
+
+<section id="safety" class="safety">
+  <h2 class="plate-title">Safe to run</h2>
+  <p class="sub">Every release is built in public on GitHub from the tagged source. You can check what you download.</p>
+  <ul class="trust">
+    <li><b>VirusTotal</b><span>Each exe is scanned when it's released. The report links are in the release notes.</span><a href="{{RELEASE_URL}}" data-rel="notes">Latest scan</a></li>
+    <li><b>Build provenance</b><span>GitHub attests that the exe came from this repository's workflow. Check it with <code>gh attestation verify</code>.</span><a href="https://github.com/pcanilho/edge-cockpit/blob/main/SECURITY.md#verifying-a-download">How to verify</a></li>
+    <li><b>Checksums</b><span>SHA-256 for every file, published with the release.</span><a href="{{SUMS_URL}}" data-rel="sums">SHA256SUMS.txt</a></li>
+    <li><b>OpenSSF Best Practices</b><span>Passing badge, and an OpenSSF Scorecard for the repository.</span><a href="https://www.bestpractices.dev/projects/16854">Project 16854</a></li>
+    <li><b>Signed history</b><span>Every commit on main is signed and passes the security checks first.</span><a href="https://github.com/pcanilho/edge-cockpit/commits/main">Commits</a></li>
+    <li><b>Open source</b><span>MIT licensed. Read it, build it yourself, or send a fix.</span><a href="https://github.com/pcanilho/edge-cockpit">Source</a></li>
+  </ul>
+  <p class="badges">
+    <a href="https://www.bestpractices.dev/projects/16854"><img alt="OpenSSF Best Practices" src="https://www.bestpractices.dev/projects/16854/badge" height="20" loading="lazy"></a>
+    <a href="https://scorecard.dev/viewer/?uri=github.com/pcanilho/edge-cockpit"><img alt="OpenSSF Scorecard" src="https://api.scorecard.dev/projects/github.com/pcanilho/edge-cockpit/badge" height="20" loading="lazy"></a>
+    <a href="{{RELEASE_URL}}" data-rel="notes"><img alt="VirusTotal" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fpcanilho%2Fedge-cockpit%2Fbadges%2Fvirustotal.json" height="20" loading="lazy"></a>
+    <a href="https://github.com/pcanilho/edge-cockpit/blob/main/LICENSE"><img alt="License MIT" src="https://img.shields.io/github/license/pcanilho/edge-cockpit?color=ffb547" height="20" loading="lazy"></a>
+  </p>
+</section>
+
+<section id="faq" class="faq">
+  <h2 class="plate-title">Questions</h2>
+  <details>
+    <summary>Do I need a Xeneon Edge?</summary>
+    <p>It's the only screen fully supported for now. The console scales to fit other touchscreens, and layouts for other sizes come on request: <a href="https://github.com/pcanilho/edge-cockpit/issues/new/choose">ask for your device</a>.</p>
+  </details>
+  <details>
+    <summary>Is it safe to use with the game?</summary>
+    <p>It works like a second keyboard. It sends key presses and reads <code>Game.log</code>, a text file the game writes. It doesn't read game memory, inject anything or change game files.</p>
+  </details>
+  <details>
+    <summary>Does it take focus from the game?</summary>
+    <p>No. The window never becomes active, so your mouse and keyboard stay in the game while you tap.</p>
+  </details>
+  <details>
+    <summary>Does it cost anything?</summary>
+    <p>No. It's free and MIT licensed, with no account, ads or tracking. Sponsoring is optional.</p>
+  </details>
+  <details>
+    <summary>What does it connect to?</summary>
+    <p>FleetYards.net, once per ship, for its outline, which is then kept on your PC. GitHub, to check for updates. Nothing else.</p>
+  </details>
+  <details>
+    <summary>Which game version does it support?</summary>
+    <p>The current live build. Each release says which game build it was tested on.</p>
+  </details>
+  <details>
+    <summary>Something doesn't work. Where do I report it?</summary>
+    <p><a href="https://github.com/pcanilho/edge-cockpit/issues/new/choose">Open an issue</a>. The bug form asks for what's needed, such as the game build and your screen.</p>
+  </details>
+</section>
+
+<section id="support" class="support">
+  <img src="img/logo.svg" alt="" width="64" height="64">
+  <div>
+    <h2>Keep it flying</h2>
+    <p>Edge Cockpit is made in spare time. Sponsoring pays for the hours that go into new pages, ships and game patches.</p>
+  </div>
+  <div class="cta">
+    <a class="key amber" href="https://github.com/sponsors/pcanilho"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 14.25.345 6.756A4.5 4.5 0 0 1 6.71.388L8 1.6 9.29.388a4.5 4.5 0 0 1 6.365 6.368Z"/></svg>Sponsor on GitHub</a>
+    <a class="key" href="https://github.com/pcanilho/edge-cockpit">Star on GitHub</a>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <p>Edge Cockpit is an unofficial fan project, not affiliated with or endorsed by Cloud Imperium Games. Star Citizen is a trademark of Cloud Imperium Rights LLC. Ship outlines from <a href="https://fleetyards.net">FleetYards.net</a>.</p>
+  <p>MIT licensed · <a href="https://github.com/pcanilho/edge-cockpit/blob/main/CHANGELOG.md">Changelog</a> · <a href="https://github.com/pcanilho/edge-cockpit/blob/main/SECURITY.md">Security</a></p>
+</footer>
+
+<dialog class="lightbox" aria-label="Screenshot"><button class="close" aria-label="Close">✕</button><img alt=""></dialog>
+<script src="site.js?v={{STAMP}}" defer></script>
+</body>
+</html>

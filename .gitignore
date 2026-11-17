@@ -5,3 +5,4 @@ Data.p4k
 .DS_Store
 node_modules/
 .cache/
+_site/
