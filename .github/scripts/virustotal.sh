@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Scans exes with VirusTotal and writes, into the directory given first:
-#   virustotal.md    a "### VirusTotal" section for the release notes, with a link and result per exe
+#   virustotal.md    a "VirusTotal scan:" line for the release notes, linking each exe's report
+#                    (the counts live on the README badge, not in the notes)
 #   virustotal.json  a shields.io endpoint badge for the README
 # Usage: VT_API_KEY=... virustotal.sh <out dir> <exe>...
 # The free API allows 4 requests a minute, hence the pauses.
@@ -10,7 +11,7 @@ api=https://www.virustotal.com/api/v3
 vt() { sleep 16; curl -sSf -H "x-apikey: $VT_API_KEY" "$@"; }
 
 flagged=0; engines=0
-{ echo; echo "### VirusTotal"; } > "$out/virustotal.md"
+links=()
 for f in "$@"; do
   name=$(basename "$f")
   sha=$(sha256sum "$f" | cut -d' ' -f1)
@@ -29,12 +30,14 @@ for f in "$@"; do
     n=$(jq '.malicious + .suspicious + .undetected + .harmless' <<<"$stats")
     # The badge shows the worst exe, not a sum across them.
     flagged=$((bad > flagged ? bad : flagged)); engines=$((n > engines ? n : engines))
-    echo "- [$name]($link): flagged by $bad of $n engines" >> "$out/virustotal.md"
   else
     echo "::warning::No VirusTotal result for $name yet"
-    echo "- [$name]($link)" >> "$out/virustotal.md"
   fi
+  # Edge-Cockpit-1.2.3-portable.exe -> portable
+  label=${name%.exe}; label=${label##*-}
+  links+=("[$label]($link)")
 done
+{ echo; printf 'VirusTotal scan: %s\n' "$(printf '%s · ' "${links[@]}" | sed 's/ · $//')"; } > "$out/virustotal.md"
 
 if [ "$engines" -eq 0 ]; then msg="scanned"; color=394EFF
 elif [ "$flagged" -eq 0 ]; then msg="clean · 0/$engines"; color=brightgreen

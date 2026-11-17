@@ -31,8 +31,8 @@ jobs:
           mkdir -p out
           gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern '*.exe' --dir out
           .github/scripts/virustotal.sh out out/*.exe
-          # Replace any earlier VirusTotal section (always the last one) with the new results.
-          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body | sed '/^### VirusTotal/,$d' > notes.md
+          # Replace any earlier VirusTotal line or section (always last) with the new one.
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body | sed -E '/^(### VirusTotal|VirusTotal scan:)/,$d' > notes.md
           sed -i -e :a -e '/^\n*$/{$d;N;ba' -e '}' notes.md
           cat out/virustotal.md >> notes.md
           gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file notes.md
