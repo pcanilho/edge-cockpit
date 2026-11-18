@@ -1,12 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.9.0
 
 - Your keys: long-press any tap key to swap it for another. A cyan dot marks keys you changed; Back to stock undoes it. Kept per page and in saved profiles.
 - Key picker: Suggested first (keys like the one you replace, then your recent picks), sub-groups in each tab, toggle / on / off as one tile, and search on its own keyboard.
 - Arrange mode (long-press a plate title) also picks the role module, so a ship page can carry another module. Saved per role.
 - Settings > Screen: choose which ship plates this screen shows; the rest leave and the others grow to fill it. Size: Fit, or Actual size (never larger than designed).
-- Groundwork for your own pages: a page format (stock plates with your changes, plates of your own on a 16 px grid) and its renderer. Your pages come after the curated ones, which are unchanged. The rules hold on load too: a switch needs set-on/set-off binds, eject-type keys need a cover or slide.
 - Page editor: long-press a ship page's title, then New blank page or Duplicate & edit. Long-press the title of a page of yours to edit it again.
   - Drag controls from the palette (where the status display sits) onto a plate; they snap to a 16 px grid, with guides to line them up. Tap one for its card: key, label, size, duplicate, remove. Drag to move, drag the corner to resize.
   - Stock plates on a duplicated page: move or remove their controls; Back to stock undoes it. Add, remove, reorder and size your own plates.
@@ -18,7 +17,7 @@
   - Phone: the editor previews a plate as an upright phone folds it.
   - Share saves the page to Documents\Edge Cockpit\Pages; Import (arrange mode) adds a page file from there as a new page. Profiles carry your pages too.
   - Devices show your pages, and a tablet or PC showing the whole console can edit them: the Edge shows each change live, and Done saves on the PC.
-- README and site: pages of your own, with an editor screenshot.
+- README and site: pages of your own, with an editor screenshot. The Settings screenshot is retaken.
 - CI: every PR pixel-compares all curated pages and phone views against its base.
 
 ## 0.8.0
