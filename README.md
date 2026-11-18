@@ -83,6 +83,11 @@ Use `Game.log` class names; a prefix covers every variant.
 
 Corsair Xeneon Edge (2560 x 720). Other touchscreens: open a [device request](../../issues/new?template=device.yml).
 
+Phones, tablets and other PCs on your network join as extra screens: **Settings › Devices**, turn it on and scan the code (or open `http://edge-cockpit.local:47823`). No app to install. A phone shows one plate at a time; a tablet or another PC shows the whole console. Give a device one plate, or move a plate off the Edge onto it. Only paired devices can press keys.
+
+| ![Phone](docs/phone-power.png) | ![Phone sideways](docs/phone-role.png) |
+|---|---|
+
 ## Feedback
 
 [Bug report](../../issues/new?template=bug.yml) · [Feature request](../../issues/new?template=feature.yml) · [Contributing](CONTRIBUTING.md)
