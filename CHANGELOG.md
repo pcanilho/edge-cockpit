@@ -7,6 +7,9 @@
   - Your timers: red and blue keycard printers (30 min), the Ruin vault door (20 min closed, 1 min open, ends when you change server) and one of your own. A chime when each is ready.
   - Servers: RSI's status page and your region and shard.
   - Commodities where you are: what this place sells with the best place in the system to sell it, what it buys with the cheapest place to buy it, the profit per SCU, and the same for the places around the planet. Find: kind chips and an A–Z strip, then where a commodity is cheapest and pays most. Player reports from UEX, each with its age; older than 2 days in grey, older than a week left out. Offline it shows the saved prices and says so.
+  - Location unknown: a Locate key opens your inventory for a moment so Game.log names the place, then closes it (on foot only, since I toggles thrusters in a seat). Until then, the best trades in your system. Calling a ship at a hangar also names the place.
+  - After you travel, the place is tagged "You travelled since" with Locate beside it.
+  - Stock with each price: SCU for sale where you buy, the terminal's own stock where you sell. Low stock and full terminals in amber.
 
 ## 0.6.1
 

@@ -47,6 +47,13 @@ pub struct Quote {
     pub buy_at: u64,
     pub sell: f64,
     pub sell_at: u64,
+    /// SCU the cheapest terminal had for sale when the buy price was reported; 0 when unknown.
+    #[serde(default)]
+    pub buy_scu: u64,
+    /// The best paying terminal's own stock when the sell price was reported, as the game's
+    /// terminal shows it: 1 empty to 7 full, 0 when unknown.
+    #[serde(default)]
+    pub sell_status: u8,
 }
 
 /// Every place with prices in the systems the page offers. `offline` when the network
@@ -128,6 +135,15 @@ pub struct PriceRow {
     price_sell: f64,
     #[serde(default)]
     date_modified: u64,
+    #[serde(default, deserialize_with = "or_zero")]
+    scu_buy: f64,
+    #[serde(default, deserialize_with = "or_zero")]
+    status_sell: f64,
+}
+
+/// UEX sends null for a stock nobody reported.
+fn or_zero<'de, D: serde::Deserializer<'de>>(d: D) -> Result<f64, D::Error> {
+    Ok(Option::<f64>::deserialize(d)?.unwrap_or(0.0))
 }
 
 /// Places with trade terminals in the live game, and the lowest buy and highest sell of each
@@ -158,12 +174,12 @@ pub fn market(rows: &[PriceRow], terminals: &[Terminal], now_s: u64) -> (Vec<Pla
         if r.date_modified + REPORT_MAX_AGE_S < now_s {
             continue;
         }
-        let q = quotes.entry((place, name)).or_insert_with(|| Quote { place, name: name.into(), buy: 0.0, buy_at: 0, sell: 0.0, sell_at: 0 });
+        let q = quotes.entry((place, name)).or_insert_with(|| Quote { place, name: name.into(), buy: 0.0, buy_at: 0, sell: 0.0, sell_at: 0, buy_scu: 0, sell_status: 0 });
         if r.price_buy > 0.0 && (q.buy == 0.0 || r.price_buy < q.buy) {
-            (q.buy, q.buy_at) = (r.price_buy, r.date_modified);
+            (q.buy, q.buy_at, q.buy_scu) = (r.price_buy, r.date_modified, r.scu_buy.max(0.0) as u64);
         }
         if r.price_sell > 0.0 && r.price_sell > q.sell {
-            (q.sell, q.sell_at) = (r.price_sell, r.date_modified);
+            (q.sell, q.sell_at, q.sell_status) = (r.price_sell, r.date_modified, r.status_sell.clamp(0.0, 7.0) as u8);
         }
     }
     // Only places with a price, numbered afresh.
@@ -313,9 +329,9 @@ mod tests {
     fn rows() -> Vec<PriceRow> {
         let d = |h: u64| NOW - h * 3600;
         parse_uex(format!(r#"{{"status":"ok","data":[
-          {{"id_terminal":1,"commodity_name":"Gold","price_buy":0,"price_sell":31000,"date_modified":{}}},
+          {{"id_terminal":1,"commodity_name":"Gold","price_buy":0,"price_sell":31000,"status_sell":7,"date_modified":{}}},
           {{"id_terminal":2,"commodity_name":"Gold","price_buy":24360,"price_sell":29000,"date_modified":{}}},
-          {{"id_terminal":6,"commodity_name":"Gold","price_buy":26000,"price_sell":0,"date_modified":{}}},
+          {{"id_terminal":6,"commodity_name":"Gold","price_buy":26000,"price_sell":0,"scu_buy":12,"status_sell":null,"date_modified":{}}},
           {{"id_terminal":4,"commodity_name":"Gold","price_buy":100,"price_sell":99999,"date_modified":{}}},
           {{"id_terminal":5,"commodity_name":"Gold","price_buy":100,"price_sell":99999,"date_modified":{}}},
           {{"id_terminal":2,"commodity_name":"Scrap","price_buy":10,"price_sell":0,"date_modified":{}}},
@@ -332,6 +348,9 @@ mod tests {
         // Area18's two terminals make one place: the lowest buy and the highest sell of both.
         assert_eq!(q, [("Area 18", "Gold", 26000.0, 31000.0), ("HDMS-Anderson", "Gold", 24360.0, 29000.0), ("Ruin Station", "Scrap", 0.0, 3700.0)]);
         assert_eq!(quotes[0].sell_at, NOW - 5 * 3600);
+        // Stock as reported with each best price: Area18's full terminal pays most, the other sells 12 SCU.
+        assert_eq!((quotes[0].buy_scu, quotes[0].sell_status), (12, 7));
+        assert_eq!((quotes[1].buy_scu, quotes[1].sell_status), (0, 0));
         // Not in the live game, outside the systems offered, or only a week-old report: left out.
         assert_eq!(places.len(), 3);
         assert_eq!(places[0].aliases, ["Area18", "Area 18 TDD"]);

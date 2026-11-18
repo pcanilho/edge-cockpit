@@ -70,7 +70,7 @@ export const PATTERNS = {
   // Landing clearance from ATC: Added notification "Hangar Request Completed: "
   hangarGranted: /"Hangar Request Completed/,
   // The hangar's ship lift: Loading Platform Manager [LoadingPlatformManager_ShipElevator_HangarXLTop_Nyx] Platform state changed to RaisingPlatform
-  lift: /<CSCLoadingPlatformManager::OnLoadingPlatformStateChanged>.*?\[LoadingPlatformManager_ShipElevator_[^\]]*\] Platform state changed to (\w+)/,
+  lift: /<CSCLoadingPlatformManager::OnLoadingPlatformStateChanged>.*?\[LoadingPlatformManager_ShipElevator_([^\]]*)\] Platform state changed to (\w+)/,
   location: /<RequestLocationInventory> Player\[([^\]]+)\] requested inventory for Location\[([^\]]+)\]/,
 };
 
@@ -173,7 +173,8 @@ export function parseLine(line) {
   m = PATTERNS.wreck.exec(line);
   if (m) return { type: 'wreck', ship: shipModel(m[1]), level: Number(m[3]), by: m[4] || null };
   m = PATTERNS.lift.exec(line);
-  if (m) return { type: 'lift', to: LIFT[m[1]] || null };
+  // The lift's name ends with its place: HangarMediumTop_Area18. A bare system (HangarXLTop_Nyx) says no more than the system.
+  if (m) { const at = /^Hangar[A-Za-z]*?_(.+)$/.exec(m[1])?.[1] || null; return { type: 'lift', to: LIFT[m[2]] || null, place: at && !/^(Stanton|Pyro|Nyx)$/.test(at) ? at : null }; }
   m = PATTERNS.hangarCall.exec(line);
   if (m) return { type: 'hangar', status: 'called', area: m[1].trim() };
   m = PATTERNS.hangarName.exec(line);

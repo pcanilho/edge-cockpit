@@ -454,6 +454,30 @@ test('trade rows: buy here, sell where it pays most, best profit first', () => {
   assert.ok(gold.sell.every((x, i, a) => !i || a[i - 1].price >= x.price));
 });
 
+test('place unknown: best trades in the system; stock as reported', () => {
+  const rows = W.routes(MARKET, 'Stanton');
+  assert.ok(rows.length > 3);
+  for (const r of rows) {
+    assert.notEqual(r.here.place, r.other.place);
+    assert.equal(MARKET.places[r.here.place].system, 'Stanton');
+    assert.equal(r.profit, r.other.price - r.here.price);
+    assert.ok(r.profit > 0);
+  }
+  assert.deepEqual(rows.map(r => r.profit), rows.map(r => r.profit).sort((a, b) => b - a));
+  assert.deepEqual(W.stockText({ scu: 1200 }), { text: '1,200 SCU in stock', low: false });
+  assert.deepEqual(W.stockText({ scu: 6 }), { text: '6 SCU in stock', low: true });
+  assert.deepEqual(W.stockText({ status: 1 }), { text: 'Their stock empty', low: false });
+  assert.deepEqual(W.stockText({ status: 7 }), { text: 'Their stock full', low: true });
+  assert.equal(W.stockText({ scu: 0, status: 0 }), null);
+});
+
+test('the hangar lift names the place', () => {
+  const lift = (id, st = 'RaisingPlatform') => parseLine(`<2026-11-16T19:04:43.026Z> [Notice] <CSCLoadingPlatformManager::OnLoadingPlatformStateChanged> [Loading Platform] Loading Platform Manager [LoadingPlatformManager_ShipElevator_${id}] Platform state changed to ${st} [Team_CoreGameplayFeatures][Cargo]`);
+  assert.deepEqual(lift('HangarMediumTop_Area18'), { type: 'lift', to: 'rising', place: 'Area18' });
+  assert.equal(lift('HangarXLTop_Nyx').place, null); // only the system
+  assert.equal(W.placeFor(MARKET, 'Area18', 'Stanton') >= 0 && MARKET.places[W.placeFor(MARKET, 'Area18', 'Stanton')].name, 'Area 18');
+});
+
 test('find: kind chips and letters', () => {
   const metals = W.findList(MARKET, 'Stanton', { chip: 'Metals' });
   assert.ok(metals.includes('Gold') && !metals.includes('Stims'));
