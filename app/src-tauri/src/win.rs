@@ -563,6 +563,14 @@ pub fn relaunch_elevated() -> bool {
     r.0 as isize > 32
 }
 
+/// Opens a web page in the default browser.
+pub fn open_url(url: &str) -> bool {
+    let file = wide(url);
+    let verb = wide("open");
+    let r = unsafe { ShellExecuteW(None, PCWSTR(verb.as_ptr()), PCWSTR(file.as_ptr()), PCWSTR::null(), PCWSTR::null(), SW_SHOWNORMAL) };
+    r.0 as isize > 32
+}
+
 /// True when the window in front runs as administrator. Windows silently drops keys
 /// sent to it from a normal process, so the panel says so instead.
 pub fn foreground_elevated() -> bool {

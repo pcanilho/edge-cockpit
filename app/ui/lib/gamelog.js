@@ -482,3 +482,18 @@ export function logFor(a, b) {
   if (b.seated && b.ship && (!a.seated || a.ship !== b.ship)) out.push({ kind: 'seat', text: `Took the seat of ${shipName(b.ship)}`, tone: 'info' });
   return out;
 }
+
+// Patch watch: a patch can rename the log lines the console reads, and then it just goes
+// quiet. Lines every session logs soon after it loads, and boarding once you press ship keys
+// in the game, are checked. Kinds are parseLine types seen in this Game.log.
+export const WATCH_MS = 3 * 60_000, WATCH_KEYS = 10;
+/** What the log should have shown by now and hasn't: [] when all is well. */
+export function missingLines({ kinds, loadedAt, shipKeys }, now) {
+  const miss = [];
+  if (loadedAt && now - loadedAt > WATCH_MS) {
+    if (!kinds.has('me')) miss.push('your character');
+    if (!kinds.has('session')) miss.push('joining a server');
+  }
+  if (shipKeys >= WATCH_KEYS && !kinds.has('seat')) miss.push('boarding a ship');
+  return miss;
+}

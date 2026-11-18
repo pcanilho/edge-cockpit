@@ -36,6 +36,7 @@
           <button class="chip" id="hangar" hidden><i></i><span></span></button>
           <button class="chip warn" id="lag" hidden><i></i><span></span></button>
           <button class="chip warn" id="build" hidden><i></i><span></span></button>
+          <button class="chip warn" id="patch" hidden><i></i><span></span></button>
           <button class="chip new" id="update" hidden><i></i><span></span></button>
           <button class="chip warn" id="binds-chip" hidden><i></i><span></span></button>
           <button class="chip warn" id="touch-chip" hidden><i></i><span></span></button>
@@ -82,6 +83,7 @@
           <button class="opt" data-opt="alertSound"><span class="txt">Alert sound<small>A short tone with CrimeStat, armistice, ship disabled and hangar alerts</small></span><span class="knob"></span></button>
           <button class="opt" data-opt="anywhere"><span class="txt">Test mode<small>Send keys to any window, not just the game</small></span><span class="knob"></span></button>
           <button class="opt" data-opt="stack"><span class="txt">Two rows on a tall screen<small>On a screen that isn't ultra-wide, stacks the console for bigger keys</small></span><span class="knob"></span></button>
+          <button class="act" id="act-setup"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Setup check<small>Touchscreen, game, control profile and admin rights</small></span></button>
         </div>
       </section>
       <section class="pane" data-sec="screen" hidden>
@@ -143,6 +145,13 @@
       <div class="rc-stats" id="rc-stats"></div>
       <div class="rc-lists" id="rc-lists"></div>
       <div class="upd-btns"><button class="go" id="rc-close">Done</button></div>
+    </div>
+  </div>
+  <div class="setup" id="setup" role="dialog" aria-labelledby="su-title" hidden>
+    <div class="su-card">
+      <small id="su-count">Setup</small><h3 id="su-title">Set up Edge Cockpit</h3>
+      <div class="su-rows" id="su-rows"></div>
+      <div class="su-foot"><p class="su-test" id="su-test"></p><div class="upd-btns"><button class="later" id="su-key">Test a key</button><button class="go" id="su-done">Done</button></div></div>
     </div>
   </div>
   <div class="upd-prompt" id="upd-prompt" role="dialog" aria-labelledby="upd-p-title" hidden>

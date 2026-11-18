@@ -6,6 +6,8 @@
 - Long ship and maker names shrink to fit one line (Constellation Andromeda, CRUSADER, ROBERTS SPACE INDUSTRIES).
 - Maker themes for RSI, Crusader, Argo and Consolidated Outland, each with its own line art.
 - Settings > Screen > Large labels: key text a quarter bigger, placards a fifth, key hints hidden. For glare or a screen further away. Two rows on a tall screen moved to General.
+- Setup check: on first start (and from Settings > General) a card shows whether the touchscreen, the game and its Game.log, the edge-cockpit control profile and admin rights are all right, with a fix for each and a Test a key button (opens mobiGlas).
+- Patch watch: an amber "Log lines missing" chip when the game log stops showing lines every session has (your character, joining a server), or boarding while you press ship keys. Tap it to report it on GitHub.
 - CI replays a whole 4.10 session log through the app's own Game.log reader and line filter, then through the console's parser, and runs the Rust tests on Linux.
 
 ## 0.5.0

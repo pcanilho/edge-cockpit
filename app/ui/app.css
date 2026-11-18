@@ -625,9 +625,32 @@ body.is-dark #stage { visibility: hidden; }
 .mkname small { display: block; font-size: 15px; font-weight: 700; white-space: nowrap; letter-spacing: .42em; margin-top: 10px; opacity: .9; }
 
 /* Large labels (Settings > Screen): key text a quarter bigger, placards a fifth, for glare or distance. Narrow keys wrap. */
-#stage.large #console .cap .lg { font-size: calc(var(--fs, 14px) * 1.25); }
-#stage.large .placard { font-size: 12px; }
+#stage.large #console .cap .lg { font-size: calc(var(--fs, 14px) * 1.25); letter-spacing: .03em; }
+#stage.large .placard { font-size: 12px; letter-spacing: .1em; }
+#stage.large .tgl .placard { font-size: 11px; letter-spacing: .06em; }
 #stage.large .lab { font-size: 12px; }
 #stage.large #console .cap .kb { display: none; }
 #stage.large #console .blank .lg { font-size: var(--fs); }
-#stage.large #console .narrow .cap .lg { letter-spacing: .02em; }
+#stage.large #console .narrow .cap .lg { font-size: calc(var(--fs, 14px) * 1.1); letter-spacing: 0; }
+
+/* ---------- setup check: shown on first run, and from Settings > General ---------- */
+.setup { position: absolute; inset: 0; z-index: 44; display: flex; align-items: center; justify-content: center; background: #02050acc; }
+.setup[hidden] { display: none; }
+.su-card { width: 1100px; display: flex; flex-direction: column; gap: 14px; padding: 26px 30px 22px; border-radius: 14px;
+  background: linear-gradient(#111821, #0b1016); box-shadow: 0 0 0 1px #ffffff1f, 0 0 0 1px var(--accent) inset, 0 20px 60px #000; }
+.su-card > small { font: 700 11px/1 var(--hud); letter-spacing: .2em; text-transform: uppercase; color: var(--accent); }
+.su-card h3 { font: 700 30px/1.1 var(--hud); color: var(--ink); }
+.su-rows { display: flex; flex-direction: column; }
+.su-row { display: flex; align-items: center; gap: 18px; padding: 13px 4px; border-top: 1px solid #ffffff12; }
+.su-row > i { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--dim); }
+.su-row.ok > i { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.su-row.warn > i { background: var(--hold); box-shadow: 0 0 8px var(--hold); }
+.su-row .txt { flex: 1; min-width: 0; }
+.su-row b { display: block; font: 700 16px/1.3 var(--hud); letter-spacing: .03em; color: var(--paint); }
+.su-row.unknown b { color: var(--muted); }
+.su-row p { margin-top: 3px; font: 500 13px/1.4 var(--body); color: var(--muted); }
+.su-row button { flex: none; min-width: 170px; height: 48px; padding: 0 16px; border-radius: 8px; background: #ffffff10; color: var(--paint); box-shadow: 0 0 0 1px #ffffff22 inset;
+  font: 700 13px/1 var(--hud); letter-spacing: .1em; text-transform: uppercase; }
+.su-foot { display: flex; align-items: center; gap: 20px; }
+.su-test { flex: 1; font: 500 14px/1.4 var(--body); color: var(--muted); }
+.su-test.ok { color: var(--ok); } .su-test.warn { color: var(--hold); }

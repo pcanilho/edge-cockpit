@@ -253,6 +253,36 @@ fn game_info(app: State<'_, App>) -> GameInfo {
     }
 }
 
+/// Percent-encodes text for a URL query, cut to `max` characters.
+fn url_part(s: &str, max: usize) -> String {
+    s.chars()
+        .take(max)
+        .collect::<String>()
+        .bytes()
+        .map(|b| if b.is_ascii_alphanumeric() || b"-_.~".contains(&b) { (b as char).to_string() } else { format!("%{b:02X}") })
+        .collect()
+}
+
+/// Opens a new issue on the app's GitHub page in the browser, title and body filled in.
+/// Only this one address: the page can't open anything else.
+#[tauri::command]
+fn report_issue(title: String, body: String) -> bool {
+    let url = format!(
+        "https://github.com/pcanilho/edge-cockpit/issues/new?labels=bug&title={}&body={}",
+        url_part(&title, 120),
+        url_part(&body, 1500)
+    );
+    #[cfg(windows)]
+    {
+        win::open_url(&url)
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = url;
+        false
+    }
+}
+
 #[derive(Serialize)]
 struct Perf {
     /// Percent of the whole machine, as Task Manager shows it.
@@ -807,7 +837,7 @@ fn main() {
             key, wheel, ui_ready, user_ships, release_keys, game_info, read_binds, install_binds, run_as_admin, quit,
             save_profile, load_profile, save_user_ships, install_profile_binds,
             get_prefs, set_pref, wake_screen, sleep_screen, check_update, install_update, perf,
-            displays, set_display, fix_touch
+            displays, set_display, fix_touch, report_issue
         ])
         .setup(|app| {
             let handle = app.handle().clone();
@@ -883,6 +913,12 @@ mod tests {
 
     fn d(id: &str, name: &str, w: i32, h: i32, primary: bool, touch: bool) -> Disp {
         Disp { id: id.into(), name: name.into(), rect: (0, 0, w, h), primary, touch }
+    }
+
+    #[test]
+    fn encodes_issue_text_for_a_url() {
+        assert_eq!(super::url_part("Log lines missing: 4.10 & más", 100), "Log%20lines%20missing%3A%204.10%20%26%20m%C3%A1s");
+        assert_eq!(super::url_part("abcdef", 3), "abc");
     }
 
     #[test]

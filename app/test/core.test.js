@@ -353,3 +353,16 @@ test('replays a 4.10 session from the filtered Game.log', () => {
   assert.equal(s.shard, 'pub_euw1b_13165946_031');
   assert.equal(s.location, 'RR_P6_LEO_Ruin_Station');
 });
+
+test('patch watch: lines every session logs, and boarding once ship keys go out', async () => {
+  const { missingLines, WATCH_MS, WATCH_KEYS } = await import('../ui/lib/gamelog.js');
+  const w = (kinds, loadedAt = 0, shipKeys = 0) => ({ kinds: new Set(kinds), loadedAt, shipKeys });
+  assert.deepEqual(missingLines(w(['loaded'], 1000), 1000 + WATCH_MS - 1), [], 'too early to say');
+  assert.deepEqual(missingLines(w(['loaded'], 1000), 1000 + WATCH_MS + 1), ['your character', 'joining a server']);
+  assert.deepEqual(missingLines(w(['loaded', 'me', 'session'], 1000), 1e9), []);
+  assert.deepEqual(missingLines(w(['loaded', 'me', 'session'], 1000, WATCH_KEYS), 1e9), ['boarding a ship']);
+  assert.deepEqual(missingLines(w(['loaded', 'me', 'session', 'seat'], 1000, 99), 1e9), []);
+  // The replayed 4.10 session has everything.
+  const lines = readFileSync(new URL('./fixtures/game-4.10.filtered.log', import.meta.url), 'utf8').split('\n').map(parseLine).filter(Boolean);
+  assert.deepEqual(missingLines(w(lines.map(e => e.type), 1, 50), 1e9), []);
+});
