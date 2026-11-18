@@ -1,6 +1,6 @@
 [package]
 name = "edge-cockpit"
-version = "0.6.1"
+version = "0.7.0"
 description = "A lightweight cockpit-style touch console for Star Citizen"
 authors = ["pcanilho"]
 license = "MIT"
