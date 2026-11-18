@@ -1126,3 +1126,23 @@ body.phone .cm-head, body.phone .cm-foot { container-type: inline-size; }
 .ed-kb button.space { grid-column: span 2; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; }
 .ed-kb button.primary { background: var(--cyan); color: #031016; }
 #stage.editing:has(#picker:not([hidden])) :is(.ed-bar, .ed-note, .ed-card, .ed-kbw) { display: none; }
+.ed-phone { position: absolute; top: 40px; z-index: 42; }
+.ed-ph-screen { position: absolute; left: 0; top: 0; transform-origin: 0 0; border-radius: 44px; background: #050607; box-shadow: 0 0 0 10px #1b2026, 0 0 0 11px #ffffff22, 0 20px 50px #000; overflow: hidden; }
+.ed-ph-top { position: absolute; left: 0; right: 0; top: 14px; text-align: center; font: 700 12px/1 var(--hud); letter-spacing: .14em; text-transform: uppercase; color: var(--paint); }
+.ed-ph-area { position: absolute; overflow: hidden; }
+.ed-ph-area > .plate { pointer-events: none; }
+.ed-ph-rail { position: absolute; left: 0; right: 0; bottom: 14px; display: flex; justify-content: center; gap: 8px; }
+.ed-ph-rail button { width: 52px; height: 40px; border-radius: 8px; background: #232a32; font: 700 14px/1 var(--hud); color: var(--paint); }
+.ed-ph-rail button.cur { background: var(--cyan); color: #031016; }
+.ed-ships { position: absolute; left: 390px; right: 20px; top: 70px; bottom: 16px; z-index: 50; padding: 20px 24px; border-radius: 14px; background: #0b0f14fa; box-shadow: 0 0 0 1px #ffffff22, 0 14px 40px #000; overflow-y: auto; }
+.ed-ships header { display: flex; align-items: center; justify-content: space-between; }
+.ed-ships h3 { margin: 0; font: 700 16px/1 var(--hud); letter-spacing: .2em; text-transform: uppercase; color: var(--ink); }
+.ed-ships p { margin: 8px 0 4px; font: 500 13px/1.4 var(--body); color: var(--muted); }
+.ed-ships h4 { margin: 16px 0 8px; font: 700 11px/1 var(--hud); letter-spacing: .2em; text-transform: uppercase; color: var(--muted); }
+.ed-ships header button { padding: 12px 22px; border-radius: 8px; background: var(--cyan); font: 700 13px/1 var(--hud); letter-spacing: .12em; text-transform: uppercase; color: #031016; }
+.ed-ships .ed-chips button { padding: 12px 14px; font-size: 12px; }
+.ed-ships .ed-shiplist { margin-top: 12px; }
+.picker.listing #pick-tabs .tab[data-g], .picker.listing .pick-search { display: none; }
+.picker.listing .pick-grid { top: 36px; }
+.ed-ph-area .ph-hide { display: none !important; }
+.ed-ph-area .plate > .pager, .ed-ph-area .swipe-hint { display: none; }

@@ -67,12 +67,12 @@ function start(root) {
   }
   bar = document.createElement('div');
   bar.className = 'arrange-bar';
-  bar.innerHTML = `<span>Arrange the ${ctx.roleName()} console</span><button data-a="reset">Reset</button>${ctx.onNew ? '<button data-a="new">New blank page</button><button data-a="dup" class="accent">Duplicate &amp; edit</button>' : ''}<button data-a="done" class="primary">Done</button>`;
+  bar.innerHTML = `<span>Arrange the ${ctx.roleName()} console</span><button data-a="reset">Reset</button>${ctx.onNew ? '<button data-a="import">Import</button><button data-a="new">New blank page</button><button data-a="dup" class="accent">Duplicate &amp; edit</button>' : ''}<button data-a="done" class="primary">Done</button>`;
   bar.addEventListener('pointerup', e => {
     const a = e.target.closest('button')?.dataset.a;
     if (a === 'reset') { ctx.tick('tap'); place(root, DEFAULT); picked = ctx.stockModule(); paintModules(root); }
     if (a === 'done') finish(root);
-    if (a === 'new' || a === 'dup') { const make = a === 'new' ? ctx.onNew : ctx.onDuplicate; finish(root, true); make(); }
+    if (a === 'new' || a === 'dup' || a === 'import') { const make = { new: ctx.onNew, dup: ctx.onDuplicate, import: ctx.onImport }[a]; finish(root, true); make(); }
   });
   root.parentElement.appendChild(bar);
 }

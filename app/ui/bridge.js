@@ -33,6 +33,8 @@ export const installBinds = () => tauri ? tauri.core.invoke('install_binds') : P
 const onlyInApp = () => Promise.reject(new Error('Only in the app'));
 export const saveProfile = json => tauri ? tauri.core.invoke('save_profile', { json }) : onlyInApp();
 export const loadProfile = () => tauri ? tauri.core.invoke('load_profile') : Promise.resolve(null);
+export const savePageFile = (name, json) => tauri ? tauri.core.invoke('save_page', { name, json }) : onlyInApp();
+export const pageFiles = () => tauri ? tauri.core.invoke('page_files') : Promise.resolve(window.xfdTestPageFiles ?? []);
 export const saveUserShips = json => tauri ? tauri.core.invoke('save_user_ships', { json }) : onlyInApp();
 export const installProfileBinds = xml => tauri ? tauri.core.invoke('install_profile_binds', { xml }) : onlyInApp();
 export const runAsAdmin = () => tauri?.core.invoke('run_as_admin');
