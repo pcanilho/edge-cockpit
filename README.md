@@ -83,7 +83,7 @@ Use `Game.log` class names; a prefix covers every variant.
 
 ## Supported devices
 
-Corsair Xeneon Edge (2560 x 720). Other touchscreens: open a [device request](../../issues/new?template=device.yml).
+Corsair Xeneon Edge (2560 x 720). On another touchscreen, **Settings › Screen** picks which plates it shows and Fit or Actual size, and you can build your own pages for it. Other sizes: open a [device request](../../issues/new?template=device.yml).
 
 Phones, tablets and other PCs on your network join as extra screens: **Settings › Devices**, turn it on and scan the code (or open `http://edge-cockpit.local:47823`). No app to install. A phone shows one plate at a time; a tablet or another PC shows the whole console. Give a device one plate, or move a plate off the Edge onto it. Only paired devices can press keys.
 
