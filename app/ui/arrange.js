@@ -37,8 +37,11 @@ export function init(root, c) {
   // Long press on a title strip enters edit mode.
   let timer = null;
   root.addEventListener('pointerdown', e => {
-    if (editing || root.closest('.stacked') || ctx.canArrange?.() === false || !e.target.closest('.plate[data-slot] :is(.title, .rtitle)')) return;
-    timer = setTimeout(() => { timer = null; start(root); }, HOLD_MS);
+    if (editing || root.closest('.stacked') || !e.target.closest('.plate[data-slot] :is(.title, .rtitle)')) return;
+    // A page of yours opens the page editor instead.
+    const mine = ctx.canArrange?.() === false;
+    if (mine && !ctx.onEdit) return;
+    timer = setTimeout(() => { timer = null; if (mine) ctx.onEdit(); else start(root); }, HOLD_MS);
   });
   const cancel = () => { clearTimeout(timer); timer = null; };
   root.addEventListener('pointerup', cancel);
@@ -64,11 +67,12 @@ function start(root) {
   }
   bar = document.createElement('div');
   bar.className = 'arrange-bar';
-  bar.innerHTML = `<span>Arrange the ${ctx.roleName()} console</span><button data-a="reset">Reset</button><button data-a="done" class="primary">Done</button>`;
+  bar.innerHTML = `<span>Arrange the ${ctx.roleName()} console</span><button data-a="reset">Reset</button>${ctx.onNew ? '<button data-a="new">New blank page</button><button data-a="dup" class="accent">Duplicate &amp; edit</button>' : ''}<button data-a="done" class="primary">Done</button>`;
   bar.addEventListener('pointerup', e => {
     const a = e.target.closest('button')?.dataset.a;
     if (a === 'reset') { ctx.tick('tap'); place(root, DEFAULT); picked = ctx.stockModule(); paintModules(root); }
     if (a === 'done') finish(root);
+    if (a === 'new' || a === 'dup') { const make = a === 'new' ? ctx.onNew : ctx.onDuplicate; finish(root, true); make(); }
   });
   root.parentElement.appendChild(bar);
 }
@@ -140,7 +144,7 @@ function drag(root, p, grab) {
   grab.addEventListener('pointercancel', drop);
 }
 
-function finish(root) {
+function finish(root, quiet = false) {
   const order = current(root);
   const role = ctx.role();
   if (order.join() === DEFAULT.join()) ctx.store.set(key(role), null); else ctx.store.set(key(role), order);
@@ -149,6 +153,6 @@ function finish(root) {
   bar?.remove(); bar = null;
   editing = false;
   ctx.tick('tap');
-  ctx.onDone(role, picked);
+  ctx.onDone(role, picked, quiet);
   picked = null;
 }

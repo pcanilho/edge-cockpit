@@ -7,10 +7,11 @@ import { lookup } from './lib/ships.js';
 import * as bridge from './bridge.js';
 import * as controls from './controls.js';
 import { scene, init as initScenes, moduleOf, MODULE_NAMES, CUSTOM, swipeList, swipeIndex } from './scenes.js';
-import { cleanPage, refuseItem, pageForShip, FIELDS } from './lib/custom.js';
+import { cleanPage, refuseItem, pageForShip, FIELDS, duplicate, blank as blankPage, newId } from './lib/custom.js';
 import { outline, render as shipRender } from './outlines.js';
 import { ART } from './backdrops.js';
 import * as arrange from './arrange.js';
+import * as editor from './editor.js';
 import * as perf from './perf.js';
 import * as world from './world.js';
 import * as phone from './phone.js';
@@ -258,6 +259,7 @@ function failed(err, k, node) {
 }
 
 async function send(k, mode, ms, node) {
+  if (K.dry) return true;  // the page editor's Try it: presses light up, nothing is sent
   const spec = bindOf(k);
   if (!spec) { failed('unbound', k, node); return false; }
   try { await bridge.sendKey(spec, mode, ms, opts.anywhere); } catch (e) { failed(e, k, node); return false; }
@@ -518,7 +520,21 @@ const subOf = k => SUBGROUPS[k.actionmap] || 'Other';
 const groupOf = k => PICK_GROUPS.find(g => g[2].test(k.actionmap || ''))?.[0] || 'systems';
 const RECENT = 'pick-recent';
 let picking = null, pickStock = null, pickNow = null, query = '', typing = false, pickTab = 'flight';
+// The page editor's pick: { title, now, base, refuse(label), onPick(label) }. Every key is offered;
+// the ones its rules refuse show why, and a switch picks the base of a set-on / set-off pair.
+let pickFor = null;
+function openEditorPicker(o) {
+  pickFor = o;
+  picking = 'editor'; pickStock = null; pickNow = KEYS.get(o.now) || KEYS.get(`${o.now} on`) || null;
+  query = ''; typing = false;
+  $('pick-title').textContent = o.title;
+  $('pick-clear').hidden = true;
+  $('pick-now').innerHTML = o.now ? `Now: <b>${controls.esc(o.now)}</b>` : 'Empty';
+  showPickGroup(suggested().length ? 'sug' : pickNow ? groupOf(pickNow) : 'flight');
+  $('picker').hidden = false;
+}
 function openPicker(id, k, stock = null) {
+  pickFor = null;
   picking = id; pickStock = stock; pickNow = k;
   query = ''; typing = false;
   const changed = stock ? k && k !== stock : !!k;
@@ -531,7 +547,7 @@ function openPicker(id, k, stock = null) {
   showPickGroup(suggested().length ? 'sug' : k ? groupOf(k) : 'flight');
   $('picker').hidden = false;
 }
-const pickKeys = () => [...KEYS.values()].filter(pickable);
+const pickKeys = () => [...KEYS.values()].filter(k => (pickFor ? !k.steps || k.role === 'macro' : pickable(k)));
 /** Keys like the one in the slot, and the ones you picked lately. */
 function suggested() {
   const out = [];
@@ -562,6 +578,7 @@ function fold(keys) {
   return tiles;
 }
 function tileEl({ label, keys }, hit = '') {
+  if (pickFor) return editorTile({ label, keys }, hit);
   const k0 = keys[0][0];
   const isNow = keys.some(([k]) => k === pickNow);
   const name = hit ? controls.esc(label).replace(new RegExp(`(${hit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'i'), '<em>$1</em>') : controls.esc(label);
@@ -572,8 +589,33 @@ function tileEl({ label, keys }, hit = '') {
   controls.pressable(b, { down: e => { seg = e.target.closest?.('button[data-l]'); }, up: () => setSlot(seg ? seg.dataset.l : k0.label) });
   return b;
 }
+const BASE = /^(.*) (on|off)$/i;
+/** A tile in the page editor's picker: dimmed with the reason when its rules refuse it. */
+function editorTile({ label, keys }, hit) {
+  const k0 = keys[0][0];
+  const name = hit ? controls.esc(label).replace(new RegExp(`(${hit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'i'), '<em>$1</em>') : controls.esc(label);
+  const base = pickFor.base;
+  const pickLabel = base ? (keys.some(([, t]) => t === 'On') ? label : k0.label.replace(BASE, '$1')) : null;
+  const segs = base ? [] : keys.filter(([, t]) => t);
+  const why = base ? pickFor.refuse(pickLabel) : keys.map(([k]) => pickFor.refuse(k.label)).every(Boolean) ? pickFor.refuse(k0.label) : '';
+  const unbound = !why && (base ? !(bindOf(KEYS.get(`${pickLabel} on`) || {}) && bindOf(KEYS.get(`${pickLabel} off`) || {})) : !bindOf(k0));
+  const isNow = base ? pickFor.now === pickLabel : keys.some(([k]) => k === pickNow);
+  const b = controls.h(`<div class="pick fam-${family(k0)} ${isNow ? 'cur' : ''} ${segs.length > 1 ? 'fold' : ''} ${why ? 'no' : ''}" role="button">${controls.icon(k0.icon, 22)}<span class="pn">${name}${
+    why ? `<small class="why">${controls.esc(why.split(/[,.;]/)[0])}</small>` : unbound ? '<small class="amber">Not bound in your game yet</small>' : ''}</span>${segs.length > 1
+    ? `<span class="pseg">${segs.map(([k, t]) => `<button data-l="${controls.esc(k.label)}" ${pickFor.refuse(k.label) ? 'disabled' : ''}>${t}</button>`).join('')}</span>` : ''}</div>`);
+  let seg = null;
+  controls.pressable(b, { down: e => { seg = e.target.closest?.('button[data-l]'); }, up: () => {
+    const l = base ? pickLabel : seg ? seg.dataset.l : keys.map(([k]) => k.label).find(x => !pickFor.refuse(x));
+    const no = !l || pickFor.refuse(l);
+    if (no) { tick('error'); toast(no || why); return; }
+    setSlot(l);
+  } });
+  return b;
+}
 function section(title, keys, hit) {
   const tiles = fold(keys);
+  // In the page editor, what the rules refuse comes last.
+  if (pickFor) tiles.sort((a, b) => !!refusedTile(a) - !!refusedTile(b));
   if (!tiles.length) return [];
   return [controls.h(`<div class="pk-h">${controls.esc(title)}</div>`), Object.assign(document.createElement('div'), { className: 'pk-row' })].map((el, i) => {
     if (i) el.append(...tiles.map(t => tileEl(t, hit)));
@@ -611,8 +653,16 @@ function paintPick() {
   $('pick-kb').hidden = !typing;
   $('picker').classList.toggle('typing', typing);
 }
+const refusedTile = ({ label, keys }) => (pickFor.base ? pickFor.refuse(keys.some(([, t]) => t === 'On') ? label : keys[0][0].label.replace(BASE, '$1')) : keys.every(([k]) => pickFor.refuse(k.label)));
 function setSlot(label) {
   tick('toggle');
+  if (pickFor) {
+    const o = pickFor;
+    pickFor = null; picking = null;
+    $('picker').hidden = true;
+    if (label) { store.set(RECENT, [label, ...store.get(RECENT, []).filter(l => l !== label)].slice(0, 9)); o.onPick(label); }
+    return;
+  }
   const stockPick = pickStock && label === pickStock.label;
   if (label && !stockPick) {
     store.set(picking, label);
@@ -651,7 +701,7 @@ $('pick-tabs').append(...[['sug', 'Suggested'], ...PICK_GROUPS].map(([g, name]) 
 buildPickKeyboard();
 controls.pressable($('pick-search'), { up: () => { tick('tap'); typing = true; paintPick(); } });
 controls.pressable($('pick-clear'), { up: () => setSlot(null) });
-controls.pressable($('pick-close'), { up: () => { $('picker').hidden = true; picking = null; } });
+controls.pressable($('pick-close'), { up: () => { $('picker').hidden = true; picking = null; pickFor = null; } });
 
 controls.init(K);
 initScenes(K);
@@ -678,7 +728,7 @@ function render() {
 }
 
 function show(id, remote) {
-  if (!pageById(layout, id) || arrange.isEditing()) return;
+  if (!pageById(layout, id) || arrange.isEditing() || (editor.isOpen() && id !== current)) return;
   if (!remote && id !== current) bridge.share({ page: id });
   if (moduleOf(id)) lastShip = id;
   const changed = id !== current;
@@ -1452,7 +1502,7 @@ let stacked = false;
 let fitScale = null;
 const oneRow = () => fitScale ?? Math.min(innerWidth / 2560, innerHeight / 720);
 // Actual size: never larger than designed (1 stage pixel to 1 CSS pixel), centred on a bigger screen.
-const sized = s => (opts.size === 'actual' && !onPhone ? Math.min(s, 1) : s);
+const sized = s => ((CUSTOM.get(current)?.size || opts.size) === 'actual' && !onPhone ? Math.min(s, 1) : s);
 const twoRows = () => Math.min(innerWidth / ROW_W, innerHeight / 1440);
 function stack() {
   const status = $('status');
@@ -1519,16 +1569,40 @@ const ROLE_NAMES = { fighter: 'fighter', crew: 'multi-crew', mining: 'mining', s
 arrange.init($('console'), {
   store, tick, scale: K.scale, role: () => moduleOf(current), roleName: () => ROLE_NAMES[moduleOf(current)] || 'ship',
   canArrange: () => !CUSTOM.has(current),
+  onEdit: () => { if (!onPhone) editor.openEditor(current, CUSTOM.get(current)); },
+  onNew: () => newPage(blankPage(`My page ${CUSTOM.size + 1}`, newId())),
+  onDuplicate: () => newPage(duplicate(current, `My ${(ship?.name || pageById(layout, current)?.name || 'page').slice(0, 20)}`, moduleOf(current), newId())),
   modules: MODULE_NAMES, module: () => K.moduleFor(current) || moduleOf(current), stockModule: () => moduleOf(current),
-  onDone: (role, mod) => {
+  onDone: (role, mod, quiet) => {
     const was = K.moduleFor(current) || role;
     if (mod && mod !== was) {
       store.set(`module:${role}`, mod === role ? null : mod);
       for (const id of cache.keys()) if (moduleOf(id) === role) cache.delete(id);
       render();
     }
-    toast('Layout saved for this role');
+    if (!quiet) toast('Layout saved for this role');
   },
+});
+/** A new page of yours: saved, shown, and open in the editor. */
+function newPage(spec) {
+  const saved = spec && window.xfd.savePage(spec);
+  if (!saved) return;
+  show(saved.id);
+  editor.openEditor(saved.id, CUSTOM.get(saved.id));
+}
+editor.init({
+  K, keys: KEYS, store, tick, toast, scale: K.scale, size: () => opts.size,
+  pageName: id => pageById(layout, id)?.name,
+  bound: (label, base) => (base ? !!(bindOf(KEYS.get(`${label} on`) || {}) && bindOf(KEYS.get(`${label} off`) || {})) : !!bindOf(KEYS.get(label) || {})),
+  openPicker: openEditorPicker,
+  // The draft is drawn as if saved; null draws the saved page again.
+  preview: (spec, id = spec?.id) => {
+    if (spec) { CUSTOM.set(spec.id, spec); const pg = mainPages.find(p => p.id === spec.id); if (pg) pg.name = spec.name; } else loadPages();
+    cache.delete(id);
+    if (current === id) render();
+  },
+  save: spec => window.xfd.savePage(spec),
+  remove: id => window.xfd.deletePage(id),
 });
 world.init({ fire, keyHint: k => bindOf(k), game: () => game, location: () => ({ id: placeSeen.id || game.location, ...placeSeen }), store, bridge, raise, tick, hhmm, current: () => current, painted: els => { if (onPhone) phone.repainted(els); } });
 perf.init({ hold: document.querySelector('#mfd .brand'), parent: $('mfd'), perf: bridge.perf, tick });
@@ -1565,6 +1639,8 @@ if (!onPhone && (bridge.inApp ? !store.get('setup-done', false) : new URLSearchP
 stage.classList.remove('booting');
 window.xfd = {
   myPages: () => [...CUSTOM.values()],
+  edit: id => { show(id); editor.openEditor(id, CUSTOM.get(id)); },
+  editing: editor.isOpen,
   /** Saves a page of yours (adds or replaces by id); returns the cleaned page, or null. */
   savePage: raw => {
     const spec = cleanPage(raw);

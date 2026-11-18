@@ -7,6 +7,12 @@
 - Arrange mode (long-press a plate title) also picks the role module, so a ship page can carry another module. Saved per role.
 - Settings > Screen: choose which ship plates this screen shows; the rest leave and the others grow to fill it. Size: Fit, or Actual size (never larger than designed).
 - Groundwork for your own pages: a page format (stock plates with your changes, plates of your own on a 16 px grid) and its renderer. Your pages come after the curated ones, which are unchanged. The rules hold on load too: a switch needs set-on/set-off binds, eject-type keys need a cover or slide.
+- Page editor: long-press a ship page's title, then New blank page or Duplicate & edit. Long-press the title of a page of yours to edit it again.
+  - Drag controls from the palette (where the status display sits) onto a plate; they snap to a 16 px grid, with guides to line them up. Tap one for its card: key, label, size, duplicate, remove. Drag to move, drag the corner to resize.
+  - Stock plates on a duplicated page: move or remove their controls; Back to stock undoes it. Add, remove, reorder and size your own plates.
+  - The key picker dims what a control can't take and says why. A switch takes only actions with set-on and set-off binds. An amber note marks keys not bound in your game.
+  - Done is blocked while a control has no key, a label doesn't fit or two controls overlap.
+  - Undo, an autosaved draft, Try it (presses light up, no keys sent), Fit or Actual size per page, Delete.
 - CI: every PR pixel-compares all curated pages and phone views against its base.
 
 ## 0.8.0

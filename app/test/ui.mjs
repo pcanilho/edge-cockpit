@@ -56,6 +56,9 @@ async function checkLabels(where, sheet = false, pg = page) {
       if (!text || !visible(el) || !!el.closest('.sheet') !== sheet || el.closest('.toast, .banner')) continue;
       if (getComputedStyle(el).textOverflow === 'ellipsis') out.push(`${text}: ellipsis`);
       const range = document.createRange(); range.selectNodeContents(n);
+      // Scrolled out of a scrolling list (the key picker's) isn't cut off.
+      const sc = el.closest('.pick-grid');
+      if (sc && sc.scrollHeight > sc.clientHeight + 1) { const r = el.getBoundingClientRect(), f = sc.getBoundingClientRect(); if (r.top < f.top || r.bottom > f.bottom) continue; }
       const frame = el.closest(FRAMES);
       if (!frame) { out.push(`${text}: outside any frame`); continue; }
       const fr = frame.getBoundingClientRect();
@@ -662,6 +665,61 @@ for (const [W, H] of [[1920, 1080], [1180, 820]]) {
   // Deleting it leaves the curated pages as they were.
   await pg.evaluate(() => window.xfd.deletePage('my-test1'));
   if ((await pg.evaluate(() => window.xfd.pages())).join() !== before.join()) problems.push('deleting a page of yours left the page list changed');
+  await ctx.close();
+}
+
+// The page editor: New blank page from arrange mode, a control dragged from the palette, its key
+// picked (the picker refuses what a switch can't take), Try it sends nothing, Done saves.
+{
+  const ctx = await browser.newContext({ viewport: { width: 2560, height: 720 } });
+  const pg = await ctx.newPage();
+  pg.on('pageerror', e => errors.push(`page editor: ${e.message}`));
+  await pg.addInitScript(TEXT_CHECK);
+  await pg.route(/fleetyards|fltyrd/, r => r.abort());
+  await pg.goto(base + '?demo=ship');
+  await pg.waitForSelector('body[data-ready]');
+  await pg.evaluate(() => document.fonts.ready);
+  await pg.evaluate(() => window.xfd.show('light-fighter'));
+  const press = async sel => { const b = await (await pg.$(sel)).boundingBox(); await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await pg.mouse.down(); await pg.mouse.up(); };
+  const t = await (await pg.$('#console .plate[data-slot="role"] .rtitle')).boundingBox();
+  await pg.mouse.move(t.x + t.width / 2, t.y + t.height / 2); await pg.mouse.down(); await pg.waitForTimeout(700); await pg.mouse.up();
+  const bar = await pg.evaluate(() => [...document.querySelectorAll('.arrange-bar button')].map(b => b.textContent));
+  if (!bar.includes('New blank page') || !bar.includes('Duplicate & edit')) problems.push(`arrange mode offers ${bar.join(', ')}`);
+  await press('.arrange-bar [data-a="new"]');
+  if (!(await pg.evaluate(() => window.xfd.editing()))) problems.push('New blank page did not open the editor');
+  if (shots) await pg.screenshot({ path: join(shots, 'editor.png') });
+  const drop = async (name, x, y) => {
+    const tile = await (await pg.$(`.ed-tile[data-name="${name}"]`)).boundingBox();
+    const pl = await (await pg.$('#console > .plate')).boundingBox();
+    await pg.mouse.move(tile.x + 20, tile.y + 20); await pg.mouse.down();
+    await pg.mouse.move(pl.x + x, pl.y + y, { steps: 6 }); await pg.mouse.up();
+  };
+  // A switch: keys without a set-on / set-off pair are refused, Lights isn't.
+  await drop('On / off switch', 120, 240);
+  const sw = await pg.evaluate(() => {
+    const tiles = [...document.querySelectorAll('#pick-grid .pick')];
+    return { open: !document.getElementById('picker').hidden, refused: tiles.filter(e => e.classList.contains('no')).length, ok: tiles.filter(e => !e.classList.contains('no')).length };
+  });
+  if (!sw.open || !sw.refused) problems.push(`a new switch's picker shows ${JSON.stringify(sw)}`);
+  await pg.evaluate(() => [...document.querySelectorAll('#pick-tabs .tab')].find(t => t.dataset.g === 'systems').dispatchEvent(new PointerEvent('pointerup')));
+  await checkLabels('switch picker', true, pg);
+  if (shots) await pg.screenshot({ path: join(shots, 'editor-switch-picker.png') });
+  await press('#pick-grid .pick:not(.no)');
+  // A keycap beside it.
+  await drop('Wide key', 400, 240);
+  await press('#pick-grid .pick:not(.no)');
+  const saved0 = await pg.evaluate(() => JSON.parse(localStorage.getItem('xfd-pages'))[0].plates[0].add.length);
+  // Try it: a press lights up but sends nothing.
+  await press('.ed-bar [data-a="try"]');
+  await press('#console [data-add="1"]');
+  await press('.ed-bar [data-a="try"]');
+  await press('.ed-bar [data-a="done"]');
+  const r = await pg.evaluate(() => ({ editing: window.xfd.editing(), items: window.xfd.myPages()[0]?.plates[0].add.map(i => i.t), note: document.querySelector('.ed-note')?.textContent }));
+  if (r.editing || r.items?.join() !== 'switch,key') problems.push(`after Done the editor shows ${JSON.stringify(r)}`);
+  if (saved0) problems.push('the page was saved before Done');
+  await checkLabels('a page from the editor', false, pg);
+  for (const x of await pg.evaluate(() => [...document.querySelectorAll('#console .plate')].flatMap(p => window.__textCheck(p)))) problems.push(`a page from the editor: ${x}`);
+  if (shots) await pg.screenshot({ path: join(shots, 'editor-saved.png') });
   await ctx.close();
 }
 
