@@ -27,7 +27,8 @@ NUMPAD = [f'np_{n}' for n in range(10)] + ['np_divide', 'np_multiply', 'np_subtr
 # numpad (it turns numpad keys into arrows), and Ctrl+Alt+Delete is left alone.
 POOL = ([f'{mods}+f{n}' for mods in ('rctrl', 'rshift', 'rctrl+rshift') for n in range(1, 13)]
         + [f'rctrl+{k}' for k in NAV + NUMPAD] + [f'rctrl+rshift+{k}' for k in NAV]
-        + [f'rctrl+lalt+{k}' for k in [f'f{n}' for n in range(1, 13)] + NAV + NUMPAD if k != 'delete'])
+        + [f'rctrl+lalt+{k}' for k in [f'f{n}' for n in range(1, 13)] + NAV + NUMPAD if k != 'delete']
+        + [f'rshift+{k}' for k in NAV])
 
 
 def combo(s):

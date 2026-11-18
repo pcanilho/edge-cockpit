@@ -161,20 +161,22 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: ro
 .rotary .lab { position: absolute; }
 .wheelknob .dial { position: absolute; inset: 0; }
 .wheelknob .read { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; pointer-events: none; }
-.wheelknob .read b { display: block; font: 700 48px/1 var(--hud); }
+.wheelknob .read b { display: flex; justify-content: center; gap: 26px; font: 700 40px/1 var(--hud); }
+.wheelknob .read i { font-style: normal; color: var(--muted); transition: color .15s; }
+.wheelknob .read b.dn .less, .wheelknob .read b.up .more { color: var(--kc); }
 .wheelknob .read span { display: block; margin-top: 8px; font: 700 10px/1 var(--hud); letter-spacing: .2em; color: var(--muted); text-transform: uppercase; }
 
 /* ---------- slider ---------- */
 .slider .tick { position: absolute; left: 4px; width: 14px; height: 2px; background: var(--paint); opacity: .55; }
 .slider .tick.big { left: 0; width: 20px; }
-.slider .mk { position: absolute; right: 0; font: 700 10px/1 var(--hud); color: var(--paint); }
+.slider .mk { position: absolute; right: 0; font: 700 9px/1 var(--hud); letter-spacing: .16em; color: var(--paint); writing-mode: vertical-rl; transform: rotate(180deg); }
+.slider.up .mk.more, .slider.dn .mk.less { color: var(--kc); }
 .slider .slot { position: absolute; left: calc(50% - 9px); width: 18px; top: 0; bottom: 0; border-radius: 9px; background: #020303; box-shadow: inset 0 2px 6px #000, 0 1px 0 #ffffff14; }
-.slider .fill { position: absolute; left: calc(50% - 4px); width: 8px; bottom: 6px; border-radius: 4px; background: linear-gradient(0deg, var(--kc), color-mix(in oklab, var(--kc) 15%, transparent)); }
+.slider .fill { position: absolute; left: calc(50% - 4px); width: 8px; border-radius: 4px; background: var(--kc); box-shadow: 0 0 8px var(--kc); }
 .slider .handle { position: absolute; left: 8px; right: 8px; height: 60px; border-radius: 12px; cursor: grab; display: flex; flex-direction: column; justify-content: center; gap: 5px; padding: 0 14px;
   background: linear-gradient(180deg, #5c6670, #2a3036 45%, #1a1e22); box-shadow: inset 0 1px 0 #ffffff50, 0 8px 12px #000; }
 .slider .handle span { height: 3px; border-radius: 2px; background: #0d1013; box-shadow: 0 1px 0 #ffffff22; }
 .slider .handle.pressed { box-shadow: inset 0 1px 0 #ffffff50, 0 0 0 2px var(--kc), 0 8px 12px #000; }
-.slider .val { position: absolute; left: 0; right: 0; text-align: center; font: 700 14px/1 var(--hud); color: var(--kc); }
 .slider .lab { position: absolute; }
 
 /* ---------- slide to eject ---------- */
@@ -203,14 +205,15 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: ro
 .gear .lights i { width: 30px; height: 22px; border-radius: 4px; background: #1d2420; box-shadow: inset 0 1px 2px #000; }
 .gear.on .lights i { background: var(--ok); box-shadow: 0 0 12px var(--ok), inset 0 1px 0 #fff8; }
 .gear .gstate { position: absolute; left: 140px; top: 10px; }
-.gear .gstate::after { content: "UP"; } .gear.on .gstate::after { content: "DOWN"; color: var(--ok); }
+/* Unknown until the lever is moved: lever in the middle, lights dark. */
+.gear .gstate::after { content: "SET IT"; color: var(--muted); } .gear.up .gstate::after { content: "UP"; color: var(--paint); } .gear.on .gstate::after { content: "DOWN"; color: var(--ok); }
 .gear .glab { position: absolute; left: 168px; font: 700 10px/1 var(--hud); letter-spacing: .2em; color: var(--paint); }
-.gear .glab.up { top: 76px; } .gear .glab.dn { top: 340px; color: var(--ok); }
+.gear .glab.up { top: 76px; } .gear .glab.dn { top: 340px; } .gear.on .glab.dn { color: var(--ok); }
 .gear .gslot { position: absolute; left: 82px; width: 22px; top: 62px; height: 316px; border-radius: 11px; background: #020303; box-shadow: inset 0 2px 6px #000, 0 1px 0 #ffffff14; }
-.gear .arm { position: absolute; left: 28px; top: 62px; width: 130px; height: 130px; cursor: grab; transition: transform .3s var(--ease); }
-.gear.on .arm { top: 248px; }
+.gear .arm { position: absolute; left: 28px; top: 155px; width: 130px; height: 130px; cursor: grab; transition: transform .3s var(--ease); }
+.gear.up .arm { top: 62px; } .gear.on .arm { top: 248px; }
 .gear .shaft { position: absolute; left: 57px; width: 16px; height: 120px; border-radius: 8px; background: linear-gradient(90deg, #4b545e, #e9eef2 40%, #8d969f 60%, #3b434b); top: 100px; }
-.gear.on .shaft { top: -90px; }
+.gear:not(.on):not(.up) .shaft { height: 60px; } .gear.on .shaft { top: -90px; }
 .gear .wheel { position: absolute; left: 0; top: 0; }
 .gear .lab { position: absolute; }
 
@@ -495,9 +498,14 @@ body.is-dark #stage { visibility: hidden; }
 #stage.downed::before { box-shadow: inset 0 0 0 3px #ff4232aa, inset 0 0 80px #ff423233; }
 #stage.downed { --accent: var(--danger) !important; --ship: var(--danger) !important; }
 #stage.armistice .weapon { pointer-events: none; }
-#stage.armistice .well.weapon > .cap > *, #stage.armistice .tgl.weapon, #stage.armistice .wedge.weapon { opacity: .12; }
-#stage.armistice .well.weapon::after { content: "ARMISTICE"; position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center;
-  font: 700 11px/1 var(--hud); letter-spacing: .2em; color: var(--ok); z-index: 2; }
+#stage.armistice .tgl.weapon, #stage.armistice .wedge.weapon { opacity: .12; }
+/* Locked keys keep their own label, dimmed but readable, and say why in a small tag where the key name was. */
+#stage.armistice .well.weapon > .cap { filter: saturate(.3); }
+#stage.armistice .well.weapon > .cap > * { opacity: .38; }
+#stage.armistice .well.weapon :is(.kb, .tg) { visibility: hidden; }
+#stage.armistice .well.weapon::after { content: "ARMISTICE"; position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); z-index: 3; padding: 3px 4px; border-radius: 3px;
+  font: 700 8px/1 var(--hud); letter-spacing: .08em; white-space: nowrap; color: var(--ok); background: #0c1a14; box-shadow: 0 0 0 1px #5fe0a066; pointer-events: none; }
+#stage.armistice .well.pair.weapon::after { bottom: auto; top: 30px; }
 #stage.standby #console { opacity: .45; }
 #stage.night { filter: brightness(.6); }
 #stage.booting { opacity: 0; }

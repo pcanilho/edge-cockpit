@@ -174,6 +174,25 @@ const touch = await page.evaluate(async () => {
   return times.length ? Math.max(...times) : null;
 });
 
+// The gear starts unknown: lever in the middle, lights dark. Pulled down it sends gear down and shows DOWN.
+await page.evaluate(() => window.xfd.show('mining'));
+const gear0 = await page.$eval('#console .gear', e => e.classList.contains('on') || e.classList.contains('up'));
+if (gear0) problems.push('the gear lever shows a side before it was moved');
+{
+  await page.evaluate(() => { window.__keys = []; });
+  const a = await (await page.$('#console .gear .arm')).boundingBox();
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2); await page.mouse.down();
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2 + 120, { steps: 6 }); await page.mouse.up();
+  await page.waitForTimeout(100);
+  const g = await page.evaluate(() => ({ down: document.querySelector('#console .gear').classList.contains('on'), sent: window.__keys.length }));
+  if (!g.down || g.sent !== 1) problems.push(`pulling the gear lever down: ${JSON.stringify(g)}`);
+}
+// Controls that send steps show no value: no percentages anywhere on the console.
+for (const id of ['mining', 'cargo', 'salvage']) {
+  const pct = await page.evaluate(id => { window.xfd.show(id); return /\d+\s*%/.test(document.getElementById('console').textContent); }, id);
+  if (pct) problems.push(`${id} shows a percentage the game never reported`);
+}
+
 // A rearranged console: plates in reverse order still fit, labels and all.
 await page.evaluate(() => { localStorage.setItem('xfd-order:fighter', JSON.stringify(['gear', 'flight', 'role', 'power'])); window.xfd.show('mining'); window.xfd.show('light-fighter'); });
 await checkLabels('light-fighter rearranged');

@@ -11956,6 +11956,38 @@
      "role": "action"
     },
     {
+     "label": "Gear down",
+     "action": "v_deploy_landing_system",
+     "actionmap": "spaceship_movement",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "gear",
+     "state": {
+      "key": "gear",
+      "kind": "set",
+      "value": true
+     },
+     "role": "select"
+    },
+    {
+     "label": "Gear up",
+     "action": "v_retract_landing_system",
+     "actionmap": "spaceship_movement",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "gear",
+     "state": {
+      "key": "gear",
+      "kind": "set",
+      "value": false
+     },
+     "role": "select"
+    },
+    {
      "label": "MFD Comms",
      "action": "v_mfd_select_view_comms_short",
      "actionmap": "vehicle_mfd",
