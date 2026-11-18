@@ -940,3 +940,6 @@ body.phone { position: fixed; inset: 0; overflow: hidden; touch-action: manipula
 .ph-folded.logp .stats b { white-space: nowrap; }
 /* A folded plate can reach past the 2560 x 720 stage. */
 body.phone:not(.ph-whole) #stage { overflow: visible; contain: layout style; }
+.pair-card .qr:not(.off) { cursor: zoom-in; }
+.qr-big { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; background: #000d; cursor: zoom-out; }
+.qr-big svg { width: min(86vh, 86vw); height: min(86vh, 86vw); padding: 2vmin; background: #fff; border-radius: 1.5vmin; }

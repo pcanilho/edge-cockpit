@@ -1190,6 +1190,15 @@ async function paintPhones() {
   if ([...m].join() !== [...moved].join()) { moved = m; render(); }
 }
 function startPhones() {
+  // On a small window the code is tiny: a tap shows it across the whole screen.
+  controls.pressable($('ph-qr'), { up: () => {
+    if (!phonesState?.qr) return;
+    const big = document.createElement('div');
+    big.className = 'qr-big';
+    big.innerHTML = phonesState.qr;
+    big.addEventListener('pointerup', () => big.remove());
+    document.body.appendChild(big);
+  } });
   controls.pressable($('ph-enable'), { up: () => { tick('toggle'); bridge.phonesEnable(!phonesState?.enabled).then(paintPhones); } });
   bridge.onPhones?.(paintPhones);
   paintPhones();
