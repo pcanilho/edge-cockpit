@@ -1,8 +1,8 @@
 // The pages of the console. A ship page is four plates: power, the role module, flight
 // and gear. On foot, map and downed pages use the whole width for their own plates.
 import { plate, placard, label, keycap, rocker, toggle, onOff, onOffKey, rotary, wheelKnob, slider, slideConfirm, guard, gearLever, quantum,
-  roundButton, dial, missileRack, screen, icon, esc, h, pressable } from './controls.js';
-import { lefts } from './lib/custom.js';
+  roundButton, dial, missileRack, screen, icon, esc, h, pressable, blank } from './controls.js';
+import { lefts, unset } from './lib/custom.js';
 
 let K;
 export const init = ctx => { K = ctx; };
@@ -427,6 +427,8 @@ export function controlsOf(plateEl) {
 /** One control of yours, built by the same code as the stock ones. */
 export function item(it) {
   const { x, y, w, h: ht } = it;
+  // Only the page editor draws a control that has no key yet; a saved page never holds one.
+  if (unset(it)) return blank(x, y, it.t === 'switch' ? 84 : w, it.t === 'switch' ? 196 : ht, 0, 'Pick a key');
   switch (it.t) {
     case 'key': return keycap(x, y, w, ht, it.key, { label: it.label || undefined, fs: w < 100 ? 11 : 13 });
     case 'round': return roundButton(x, y, Math.min(w, ht), it.key, { label: it.label || undefined });
@@ -464,6 +466,7 @@ function customScene(page) {
       p = STOCK_PLATES[pl.stock](page);
       const { hide, move } = pl.edits;
       for (const c of controlsOf(p)) {
+        c.el.dataset.cid = c.id;
         if (hide.includes(c.id)) c.el.remove();
         else if (move[c.id]) { const [x, y, w, ht] = move[c.id]; Object.assign(c.el.style, { left: `${x}px`, top: `${y}px`, ...(c.el.matches('.well') ? { width: `${w}px`, height: `${ht}px` } : {}) }); }
       }
@@ -474,7 +477,7 @@ function customScene(page) {
     }
     p.style.left = `${xs[i]}px`;
     p.classList.add('mine');
-    add(p, pl.add.map(item));
+    add(p, pl.add.map((it, n) => { const el = item(it); if (el) el.dataset.add = n; return el; }));
     return p;
   });
 }

@@ -72,3 +72,15 @@ test('a page linked to a ship class wins for its variants, the longest class fir
   assert.equal(pageForShip([a, b], 'AEGS_Gladius_Valiant_99')?.id, 'my-bbbb0001');
   assert.equal(pageForShip([a, b], 'AEGS_Avenger'), null);
 });
+
+test('a control without its key is unset; a page keeps Fit or Actual size', async () => {
+  const { unset, cleanPage } = await import('../ui/lib/custom.js');
+  assert.equal(unset({ t: 'key' }), true);
+  assert.equal(unset({ t: 'key', key: 'Ping' }), false);
+  assert.equal(unset({ t: 'rocker', a: 'X' }), true);
+  assert.equal(unset({ t: 'rotary', positions: [{ key: 'A' }, { key: '' }] }), true);
+  assert.equal(unset({ t: 'label', text: '' }), false);
+  const p = { id: 'my-abcd', plates: [{ w: 450 }] };
+  assert.equal(cleanPage({ ...p, size: 'actual' }).size, 'actual');
+  assert.equal(cleanPage({ ...p, size: 'huge' }).size, null);
+});

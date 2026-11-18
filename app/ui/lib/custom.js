@@ -11,7 +11,7 @@ export const STOCK = Object.keys(WIDTHS);
 export const PLATE_H = 720 - 12;
 export const LEFT = 382; // the status display is 6..376
 export const SPACE = 2560 - LEFT - 6; // 2172 px across for plates
-const GAP = 6;
+export const GAP = 6;
 
 /** The controls you can place, their smallest size, and what they take. */
 export const TYPES = {
@@ -70,6 +70,15 @@ export function refuseItem(it, keys) {
   return refuse(it.t, it.key, keys);
 }
 
+/** True when an item still needs its key (or keys) picked. */
+export function unset(it) {
+  const t = TYPES[it?.t];
+  if (!t || t.takes === 'text' || t.takes === 'field') return false;
+  if (t.takes === 'pair') return !it.a || !it.b;
+  if (t.takes === 'positions') return (it.positions || []).filter(p => p.key).length < 2;
+  return !it.key;
+}
+
 /** Keys a switch can take: the bases with both a set-on and a set-off key. */
 export function switchable(keys) {
   const out = [];
@@ -125,6 +134,8 @@ export function cleanPage(p) {
   return {
     format: FORMAT, id, name: str(p.name, 24) || 'My page', from: str(p.from, 40) || null, module: str(p.module, 16) || null,
     ships: Array.isArray(p.ships) ? p.ships.filter(s => typeof s === 'string').slice(0, 12) : [], plates,
+    // Fit grows the page to fill a bigger screen; Actual size keeps it as designed. Unset follows Settings.
+    size: p.size === 'fit' || p.size === 'actual' ? p.size : null,
   };
 }
 
