@@ -104,7 +104,7 @@ cd app
 npm ci
 npm test               # Game.log reader, role pages, ship lookup
 npm run test:ui        # every page: full labels, no idle work, fast touches (needs Playwright)
-npx tauri dev          # run it (Windows)
+npm run dev            # run it
 ```
 
 Browser preview: run `node scripts/sync.mjs` in `app`, then serve `app/ui` and open `index.html?demo=ship` (also `armistice`, `alert`, `downed`, `disabled`, `log`, `hangar`, or `page=mining`).
