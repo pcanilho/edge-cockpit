@@ -37,7 +37,7 @@ It starts with Windows, wakes when Star Citizen starts and goes dark when you qu
 | --- | --- |
 | ![Mining](docs/panel-mining.png) | ![On foot](docs/panel-onfoot.png) |
 | ![Armistice](docs/panel-armistice.png) | ![Red alert](docs/panel-alert.png) |
-| ![Log](docs/panel-log.png) | ![Settings](docs/panel-settings.png) |
+| ![Log](docs/panel-log.png) | ![World](docs/panel-world.png) |
 
 | Control | How it works |
 | --- | --- |

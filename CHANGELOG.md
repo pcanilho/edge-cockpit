@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.7.0
 
 - World page (new page key; the page keys are now four over three):
   - Executive hangars: the five lights, open or charging, when it changes and the next two openings. Tap Sync once at the hangar and pick what the lights show. After a game update the times hide until you sync again.
@@ -10,6 +10,8 @@
   - Location unknown: a Locate key opens your inventory for a moment so Game.log names the place, then closes it (on foot only, since I toggles thrusters in a seat). Until then, the best trades in your system. Calling a ship at a hangar also names the place.
   - After you travel, the place is tagged "You travelled since" with Locate beside it.
   - Stock with each price: SCU for sale where you buy, the terminal's own stock where you sell. Low stock and full terminals in amber.
+- Network: while the World page shows, it fetches UEX prices (every 30 min) and RSI's status page (every 5 min). Nothing when the page is closed.
+- README and site screenshots retaken on this version, with one of the World page.
 
 ## 0.6.1
 
