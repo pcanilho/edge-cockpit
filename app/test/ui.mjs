@@ -43,10 +43,10 @@ const problems = [];
 const report = [];
 if (shots) await mkdir(shots, { recursive: true });
 
-async function checkLabels(where, sheet = false) {
-  const found = await page.evaluate(sheet => {
+async function checkLabels(where, sheet = false, pg = page) {
+  const found = await pg.evaluate(sheet => {
     const out = [];
-    const FRAMES = '.su-row, .su-foot, .su-card, .cap, .placard, .screen, .rbtn, .qbtn, .corner, .chip, .under, .cover, .chan, .softkeys .well, .opt, .act, .plate, .updates, .tab, .tabs, .pane, .wd-card';
+    const FRAMES = '.su-row, .su-foot, .su-card, .cap, .placard, .screen, .rbtn, .qbtn, .corner, .chip, .under, .cover, .chan, .softkeys .well, .opt, .act, .plate, .updates, .tab, .tabs, .pane, .wd-card, .pick, .pick-search, .pick-grid';
     const inside = (r, f, m = -1) => r.left >= f.left + m && r.right <= f.right - m && r.top >= f.top + m && r.bottom <= f.bottom - m;
     const visible = el => { for (let e = el; e && e !== document.body; e = e.parentElement) { const s = getComputedStyle(e); if (s.display === 'none' || s.visibility === 'hidden' || e.hidden) return false; } return true; };
     const walker = document.createTreeWalker(document.getElementById('stage'), NodeFilter.SHOW_TEXT);
@@ -587,7 +587,7 @@ for (const [W, H] of [[1920, 1080], [1180, 820]]) {
   }));
   if (r.mine.join() !== 'Scan mode' || r.noise) problems.push(`a swapped key shows ${JSON.stringify(r)}`);
   if (r.module !== 'Mining module') problems.push(`the role plate shows "${r.module}", not the mining module`);
-  await checkLabels('your keys');
+  await checkLabels('your keys', false, pg);
   if (shots) await pg.screenshot({ path: join(shots, 'custom-keys.png') });
   // Long-press the swapped key: the picker says what's stock and offers it back.
   const key = await pg.evaluateHandle(() => [...document.querySelectorAll('#console .well.key')].find(e => e.querySelector('.mine')));
@@ -595,7 +595,7 @@ for (const [W, H] of [[1920, 1080], [1180, 820]]) {
   await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await pg.mouse.down(); await pg.waitForTimeout(800); await pg.mouse.up();
   const pick = await pg.evaluate(() => ({ open: !document.getElementById('picker').hidden, now: document.getElementById('pick-now').textContent, back: !document.getElementById('pick-clear').hidden }));
   if (!pick.open || !pick.now.includes('Stock: Noise') || !pick.back) problems.push(`the key picker shows ${JSON.stringify(pick)}`);
-  await checkLabels('key picker', true);
+  await checkLabels('key picker', true, pg);
   await pg.evaluate(() => document.getElementById('pick-search').dispatchEvent(new PointerEvent('pointerup')));
   for (const c of 'SCAN') await pg.evaluate(c => [...document.querySelectorAll('#pick-kb button')].find(b => b.textContent === c).dispatchEvent(new PointerEvent('pointerup')), c);
   const hits = await pg.evaluate(() => [...document.querySelectorAll('#pick-grid .pick')].map(e => e.textContent.trim().toLowerCase()));
@@ -614,6 +614,54 @@ for (const [W, H] of [[1920, 1080], [1180, 820]]) {
   if (f.vis.join() !== 'role,flight') problems.push(`with two plates chosen, the screen shows ${f.vis.join(', ')}`);
   if (!f.inside || f.width < 1200) problems.push(`two chosen plates don't fill the screen (${JSON.stringify(f)})`);
   if (shots) await pg.screenshot({ path: join(shots, 'plates-two.png') });
+  await ctx.close();
+}
+
+// A page of yours: stock plates and one of your own, drawn after the curated pages and
+// without touching them. Keys the rules refuse (a guessed switch, an uncovered eject) aren't drawn.
+{
+  const ctx = await browser.newContext({ viewport: { width: 2560, height: 720 } });
+  const pg = await ctx.newPage();
+  pg.on('pageerror', e => errors.push(`page of yours: ${e.message}`));
+  await pg.addInitScript(TEXT_CHECK);
+  await pg.route(/fleetyards|fltyrd/, r => r.abort());
+  await pg.goto(base + '?demo=ship');
+  await pg.waitForSelector('body[data-ready]');
+  await pg.evaluate(() => document.fonts.ready);
+  const before = await pg.evaluate(() => window.xfd.pages());
+  const r = await pg.evaluate(() => {
+    const saved = window.xfd.savePage({ id: 'my-test1', name: 'My Gladius', from: 'light-fighter', module: 'fighter', plates: [
+      { stock: 'power' }, { stock: 'role' },
+      { w: 612, title: 'Extras', add: [
+        { t: 'switch', x: 32, y: 48, key: 'Lights' }, { t: 'switch', x: 128, y: 48, key: 'Ping' },
+        { t: 'key', x: 240, y: 48, w: 160, h: 96, key: 'Ping' }, { t: 'key', x: 416, y: 48, w: 160, h: 96, key: 'Eject' },
+        { t: 'screen', x: 32, y: 288, w: 544, h: 112, field: 'location' },
+        { t: 'slide', x: 304, y: 432, w: 272, h: 96, key: 'Eject' },
+      ] },
+      { stock: 'gear' },
+    ] });
+    window.xfd.show('my-test1');
+    const pl = [...document.querySelectorAll('#console > .plate')];
+    const mine = document.querySelector('#console .plate[data-slot="mine2"]');
+    return {
+      kept: saved?.plates[2].add.map(i => `${i.t}:${i.key || i.field}`),
+      slots: pl.map(p => `${p.dataset.slot}@${p.offsetLeft}`).join(),
+      yours: !!document.querySelector('#console .rtitle small.yours'),
+      extras: mine ? [...mine.children].filter(e => !e.matches('.screw, .title, .rtitle, .pager')).map(e => e.className.split(' ')[0]) : [],
+    };
+  });
+  const after = await pg.evaluate(() => window.xfd.pages());
+  if (after.slice(0, before.length).join() !== before.join() || after.at(-1) !== 'my-test1') problems.push(`saving a page changed the page list: ${after.join()}`);
+  if (r.kept?.join() !== 'switch:Lights,key:Ping,screen:location,slide:Eject') problems.push(`a page of yours kept ${r.kept?.join()}`);
+  if (r.slots !== 'power@382,role@838,mine2@1662,gear@2280') problems.push(`a page of yours lays out as ${r.slots}`);
+  if (!r.yours) problems.push('a page of yours has no "Yours" tag');
+  if (r.extras.length !== 4) problems.push(`a plate of yours shows ${r.extras.join(', ')}`);
+  await checkLabels('a page of yours', false, pg);
+  for (const t of await pg.evaluate(() => [...document.querySelectorAll('#console .plate')].flatMap(p => window.__textCheck?.(p) || []))) problems.push(`a page of yours: ${t}`);
+  if (shots) await pg.screenshot({ path: join(shots, 'my-page.png') });
+  // Deleting it leaves the curated pages as they were.
+  await pg.evaluate(() => window.xfd.deletePage('my-test1'));
+  if ((await pg.evaluate(() => window.xfd.pages())).join() !== before.join()) problems.push('deleting a page of yours left the page list changed');
   await ctx.close();
 }
 

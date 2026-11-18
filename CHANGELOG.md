@@ -6,6 +6,8 @@
 - Key picker: Suggested first (keys like the one you replace, then your recent picks), sub-groups in each tab, toggle / on / off as one tile, and search on its own keyboard.
 - Arrange mode (long-press a plate title) also picks the role module, so a ship page can carry another module. Saved per role.
 - Settings > Screen: choose which ship plates this screen shows; the rest leave and the others grow to fill it. Size: Fit, or Actual size (never larger than designed).
+- Groundwork for your own pages: a page format (stock plates with your changes, plates of your own on a 16 px grid) and its renderer. Your pages come after the curated ones, which are unchanged. The rules hold on load too: a switch needs set-on/set-off binds, eject-type keys need a cover or slide.
+- CI: every PR pixel-compares all curated pages and phone views against its base.
 
 ## 0.8.0
 

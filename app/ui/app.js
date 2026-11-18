@@ -6,7 +6,8 @@ import { pageFor, pageById } from './lib/pages.js';
 import { lookup } from './lib/ships.js';
 import * as bridge from './bridge.js';
 import * as controls from './controls.js';
-import { scene, init as initScenes, SWIPE, moduleOf, MODULE_NAMES } from './scenes.js';
+import { scene, init as initScenes, moduleOf, MODULE_NAMES, CUSTOM, swipeList, swipeIndex } from './scenes.js';
+import { cleanPage, refuseItem, pageForShip, FIELDS } from './lib/custom.js';
 import { outline, render as shipRender } from './outlines.js';
 import { ART } from './backdrops.js';
 import * as arrange from './arrange.js';
@@ -56,6 +57,30 @@ const KEYS = new Map();
 })(layout);
 // Kit a ship may lack, and the keys that need it.
 const KIT_KEYS = { missiles: ['Missiles +', 'Missiles reset', 'Missile mode'], emp: ['EMP'], qed: ['QED'], tractor: ['Tractor rotate', 'Tractor detach', 'Beam closer', 'Beam farther'] };
+
+// ---------- your pages (lib/custom.js) ----------
+// Kept in this console's storage; each one joins the main deck after the curated pages, so
+// showing, swiping and the soft keys treat it like any page. The curated pages are not touched.
+const mainPages = layout.decks.find(d => d.id === 'main').pages;
+const CURATED = mainPages.length;
+function loadPages() {
+  let list = [];
+  try { list = JSON.parse(localStorage.getItem('xfd-pages') || '[]'); } catch { /* broken: start empty */ }
+  CUSTOM.clear();
+  mainPages.length = CURATED;
+  for (const raw of Array.isArray(list) ? list : []) {
+    const spec = cleanPage(raw);
+    if (!spec || CUSTOM.has(spec.id)) continue;
+    // A page from a file or an older build may hold a key the rules no longer allow there
+    // (a guessed switch, an uncovered eject): it isn't drawn.
+    for (const pl of spec.plates) pl.add = pl.add.filter(it => !refuseItem(it, KEYS));
+    CUSTOM.set(spec.id, spec);
+    const from = spec.from && mainPages.find(p => p.id === spec.from);
+    mainPages.push({ id: spec.id, name: spec.name, custom: true, theme: from?.theme || from && mainPages.find(p => p.id === (from.role?.tab || from.tab))?.theme || undefined });
+  }
+}
+loadPages();
+const savePages = list => { try { localStorage.setItem('xfd-pages', JSON.stringify(list)); } catch { /* private mode */ } };
 
 // ---------- settings ----------
 const store = {
@@ -409,12 +434,28 @@ const K = {
   fired: node => { if (opts.flash) flash(node, 'fired'); },
   scale: () => (onPhone && !whole ? phone.phoneScale() : stacked ? sized(twoRows()) : oneRow()),
   swipe: dir => {
-    const i = SWIPE.findIndex(s => current.startsWith(s));
-    const base = SWIPE[(i + dir + SWIPE.length) % SWIPE.length];
+    const list = swipeList(), i = swipeIndex(current);
+    const base = list[(i + dir + list.length) % list.length];
     tick('page');
-    show(rolePage?.startsWith(base) ? rolePage : base);
+    show(!CUSTOM.has(base) && rolePage?.startsWith(base) ? rolePage : base);
   },
   go: id => { tick('page'); show(id); },
+  /** A live value for a status screen on a page of yours: only what Game.log gave. */
+  live: f => {
+    if (f === 'armistice') return game.armistice ? 'Armistice zone' : 'Weapons free';
+    if (f === 'ship') return game.seated && game.ship ? shipName(game.ship) : null;
+    if (f === 'location') {  // as the status display words it: the place, else the jurisdiction
+      const at = game.location ? place(game.location) : null;
+      return (at ? [at.name, at.system].filter(Boolean).join(' · ') : (game.jurisdiction || '').replace(/ Jurisdiction$/, '')) || null;
+    }
+    if (f === 'kills') return String(session.kills || 0);
+    if (f === 'shard') { const sh = shardName(game.shard); return sh ? [sh.region, sh.n].filter(Boolean).join(' ') : null; }
+    if (f === 'qtTarget') return game.qtTarget ? placeName(game.qtTarget) : null;
+    if (f === 'mission') return game.mission?.status === 'active' ? game.mission.contract : null;
+    const v = game[f];
+    return v == null ? null : String(typeof v === 'object' ? v.name ?? '' : v) || null;
+  },
+  fieldName: f => FIELDS[f] || '',
   /** The role module you put on this ship page in arrange mode, if not its own. */
   moduleFor: id => { const role = moduleOf(id), m = role && store.get(`module:${role}`, null); return m && MODULE_NAMES[m] && m !== role ? m : null; },
 };
@@ -621,10 +662,10 @@ function render() {
   pageAccent = theme(page).accent;
   applyAccent();
   if (!cache.has(current)) { slotN = 0; mapN.clear(); cache.set(current, scene(page)); }
-  for (const p of cache.get(current)) { phone.unfold(p); p.classList.toggle('moved', !onPhone && !!p.dataset.slot && (moved.has(p.dataset.slot) || !opts.plates.includes(p.dataset.slot))); }
+  for (const p of cache.get(current)) { phone.unfold(p); p.classList.toggle('moved', !onPhone && !!p.dataset.slot && (moved.has(p.dataset.slot) || (SHIP_PLATES.includes(p.dataset.slot) && !opts.plates.includes(p.dataset.slot)))); }
   $('console').replaceChildren(...cache.get(current));
   const role = moduleOf(current);
-  if (role) arrange.place($('console'), arrange.orderFor(role));
+  if (role && !CUSTOM.has(current)) arrange.place($('console'), arrange.orderFor(role));
   stack();
   if (!onPhone) fit();
   repaint();
@@ -1244,7 +1285,10 @@ function forgetStates() {
 function follow(force) {
   forgetStates();
   ship = game.seated ? lookup(shipsDb.ships, overrides.ships, game.ship) : null;
-  const { id } = pageFor(layout, game, shipsDb.ships, overrides.ships);
+  let { id } = pageFor(layout, game, shipsDb.ships, overrides.ships);
+  // A page of yours linked to this ship takes the place of its role page.
+  const mine = game.seated && !game.down && !game.menu ? pageForShip([...CUSTOM.values()], game.ship) : null;
+  if (mine) id = mine.id;
   rolePage = moduleOf(id) && id !== 'flight' ? id : null;
   if (opts.auto && (force || id !== lastAuto)) show(id);
   lastAuto = id;
@@ -1474,6 +1518,7 @@ buildSoftkeys();
 const ROLE_NAMES = { fighter: 'fighter', crew: 'multi-crew', mining: 'mining', salvage: 'salvage', cargo: 'cargo', medical: 'medical', ground: 'ground vehicle', systems: 'ship systems' };
 arrange.init($('console'), {
   store, tick, scale: K.scale, role: () => moduleOf(current), roleName: () => ROLE_NAMES[moduleOf(current)] || 'ship',
+  canArrange: () => !CUSTOM.has(current),
   modules: MODULE_NAMES, module: () => K.moduleFor(current) || moduleOf(current), stockModule: () => moduleOf(current),
   onDone: (role, mod) => {
     const was = K.moduleFor(current) || role;
@@ -1518,5 +1563,23 @@ if (demo) { opts.auto = false; show(demo); }
 // The setup check shows once, on the first start (in the browser preview only with ?setup).
 if (!onPhone && (bridge.inApp ? !store.get('setup-done', false) : new URLSearchParams(location.search).has('setup'))) showSetup();
 stage.classList.remove('booting');
-window.xfd = { show, raise, setup: showSetup, feed: (lines, live = true) => onLog({ lines, live }), recap: t => { session = { ...NEW_TALLY, ...t }; showRecap(); }, perf: perf.toggle, showSection, bindHealth, bindsProfile, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
+window.xfd = {
+  myPages: () => [...CUSTOM.values()],
+  /** Saves a page of yours (adds or replaces by id); returns the cleaned page, or null. */
+  savePage: raw => {
+    const spec = cleanPage(raw);
+    if (!spec) return null;
+    const list = [...CUSTOM.values()].filter(p => p.id !== spec.id);
+    savePages([...list, spec]);
+    loadPages(); cache.delete(spec.id); if (current === spec.id) render();
+    return CUSTOM.get(spec.id) || null;
+  },
+  deletePage: id => {
+    savePages([...CUSTOM.values()].filter(p => p.id !== id));
+    loadPages(); cache.delete(id);
+    if (lastShip === id) lastShip = 'flight';
+    if (rolePage === id) rolePage = null;
+    if (current === id) show('flight');
+  },
+  show, raise, setup: showSetup, feed: (lines, live = true) => onLog({ lines, live }), recap: t => { session = { ...NEW_TALLY, ...t }; showRecap(); }, perf: perf.toggle, showSection, bindHealth, bindsProfile, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
 document.body.dataset.ready = '1';

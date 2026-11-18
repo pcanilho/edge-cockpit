@@ -2,6 +2,7 @@
 // and gear. On foot, map and downed pages use the whole width for their own plates.
 import { plate, placard, label, keycap, rocker, toggle, onOff, onOffKey, rotary, wheelKnob, slider, slideConfirm, guard, gearLever, quantum,
   roundButton, dial, missileRack, screen, icon, esc, h, pressable } from './controls.js';
+import { lefts } from './lib/custom.js';
 
 let K;
 export const init = ctx => { K = ctx; };
@@ -15,9 +16,15 @@ export const MODULE = {
   flight: 'systems', power: 'systems', combat: 'fighter', industry: 'mining',
   'multi-crew': 'crew', mfd: 'mfd', mining: 'mining', salvage: 'salvage', cargo: 'cargo', medical: 'medical', ground: 'ground',
 };
-export const moduleOf = id => MODULE[id] || (id.startsWith('light-fighter') || id.startsWith('heavy-fighter') ? 'fighter' : id.startsWith('multi-crew') ? 'crew' : null);
+/** Your own pages by id (lib/custom.js), set by the app. They follow the curated ship pages in the swipe. */
+export const CUSTOM = new Map();
+export const moduleOf = id => (CUSTOM.has(id) ? CUSTOM.get(id).module || 'systems' : null) || MODULE[id] || (id.startsWith('light-fighter') || id.startsWith('heavy-fighter') ? 'fighter' : id.startsWith('multi-crew') ? 'crew' : null);
 /** Pages a swipe on the role module steps through. */
 export const SWIPE = ['light-fighter', 'heavy-fighter', 'multi-crew', 'mining', 'salvage', 'cargo', 'medical', 'ground', 'flight', 'mfd'];
+/** The swipe with your pages after the curated ones. */
+export const swipeList = () => [...SWIPE, ...CUSTOM.keys()];
+/** Where a page sits in the swipe: your pages by id, curated ones by their base. */
+export const swipeIndex = id => (CUSTOM.has(id) ? SWIPE.length + [...CUSTOM.keys()].indexOf(id) : SWIPE.findIndex(s => id.startsWith(s)));
 
 const tag = (el, cls) => { el.classList.add(cls); return el; };
 const add = (p, ...els) => { for (const e of els.flat()) if (e) p.appendChild(e); return p; };
@@ -262,7 +269,7 @@ export const MODULE_NAMES = { fighter: 'Fighter', crew: 'Crew', mining: 'Mining'
 /** Page n of the ship pages, with arrows to step through them as well as swiping. */
 function pager(i) {
   const el = h(`<div class="pager"><button class="pg prev" aria-label="Previous ship page">${icon('left', 18)}</button>
-    <span><b>${i + 1}</b> / ${SWIPE.length}</span><button class="pg next" aria-label="Next ship page">${icon('right', 18)}</button></div>`);
+    <span><b>${i + 1}</b> / ${swipeList().length}</span><button class="pg next" aria-label="Next ship page">${icon('right', 18)}</button></div>`);
   for (const [sel, dir] of [['.prev', -1], ['.next', 1]]) {
     const b = el.querySelector(sel);
     pressable(b, { up: () => K.swipe(dir) });
@@ -275,11 +282,12 @@ function pager(i) {
 function rolePlate(page) {
   const p = plate(X.role, W.role, '', { cls: 'rolemod' });
   const id = page.id;
-  const i = SWIPE.findIndex(s => id.startsWith(s));
-  // You can put another role module on a ship page (arrange mode); the title says so.
-  const stock = moduleOf(id), mod = K.moduleFor?.(id) || stock;
+  const i = swipeIndex(id);
+  const mine = CUSTOM.has(id);
+  // You can put another role module on a ship page (arrange mode); the title says so. Your own pages carry their own.
+  const stock = moduleOf(id), mod = (!mine && K.moduleFor?.(id)) || stock;
   const swapped = mod !== stock && MODULES[mod];
-  add(p, h(`<div class="rtitle">${icon(K.theme(page).glyph, 18)}<span>${esc(page.name)}</span>${swapped ? `<small>${esc(MODULE_NAMES[mod])} module</small>` : ''}</div>`),
+  add(p, h(`<div class="rtitle">${icon(K.theme(page).glyph, 18)}<span>${esc(page.name)}</span>${mine ? '<small class="yours">Yours</small>' : swapped ? `<small>${esc(MODULE_NAMES[mod])} module</small>` : ''}</div>`),
     pager(i),
     h('<div class="swipe-hint lab">‹ swipe or tap the arrows for other ships ›</div>'));
   add(p, MODULES[swapped ? mod : stock]());
@@ -402,8 +410,78 @@ function downed() {
   return [a, b];
 }
 
+// ================= your pages =================
+
+const STOCK_PLATES = { power: () => powerPlate(), role: page => rolePlate(page), flight: () => flightPlate(), gear: () => gearPlate() };
+// Plate furniture that is not a control: never hidden or moved by an edit.
+const FIXED = '.screw, .title, .rtitle, .pager, .swipe-hint, .grab';
+
+/** Names a stock plate's controls in build order, so your edits find them again: index and label. */
+export function controlsOf(plateEl) {
+  return [...plateEl.children].filter(e => !e.matches(FIXED)).map((el, i) => {
+    const text = (el.querySelector('.lg, .placard, .lab')?.textContent || el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 24);
+    return { el, id: `${i}:${text}` };
+  });
+}
+
+/** One control of yours, built by the same code as the stock ones. */
+export function item(it) {
+  const { x, y, w, h: ht } = it;
+  switch (it.t) {
+    case 'key': return keycap(x, y, w, ht, it.key, { label: it.label || undefined, fs: w < 100 ? 11 : 13 });
+    case 'round': return roundButton(x, y, Math.min(w, ht), it.key, { label: it.label || undefined });
+    case 'rocker': return rocker(x, y, w, ht, it.a, it.b, { vertical: ht >= w });
+    case 'switch': return onOff(x, y, it.key, { label: it.label || undefined, w: 84 });
+    case 'onoffkey': return onOffKey(x, y, w, ht, it.key, { label: it.label || undefined });
+    case 'rotary': {
+      const pos = (it.positions || []).filter(p => p.key);
+      const span = pos.length > 1 ? 100 / (pos.length - 1) : 0;
+      return rotary(x, y, Math.min(w, ht) - 60, pos.map((p, i) => ({ label: p.label || p.key, key: p.key, angle: pos.length > 1 ? -50 + i * span : 0 })), { title: it.label || undefined });
+    }
+    case 'slider': return slider(x, y, w, ht, { title: it.label || undefined, onStep: s => K.fire(K.key(s > 0 ? it.a : it.b)) });
+    case 'guard': return guard(x, y, w, ht, it.key, { text: it.label || undefined });
+    case 'slide': return slideConfirm(x, y, w, ht, it.key, { text: it.label || `SLIDE TO ${String(it.key).toUpperCase()}` });
+    case 'label': return label(x, y, w, it.text || '');
+    case 'placard': return placard(x, y, it.text || '');
+    case 'screen': {
+      const el = screen(x, y, w, ht, `<small class="cs-f"></small><b class="cs-v"></b>`, 'custom-screen');
+      el.paint = () => { const v = K.live?.(it.field); el.querySelector('.cs-f').textContent = K.fieldName?.(it.field) || ''; el.querySelector('.cs-v').textContent = v ?? '–'; };
+      el.classList.add('painted');
+      el.paint();
+      return el;
+    }
+    default: return null;
+  }
+}
+
+/** The plates of a page of yours: stock plates with your edits, and plates of your own. */
+function customScene(page) {
+  const spec = CUSTOM.get(page.id);
+  const xs = lefts(spec);
+  return spec.plates.map((pl, i) => {
+    let p;
+    if (pl.stock) {
+      p = STOCK_PLATES[pl.stock](page);
+      const { hide, move } = pl.edits;
+      for (const c of controlsOf(p)) {
+        if (hide.includes(c.id)) c.el.remove();
+        else if (move[c.id]) { const [x, y, w, ht] = move[c.id]; Object.assign(c.el.style, { left: `${x}px`, top: `${y}px`, ...(c.el.matches('.well') ? { width: `${w}px`, height: `${ht}px` } : {}) }); }
+      }
+      p.dataset.slot = pl.stock;
+    } else {
+      p = plate(xs[i], pl.w, pl.title || '');
+      p.dataset.slot = `mine${i}`;
+    }
+    p.style.left = `${xs[i]}px`;
+    p.classList.add('mine');
+    add(p, pl.add.map(item));
+    return p;
+  });
+}
+
 /** The plates for a page. */
 export function scene(page) {
+  if (CUSTOM.has(page.id)) return customScene(page);
   if (page.id === 'onfoot') return onFoot();
   if (page.id === 'map') return mapPage();
   if (page.id === 'emotes') return emotes();
