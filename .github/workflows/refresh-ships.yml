@@ -12,14 +12,18 @@ on:
 
 permissions: {}
 
-concurrency: refresh-ships
+concurrency:
+  group: refresh-ships
+  cancel-in-progress: false
 
 jobs:
   refresh:
+    name: refresh
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
-      contents: write
-      pull-requests: write
+      contents: write       # commit the new ship list to a branch
+      pull-requests: write  # open the pull request
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

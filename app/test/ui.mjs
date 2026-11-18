@@ -46,7 +46,7 @@ if (shots) await mkdir(shots, { recursive: true });
 async function checkLabels(where, sheet = false) {
   const found = await page.evaluate(sheet => {
     const out = [];
-    const FRAMES = '.cap, .placard, .screen, .rbtn, .qbtn, .corner, .chip, .under, .cover, .chan, .softkeys .well, .opt, .act, .plate, .updates, .tab, .tabs, .pane';
+    const FRAMES = '.su-row, .su-foot, .su-card, .cap, .placard, .screen, .rbtn, .qbtn, .corner, .chip, .under, .cover, .chan, .softkeys .well, .opt, .act, .plate, .updates, .tab, .tabs, .pane';
     const inside = (r, f, m = -1) => r.left >= f.left + m && r.right <= f.right - m && r.top >= f.top + m && r.bottom <= f.bottom - m;
     const visible = el => { for (let e = el; e && e !== document.body; e = e.parentElement) { const s = getComputedStyle(e); if (s.display === 'none' || s.visibility === 'hidden' || e.hidden) return false; } return true; };
     const walker = document.createTreeWalker(document.getElementById('stage'), NodeFilter.SHOW_TEXT);
@@ -142,6 +142,14 @@ for (const id of ids) {
   for (const o of overlaps) problems.push(`${id}: ${o}`);
   if (shots) await page.screenshot({ path: join(shots, `${id}.png`) });
 }
+// Large labels: every page again with the bigger text, which must still fit.
+await page.evaluate(() => document.getElementById('stage').classList.add('large'));
+for (const id of ids) {
+  await page.evaluate(id => window.xfd.show(id), id);
+  await checkLabels(`${id} (large labels)`);
+  if (shots && ['flight', 'light-fighter', 'onfoot'].includes(id)) await page.screenshot({ path: join(shots, `large-${id}.png`) });
+}
+await page.evaluate(() => document.getElementById('stage').classList.remove('large'));
 for (const id of ['mining', 'light-fighter', 'onfoot', 'downed']) {
   const ms = await page.evaluate(id => { const t = performance.now(); window.xfd.show(id); document.body.offsetHeight; return performance.now() - t; }, id);
   worstSwitch = Math.max(worstSwitch, ms);
@@ -277,6 +285,21 @@ if (!night.on.dim || night.on.cur !== 'on') problems.push(`night mode On does no
 if (night.auto.dim !== late || !/20:00 to 07:00/.test(night.auto.note)) problems.push(`night mode Auto is wrong: ${JSON.stringify(night.auto)}`);
 if (night.off.dim || night.off.cur !== 'off') problems.push(`night mode Off still dims: ${JSON.stringify(night.off)}`);
 await page.evaluate(() => { document.getElementById('sheet').hidden = true; });
+
+// The setup check: four rows, the touch warning from the displays above, nothing cut off.
+await page.evaluate(() => window.xfd.setup());
+await page.waitForTimeout(150);
+const setup = await page.evaluate(() => [...document.querySelectorAll('#su-rows .su-row')].map(r => r.className.replace('su-row ', '') + ':' + r.querySelector('b').textContent));
+if (setup.length !== 4 || setup[0] !== 'warn:Touches land on another display' || !setup[3].startsWith('unknown:')) problems.push(`setup check is wrong: ${JSON.stringify(setup)}`);
+await checkLabels('setup check');
+if (shots) await page.screenshot({ path: join(shots, 'setup.png') });
+await page.click('#su-done');
+if (!(await page.evaluate(() => document.getElementById('setup').hidden))) problems.push('Done does not close the setup check');
+
+// Patch watch: a session loaded long ago with no character or server line shows the chip.
+await page.evaluate(() => { window.xfd.feed(['<2020-01-01T10:00:00.000Z> <Context Establisher Done>'], false); window.xfd.feed(['nothing the console reads']); });
+if (await page.evaluate(() => document.getElementById('patch').hidden)) problems.push('patch watch chip did not show');
+await checkLabels('patch watch chip');
 
 // The hidden performance overlay: hold the title for 2 s, read it, close it the same way.
 const brand = await page.locator('#mfd .brand').boundingBox();

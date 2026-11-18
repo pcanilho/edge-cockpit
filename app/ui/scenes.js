@@ -54,7 +54,7 @@ function flightPlate() {
     keycap(296, 276, 140, 90, 'Freelook', { fs: 13 }),
     keycap(442, 276, 150, 90, 'Startup', { label: 'Ready & ATC', fs: 13, ...cut }),
     keycap(150, 374, 150, 78, 'Decoy', { fs: 13 }),
-    keycap(306, 374, 68, 78, 'Decoy burst −', { label: 'Burst −', fs: 11, icon: false }), keycap(380, 374, 68, 78, 'Decoy burst +', { label: 'Burst +', fs: 11, icon: false }),
+    rocker(306, 374, 142, 78, 'Decoy burst −', 'Decoy burst +', { vertical: false, ia: false, ib: false, la: 'Burst −', lb: 'Burst +' }),
     keycap(454, 374, 138, 78, 'Noise', { fs: 13 }),
   );
   const brake = h('<div class="hz" style="left:150px;top:460px;width:442px;height:110px"></div>');
@@ -317,7 +317,7 @@ function comms(x, w) {
 /** A key that opens another console page rather than pressing a game key. */
 function pageKey(x, y, w, ht, text, glyph, page) {
   const el = h(`<div class="well key page-key" style="left:${x}px;top:${y}px;width:${w}px;height:${ht}px">
-    <div class="cap">${icon(glyph, 22)}<span class="lg" style="font-size:14px">${esc(text)}</span><span class="tg">PAGE</span></div></div>`);
+    <div class="cap">${icon(glyph, 22)}<span class="lg" style="--fs:14px">${esc(text)}</span><span class="tg">PAGE</span></div></div>`);
   pressable(el, { up: () => K.go(page) });
   return el;
 }

@@ -87,22 +87,37 @@ async function fromModel(cls, pick) {
   for (const slug of slugsOf(cls)) { const s = await attempt(slug); if (s) return s; }
   const map = await bySc();
   const parts = cls.toLowerCase().split('_');
-  for (let n = parts.length; n >= 2; n--) { const s = await attempt(map[parts.slice(0, n).join('_')]); if (s) return s; }
+  // Some game ids carry a suffix the class name lacks (rsi_constellation_andromeda_gs): after an
+  // exact match, take the shortest id that starts with the class name.
+  const startingWith = k => Object.keys(map).filter(id => id.startsWith(k + '_')).sort((a, b) => a.length - b.length)[0];
+  for (let n = parts.length; n >= 2; n--) {
+    const k = parts.slice(0, n).join('_');
+    const s = await attempt(map[k]) || await attempt(map[startingWith(k)]);
+    if (s) return s;
+  }
   return null;
 }
 const fetchOutline = cls => fromModel(cls, async m => (m.media?.fleetchartImage ? mask(await image(m.media.fleetchartImage)) : null));
 
-/** The ship's angled render (or store image), at most 560 px wide, as a WebP data URL. */
-async function shot(m) {
-  const v = m.media?.angledView || m.media?.storeImage;
-  const src = v?.mediumUrl || v?.url || (typeof v === 'string' ? v : null);
-  if (!src) return null;
-  const img = await image(src);
-  const scale = Math.min(1, 560 / img.naturalWidth);
-  const c = document.createElement('canvas');
-  c.width = Math.round(img.naturalWidth * scale); c.height = Math.round(img.naturalHeight * scale);
-  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-  return c.toDataURL('image/webp', 0.8);
+/** The ship's angled render, at most 560 px wide, as a WebP data URL. Some angled renders on
+ * FleetYards are broken (an XML error instead of an image), so each size of the angled render
+ * is tried, then the store image. Null when the ship has none; throws when every image failed
+ * to load, so a network error is tried again next time. */
+export async function shot(m, load = image) {
+  const urls = [m.media?.angledView, m.media?.storeImage]
+    .flatMap(v => (typeof v === 'string' ? [v] : [v?.mediumUrl, v?.url]))
+    .filter((u, i, all) => u && all.indexOf(u) === i);
+  if (!urls.length) return null;
+  for (const src of urls) {
+    const img = await load(src).catch(() => null);
+    if (!img?.naturalWidth) continue;
+    const scale = Math.min(1, 560 / img.naturalWidth);
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.naturalWidth * scale); c.height = Math.round(img.naturalHeight * scale);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    return c.toDataURL('image/webp', 0.8);
+  }
+  throw new Error('no render loaded');
 }
 
 const pending = new Map();

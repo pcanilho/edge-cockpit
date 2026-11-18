@@ -19,9 +19,10 @@ jobs:
     # Code scanning on a private repo needs GitHub Advanced Security; it runs once the repo is public.
     if: ${{ !github.event.repository.private }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
-      security-events: write
+      security-events: write  # upload the analysis
     strategy:
       fail-fast: false
       matrix:

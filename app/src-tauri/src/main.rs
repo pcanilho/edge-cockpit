@@ -3,6 +3,7 @@
 // itself is the web UI in ../ui.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod family;
 mod game;
 mod keys;
 #[cfg(windows)]
@@ -14,7 +15,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::Mutex;
 use std::time::Duration;
-use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
+use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, State, WebviewWindow};
 
@@ -86,6 +87,10 @@ struct GameInfo {
     /// True while Star Citizen is the window in front.
     focused: bool,
     running: bool,
+    /// Whether the game runs as administrator, known only while it is in front.
+    game_elevated: Option<bool>,
+    /// The channel's Game.log exists, so the panel can follow the game.
+    log: bool,
 }
 
 #[derive(Serialize, Clone)]
@@ -191,6 +196,7 @@ async fn press(chord: &[keys::Key], up: bool) -> Result<(), String> {
     }
 }
 
+#[cfg_attr(not(windows), allow(dead_code))]
 async fn tokio_sleep(ms: u64) {
     tauri::async_runtime::spawn_blocking(move || std::thread::sleep(Duration::from_millis(ms))).await.ok();
 }
@@ -228,14 +234,52 @@ fn game_info(app: State<'_, App>) -> GameInfo {
             .and_then(|m| m.modified())
             .is_ok_and(|t| t.elapsed().map(|e| e.as_secs() < 60).unwrap_or(false))
     });
+    let focused = game_focused();
+    #[cfg(windows)]
+    let game_elevated = focused.then(win::foreground_elevated);
+    #[cfg(not(windows))]
+    let game_elevated = None;
+    let log = channel.as_ref().is_some_and(|c| c.join("Game.log").is_file());
     GameInfo {
         channel: channel.map(|c| c.to_string_lossy().into_owned()),
         #[cfg(windows)]
         elevated: win::is_elevated(),
         #[cfg(not(windows))]
         elevated: false,
-        focused: game_focused(),
-        running: running || game_focused() || app.game.load(Ordering::SeqCst) != 0,
+        focused,
+        running: running || focused || app.game.load(Ordering::SeqCst) != 0,
+        game_elevated,
+        log,
+    }
+}
+
+/// Percent-encodes text for a URL query, cut to `max` characters.
+fn url_part(s: &str, max: usize) -> String {
+    s.chars()
+        .take(max)
+        .collect::<String>()
+        .bytes()
+        .map(|b| if b.is_ascii_alphanumeric() || b"-_.~".contains(&b) { (b as char).to_string() } else { format!("%{b:02X}") })
+        .collect()
+}
+
+/// Opens a new issue on the app's GitHub page in the browser, title and body filled in.
+/// Only this one address: the page can't open anything else.
+#[tauri::command]
+fn report_issue(title: String, body: String) -> bool {
+    let url = format!(
+        "https://github.com/pcanilho/edge-cockpit/issues/new?labels=bug&title={}&body={}",
+        url_part(&title, 120),
+        url_part(&body, 1500)
+    );
+    #[cfg(windows)]
+    {
+        win::open_url(&url)
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = url;
+        false
     }
 }
 
@@ -373,10 +417,39 @@ fn set_pref(handle: AppHandle, app: State<'_, App>, name: String, value: bool) {
         p.clone()
     };
     save_prefs(&handle, &p);
-    #[cfg(windows)]
     if name == "autostart" {
+        #[cfg(windows)]
         win::set_autostart(value);
+        if let Some(item) = handle.try_state::<TrayAutostart>() {
+            let _ = item.0.set_checked(value);
+        }
     }
+}
+
+/// The tray's Start with Windows tick, kept in step with the setting.
+struct TrayAutostart(CheckMenuItem<tauri::Wry>);
+
+/// Start with Windows, ticked in the tray: saved like the setting, and the console told.
+fn tray_autostart(handle: &AppHandle) {
+    let p = {
+        let app = handle.state::<App>();
+        let mut p = app.prefs.lock().unwrap();
+        p.autostart = !p.autostart;
+        p.clone()
+    };
+    save_prefs(handle, &p);
+    #[cfg(windows)]
+    win::set_autostart(p.autostart);
+    if let Some(item) = handle.try_state::<TrayAutostart>() {
+        let _ = item.0.set_checked(p.autostart);
+    }
+    let _ = handle.emit("autostart", p.autostart);
+}
+
+/// Settings, Setup check and Check for updates in the tray: light the console and let it open them.
+fn tray_open(handle: &AppHandle, what: &str) {
+    wake(handle);
+    let _ = handle.emit("tray", what);
 }
 
 /// A touch on the dark screen, or the tray: light it up, and let it sleep again in two
@@ -499,6 +572,7 @@ fn set_dark(handle: &AppHandle, dark: bool) {
 }
 
 /// Star Citizen started: wake the screen, show the panel and wait for it to exit.
+#[cfg_attr(not(windows), allow(dead_code))]
 fn game_started(handle: &AppHandle, pid: u32) {
     let app = handle.state::<App>();
     if app.game.swap(pid, Ordering::SeqCst) == pid {
@@ -759,10 +833,20 @@ fn watch_game(handle: AppHandle) {
 }
 
 fn tray(handle: &AppHandle) -> tauri::Result<()> {
+    let version = MenuItem::with_id(handle, "version", format!("Edge Cockpit {}", handle.package_info().version), false, None::<&str>)?;
     let toggle = MenuItem::with_id(handle, "toggle", "Hide the console", true, None::<&str>)?;
+    let settings = MenuItem::with_id(handle, "settings", "Settings", true, None::<&str>)?;
+    let setup = MenuItem::with_id(handle, "setup", "Setup check", true, None::<&str>)?;
+    let on = handle.state::<App>().prefs.lock().unwrap().autostart;
+    let autostart = CheckMenuItem::with_id(handle, "autostart", "Start with Windows", true, on, None::<&str>)?;
+    let update = MenuItem::with_id(handle, "update", "Check for updates", true, None::<&str>)?;
     let quit_item = MenuItem::with_id(handle, "quit", "Quit", true, None::<&str>)?;
-    let menu = Menu::with_items(handle, &[&toggle, &PredefinedMenuItem::separator(handle)?, &quit_item])?;
+    let sep = || PredefinedMenuItem::separator(handle);
+    let items: [&dyn tauri::menu::IsMenuItem<tauri::Wry>; 10] =
+        [&version, &sep()?, &toggle, &settings, &setup, &sep()?, &autostart, &update, &sep()?, &quit_item];
+    let menu = Menu::with_items(handle, &items)?;
     handle.manage(TrayToggle(toggle));
+    handle.manage(TrayAutostart(autostart));
     TrayIconBuilder::with_id("tray")
         .icon(handle.default_window_icon().cloned().ok_or(tauri::Error::InvalidIcon(std::io::Error::other("no icon")))?)
         .tooltip("Edge Cockpit")
@@ -775,6 +859,8 @@ fn tray(handle: &AppHandle) -> tauri::Result<()> {
         })
         .on_menu_event(move |app, ev| match ev.id().as_ref() {
             "toggle" => toggle_panel(app),
+            "autostart" => tray_autostart(app),
+            id @ ("settings" | "setup" | "update") => tray_open(app, id),
             "quit" => quit(app.clone()),
             _ => {}
         })
@@ -792,7 +878,7 @@ fn main() {
             key, wheel, ui_ready, user_ships, release_keys, game_info, read_binds, install_binds, run_as_admin, quit,
             save_profile, load_profile, save_user_ships, install_profile_binds,
             get_prefs, set_pref, wake_screen, sleep_screen, check_update, install_update, perf,
-            displays, set_display, fix_touch
+            displays, set_display, fix_touch, report_issue
         ])
         .setup(|app| {
             let handle = app.handle().clone();
@@ -868,6 +954,12 @@ mod tests {
 
     fn d(id: &str, name: &str, w: i32, h: i32, primary: bool, touch: bool) -> Disp {
         Disp { id: id.into(), name: name.into(), rect: (0, 0, w, h), primary, touch }
+    }
+
+    #[test]
+    fn encodes_issue_text_for_a_url() {
+        assert_eq!(super::url_part("Log lines missing: 4.10 & más", 100), "Log%20lines%20missing%3A%204.10%20%26%20m%C3%A1s");
+        assert_eq!(super::url_part("abcdef", 3), "abc");
     }
 
     #[test]

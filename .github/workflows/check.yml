@@ -15,6 +15,7 @@ jobs:
   check:
     name: check
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
     steps:
@@ -42,6 +43,16 @@ jobs:
       - name: Game.log reader, role pages and ship lookup
         working-directory: app
         run: npm test
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: app/src-tauri
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Rust tests on Linux, with the Game.log replay through the line filter
+        working-directory: app/src-tauri
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
+          cargo test --locked
       - name: Every page renders with full labels, nothing idles, and touches are fast
         working-directory: app
         run: |

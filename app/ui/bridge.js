@@ -25,7 +25,7 @@ export async function wheel(clicks, anywhere) {
 
 export const releaseKeys = () => tauri?.core.invoke('release_keys');
 const demoOn = !!new URLSearchParams(location.search).get('demo');
-export const gameInfo = () => tauri ? tauri.core.invoke('game_info') : Promise.resolve({ channel: demoOn ? 'LIVE' : null, elevated: false, focused: demoOn, running: demoOn });
+export const gameInfo = () => tauri ? tauri.core.invoke('game_info') : Promise.resolve({ channel: demoOn ? 'LIVE' : null, elevated: false, focused: demoOn, running: demoOn, log: demoOn, game_elevated: null });
 export const userShips = () => tauri ? tauri.core.invoke('user_ships') : Promise.resolve(null);
 // Outside the app (UI tests, mocks) a page may supply its own actionmaps.xml.
 export const readBinds = () => tauri ? tauri.core.invoke('read_binds') : Promise.resolve(window.xfdTestBinds ?? null);
@@ -48,8 +48,14 @@ export const setDisplay = id => tauri ? tauri.core.invoke('set_display', { id })
 export const fixTouch = () => tauri ? tauri.core.invoke('fix_touch') : onlyInApp();
 /** f() when displays are added, removed or change resolution. */
 export const onDisplays = f => tauri?.event.listen('displays', () => f());
+/** onTray('settings' | 'setup' | 'update') when that tray item is picked. */
+export const onTray = f => tauri?.event.listen('tray', e => f(e.payload));
+/** onAutostart(on) when Start with Windows is ticked in the tray. */
+export const onAutostart = f => tauri?.event.listen('autostart', e => f(e.payload));
 /** onScreen(dark) when the screen goes off or wakes. */
 export const onScreen = f => tauri?.event.listen('screen', e => f(e.payload));
+/** Opens a new GitHub issue for the app in the browser, with a title and body filled in. */
+export const reportIssue = (title, body) => tauri ? tauri.core.invoke('report_issue', { title, body }) : Promise.resolve(window.xfdReported = { title, body });
 export const quit = () => tauri ? tauri.core.invoke('quit') : window.close();
 
 /** onBatch({ lines, live, reset }) for each batch of Game.log lines. */

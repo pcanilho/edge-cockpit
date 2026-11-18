@@ -87,7 +87,7 @@ export function keycap(x, y, w, ht, l, o = {}) {
     <div class="cap ${o.lit ? 'lit' : ''}">
       ${tog && !o.noLed && k.state?.kind === 'set' ? '<span class="led"></span>' : ''}
       ${o.icon === false ? '' : icon(o.icon || k.icon, o.is || 22)}
-      <span class="lg" style="${o.fs ? `font-size:${o.fs}px` : ''}">${lbl(k, o.label)}</span>
+      <span class="lg" style="${o.fs ? `--fs:${o.fs}px` : ''}">${lbl(k, o.label)}</span>
       ${(k.state?.kind === 'set' && k.state.labels) || o.sub ? `<span class="st">${esc(o.sub || '')}</span>` : ''}
       ${bind ? `<span class="kb">${esc(bind)}</span>` : ''}${tag ? `<span class="tg">${tag}</span>` : ''}${mark}
       <span class="bar"><i></i></span>
@@ -98,11 +98,12 @@ export function keycap(x, y, w, ht, l, o = {}) {
 }
 
 /** Two keys on one rocker: up/left and down/right halves. */
-export function rocker(x, y, w, ht, a, b, { vertical = true, title, ia, ib } = {}) {
+/** la, lb: labels for the halves; ia, ib: their icons (false for none). */
+export function rocker(x, y, w, ht, a, b, { vertical = true, title, ia, ib, la, lb } = {}) {
   const ka = keyOf(a), kb = keyOf(b);
   const el = h(`<div class="well rocker ${vertical ? 'v' : 'h'}" style="${box(x, y, w, ht)}">
-    <div class="cap half a">${icon(ia || ka?.icon, 20)}<span class="lg">${lbl(ka)}</span></div>
-    <div class="cap half b">${icon(ib || kb?.icon, 20)}<span class="lg">${lbl(kb)}</span></div>
+    <div class="cap half a">${ia === false ? '' : icon(ia || ka?.icon, 20)}<span class="lg">${la ? esc(la) : lbl(ka)}</span></div>
+    <div class="cap half b">${ib === false ? '' : icon(ib || kb?.icon, 20)}<span class="lg">${lb ? esc(lb) : lbl(kb)}</span></div>
     ${title ? `<span class="rk-t">${esc(title)}</span>` : ''}</div>`);
   if (ka) K.bind(el.querySelector('.a'), ka);
   if (kb) K.bind(el.querySelector('.b'), kb);

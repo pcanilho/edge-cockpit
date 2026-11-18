@@ -1,7 +1,7 @@
 // Edge Cockpit: builds the cockpit console, turns touches into key presses and
 // follows Game.log for the status display, the moods and the pages.
 import { GLYPHS } from './lib/glyphs.js';
-import { parseLine, reduce, lawless, EMPTY, version, untested, place, tally, stamp, NEW_TALLY, minutes, shipName, alertsFor, hangarText, culprit, logFor, shardName, weaponName, placeName } from './lib/gamelog.js';
+import { parseLine, reduce, lawless, EMPTY, version, missingLines, untested, place, tally, stamp, NEW_TALLY, minutes, shipName, alertsFor, hangarText, culprit, logFor, shardName, weaponName, placeName } from './lib/gamelog.js';
 import { pageFor, pageById } from './lib/pages.js';
 import { lookup } from './lib/ships.js';
 import * as bridge from './bridge.js';
@@ -56,10 +56,11 @@ const store = {
 // Night mode is off, on, or auto (dark from 20:00 to 07:00 by this PC's clock). Older builds stored a boolean.
 const NIGHT_FROM = 20, NIGHT_TO = 7;
 // Maker theme: auto (the ship's maker), off, or one maker's theme always. Older builds stored a boolean.
-const THEMED = new Set(['DRAK', 'AEGS', 'ORIG', 'MISC', 'ANVL']);
+const THEMED = new Set(['DRAK', 'AEGS', 'ORIG', 'MISC', 'ANVL', 'RSI', 'CRUS', 'ARGO', 'CNOU']);
 const themeMode = v => (v === false ? 'off' : v === 'off' || THEMED.has(v) ? v : 'auto');
 const nightMode = v => (v === true ? 'on' : ['on', 'auto'].includes(v) ? v : 'off');
-const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), anywhere: store.get('anywhere', false), stack: store.get('stack', true), makerTheme: themeMode(store.get('makerTheme', 'auto')) };
+const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), anywhere: store.get('anywhere', false), stack: store.get('stack', true), large: store.get('large', false), makerTheme: themeMode(store.get('makerTheme', 'auto')) };
+stage.classList.toggle('large', opts.large);
 
 // ---------- binds: the player's actionmaps.xml, then our Xeneon profile, then the defaults ----------
 function parseActionmaps(text) {
@@ -96,6 +97,7 @@ async function reloadBinds() {
   cache.clear();
   render();
   paintBindHealth();
+  paintSetup();
 }
 
 /**
@@ -219,7 +221,9 @@ function failed(err, k, node) {
 async function send(k, mode, ms, node) {
   const spec = bindOf(k);
   if (!spec) { failed('unbound', k, node); return false; }
-  try { await bridge.sendKey(spec, mode, ms, opts.anywhere); return true; } catch (e) { failed(e, k, node); return false; }
+  try { await bridge.sendKey(spec, mode, ms, opts.anywhere); } catch (e) { failed(e, k, node); return false; }
+  if (mode !== 'up' && info.focused && /^spaceship|^vehicle/.test(k.actionmap || '')) { watch.shipKeys++; paintPatch(); }
+  return true;
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -517,6 +521,7 @@ function setOpt(name, v) {
   if (name === 'stack') fit();
   if (name === 'makerTheme') paintStatus();
   paintNight();
+  stage.classList.toggle('large', !!opts.large);
   document.querySelectorAll('.opt[data-opt]').forEach(o => o.classList.toggle('on', !!opts[o.dataset.opt]));
   $('auto').classList.toggle('on', opts.auto);
   if (name === 'anywhere') paintIdle();
@@ -546,7 +551,7 @@ async function paintDisplays() {
   $('touch-health').hidden = d.touch_ok;
   $('touch-chip').hidden = d.touch_ok;
 }
-bridge.onDisplays(() => paintDisplays());
+bridge.onDisplays(() => { paintDisplays(); paintSetup(); });
 const TAB_ICONS = { general: 'cog', screen: 'bulb', feedback: 'pulse', binds: 'list', profile: 'person', about: 'download' };
 function showSection(sec) {
   document.querySelectorAll('.tab[data-sec]').forEach(t => t.classList.toggle('cur', t.dataset.sec === sec));
@@ -570,7 +575,7 @@ async function installBinds() {
 }
 const acts = { 'act-binds': [() => reloadBinds().then(() => toast('Binds reloaded')), 'reload'], 'act-install': [installBinds, 'layers'],
   'act-admin': [bridge.runAsAdmin, 'shield'], 'act-sleep': [() => { openSheet(false); bridge.sleepScreen(); }, 'moon'],
-  'act-update': [installUpdate, 'download'], 'act-touch': [() => bridge.fixTouch().then(ok => ok || toast('Windows did not open its touchscreen setup. Open Tablet PC Settings, then Setup.')), 'hand'], 'act-save': [saveProfile, 'download'], 'act-load': [loadProfile, 'reload'], 'act-quit': [bridge.quit, 'power'] };
+  'act-update': [installUpdate, 'download'], 'act-touch': [() => bridge.fixTouch().then(ok => ok || toast('Windows did not open its touchscreen setup. Open Tablet PC Settings, then Setup.')), 'hand'], 'act-save': [saveProfile, 'download'], 'act-load': [loadProfile, 'reload'], 'act-quit': [bridge.quit, 'power'], 'act-setup': [() => { openSheet(false); showSetup(); }, 'hand'] };
 for (const [id, [run, icon]] of Object.entries(acts)) {
   $(id).querySelector('svg').innerHTML = GLYPHS[icon] || '';
   controls.pressable($(id), { up: () => { tick('tap'); run(); } });
@@ -579,7 +584,7 @@ $('qt').querySelector('svg').innerHTML = GLYPHS.quantum;
 
 // ---------- profile: settings, plate order, ship roles and keyboard binds in one file ----------
 // Saved as Documents\Edge Cockpit\profile.json, to copy to another PC or keep as a backup.
-const PROFILE_OPTS = ['night', 'sound', 'flash', 'auto', 'recap', 'alertSound', 'anywhere', 'stack', 'makerTheme', 'autostart', 'screen_off'];
+const PROFILE_OPTS = ['night', 'sound', 'flash', 'auto', 'recap', 'alertSound', 'anywhere', 'stack', 'large', 'makerTheme', 'autostart', 'screen_off'];
 /** The keyboard binds in an actionmaps.xml, as a Control Profile the game can load. */
 function bindsProfile(text) {
   const doc = new DOMParser().parseFromString(text, 'application/xml');
@@ -705,6 +710,44 @@ function showRecap() {
 }
 controls.pressable($('rc-close'), { up: () => { tick('tap'); $('recap').hidden = true; } });
 
+// ---------- setup check: on first run, and from Settings > General ----------
+// Each row says only what the app can see. Admin rights are known only while the game is in front.
+let setupOpen = false;
+async function paintSetup() {
+  if (!setupOpen) return;
+  const d = await bridge.displays().catch(() => null);
+  const touch = d?.list.find(x => x.touch);
+  const h = bindHealth(), bad = h.missing.length + h.stick.length;
+  const ch = info.channel ? info.channel.split(/[\\/]/).pop().toUpperCase() : null;
+  const rows = [
+    !d ? ['unknown', 'Touchscreen', 'Checked in the app.']
+      : !touch ? ['warn', 'No touchscreen found', 'The console works with a mouse too. Plug in the touchscreen\'s USB cable for touch.']
+      : !d.touch_ok ? ['warn', 'Touches land on another display', `Windows maps ${touch.name}'s touches to the wrong screen.`, 'Fix touch', () => bridge.fixTouch()]
+      : ['ok', 'Touchscreen found', `${touch.name}, ${touch.width} × ${touch.height}. Touches map to it.`],
+    !ch ? ['warn', 'Star Citizen not found yet', 'Start the game once. The console finds it from the running game.']
+      : ['ok', 'Star Citizen found', `${ch}${game.build?.branch ? ' ' + version(game.build.branch) : ''} · ${info.log ? 'Game.log readable' : 'no Game.log yet'}`],
+    bad ? ['warn', 'Pick the edge-cockpit control profile', `In game: Options › Keybindings › Control Profiles › edge-cockpit, Keyboard only. ${bad} ${bad === 1 ? 'key waits' : 'keys wait'} on it.`, 'Add binds', installBinds]
+      : ['ok', 'Every key has a bind', `All ${h.total} keys the console uses have a keyboard bind.`],
+    info.game_elevated == null ? ['unknown', 'Admin rights', 'Checked while the game is in front.']
+      : info.game_elevated && !info.elevated ? ['warn', 'The game runs as administrator', 'Windows drops keys from the console unless it does too.', 'Restart as admin', bridge.runAsAdmin]
+      : ['ok', 'Same rights as the game', info.elevated ? 'Both run as administrator.' : 'Neither runs as administrator.'],
+  ];
+  const ready = rows.filter(r => r[0] === 'ok').length;
+  $('su-count').textContent = `Setup · ${ready} of ${rows.length} ready`;
+  const esc = controls.esc;
+  $('su-rows').innerHTML = rows.map(([cls, b, p, btn], i) => `<div class="su-row ${cls}"><i></i><div class="txt"><b>${esc(b)}</b><p>${esc(p)}</p></div>${btn ? `<button data-i="${i}">${esc(btn)}</button>` : ''}</div>`).join('');
+  $('su-rows').querySelectorAll('button').forEach(b => controls.pressable(b, { up: () => { tick('tap'); rows[b.dataset.i][4](); } }));
+}
+function showSetup() { setupOpen = true; $('setup').hidden = false; $('su-test').textContent = ''; paintSetup(); }
+controls.pressable($('su-done'), { up: () => { tick('tap'); setupOpen = false; $('setup').hidden = true; store.set('setup-done', true); } });
+// Test a key: mobiGlas, which opens and closes without changing anything in game.
+controls.pressable($('su-key'), { up: async () => {
+  const k = KEYS.get('mobiGlas'), out = $('su-test');
+  const ok = await fire(k, $('su-key'));
+  out.className = 'su-test ' + (ok ? 'ok' : 'warn');
+  out.textContent = ok ? `Sent ${keyText(bindOf(k))}. mobiGlas should open in game; test again to close it.` : 'Not sent. The message at the bottom says why.';
+} });
+
 /** Asks once per version, with its notes, and only while the game isn't running. Later waits for the next version. */
 function paintPrompt() {
   const ask = !!update && !info.running && store.get('upd-later', null) !== update.version;
@@ -752,6 +795,12 @@ const MAKER_NAMES = { AEGS: ['Aegis', 'Dynamics'], ANVL: ['Anvil', 'Aerospace'],
 // then kept), dimmed and faded, over the maker's name. Without a render (offline, or none),
 // themed makers get their line art instead. A dark fade keeps the text readable.
 let backdropKey = null;
+// Shrinks one line of text from `max` px until it fits its box.
+function fitText(el, max, min = 1) {
+  el.style.fontSize = max + 'px';
+  const room = el.clientWidth, need = el.scrollWidth;
+  if (need > room) el.style.fontSize = Math.max(min, Math.floor(max * room / need)) + 'px';
+}
 function paintBackdrop(cls, artMaker, nameMaker) {
   const key = `${cls}|${artMaker}|${nameMaker}`;
   if (key === backdropKey) return;
@@ -770,9 +819,10 @@ function paintBackdrop(cls, artMaker, nameMaker) {
     t.setAttribute('aria-hidden', 'true');
     const b = document.createElement('b'), s = document.createElement('small');
     b.textContent = words[0]; s.textContent = words[1];
-    b.style.fontSize = Math.min(76, Math.floor(300 / (words[0].length * 0.62))) + 'px';
     t.append(b, s);
     mfd.append(t);
+    // Sized by measuring, so long names (Crusader, Consolidated) fit the screen's width.
+    fitText(b, 76); fitText(s, 15);
     requestAnimationFrame(fitMakerName);
   }
   if (!cls) return art();
@@ -833,7 +883,8 @@ function paintStatus() {
   paintBackdrop(off ? null : game.seated && game.ship || null, artMaker, off ? null : code || artMaker);
   document.querySelectorAll('#theme-seg button').forEach(b => b.classList.toggle('cur', b.dataset.v === opts.makerTheme));
   paintIdle();
-  $('ship-name').textContent = name;
+  // Long names (Constellation Andromeda) shrink to one line rather than run into the role below.
+  if ($('ship-name').textContent !== name) { $('ship-name').textContent = name; fitText($('ship-name'), 28, 16); }
   $('ship-role').textContent = role;
 
   // Law: red for CrimeStat; amber outside monitored space, with comms down or in lawless
@@ -911,6 +962,7 @@ function paintStatus() {
   stage.classList.toggle('wrecked', inWorld && game.seated && game.wrecked > 0);
   paintQuantum();
   paintLog();
+  paintPatch();
   requestAnimationFrame(fitMakerName);
 }
 // The maker's name only shows where the status text leaves room for it.
@@ -1007,13 +1059,30 @@ function follow(force) {
   lastAuto = id;
 }
 
-bridge.onGameLog(({ lines, live, reset }) => {
+// ---------- patch watch: the log lines the console needs, still there after a patch ----------
+const newWatch = () => ({ kinds: new Set(), loadedAt: 0, shipKeys: 0 });
+let watch = newWatch();
+function paintPatch() {
+  const miss = liveLog && !game.menu ? missingLines(watch, Date.now()) : [];
+  $('patch').hidden = !miss.length;
+  $('patch').querySelector('span').textContent = miss.length ? 'Log lines missing' : '';
+  $('patch').dataset.miss = miss.join(', ');
+}
+controls.pressable($('patch'), { up: () => {
+  tick('tap');
+  const what = $('patch').dataset.miss, build = game.build?.branch ? version(game.build.branch) : 'this build';
+  toast(`Game.log on ${build} shows nothing for ${what}. A patch may have changed it.`, { label: 'Report', run: () => bridge.reportIssue(
+    `Patch watch: no log line for ${what} on ${build}`,
+    `Edge Cockpit ${prefs.version} found no Game.log line for: ${what}.\nGame build: ${game.build?.branch || '?'} (changelist ${game.build?.changelist || '?'}).`) });
+} });
+
+function onLog({ lines, live, reset }) {
   // A new Game.log means a new channel or a restart: its binds may differ too.
-  if (reset) { game = { ...EMPTY }; session = { ...NEW_TALLY }; lastSeq = 0; logRows = []; if (bridge.inApp) { reloadBinds(); loadUserShips(); } }
+  if (reset) { game = { ...EMPTY }; session = { ...NEW_TALLY }; lastSeq = 0; logRows = []; watch = newWatch(); if (bridge.inApp) { reloadBinds(); loadUserShips(); } }
   for (const line of lines) {
     const ev = parseLine(line);
     const was = game;
-    if (ev) game = reduce(game, ev);
+    if (ev) { game = reduce(game, ev); watch.kinds.add(ev.type); if (ev.type === 'loaded') watch.loadedAt = (live ? 0 : Date.parse(stamp(line) || '')) || Date.now(); }
     session = tally(session, was, game, stamp(line));
     if (ev) for (const e of logFor(was, game)) logRows.unshift({ ...e, ts: stamp(line) });
     if (live && !was.menu && game.menu) showRecap();
@@ -1026,7 +1095,8 @@ bridge.onGameLog(({ lines, live, reset }) => {
   follow(!live);
   paintStatus();
   paintChannel();
-});
+}
+bridge.onGameLog(onLog);
 
 let info = { running: false, focused: false, elevated: false, channel: null };
 function paintChannel() {
@@ -1047,12 +1117,14 @@ async function poll() {
   if (!info.running && !game.menu) { game = { ...EMPTY, me: game.me }; follow(false); showRecap(); }
   paintPrompt();
   paintStatus();
+  paintSetup();
 }
 
 // ---------- clock and scale ----------
 function clock() {
   $('clock').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
   if (opts.night === 'auto') paintNight();
+  paintPatch();
 }
 // On a screen that isn't ultra-wide (16:10, 4:3, portrait, a tablet) the console stacks in two
 // rows when that makes the keys bigger: the status display and first plates on top, the rest below.
@@ -1117,12 +1189,21 @@ if (fresh?.fresh && fresh.version === prefs.version) {
 paintUpdate();
 paintDisplays();
 setTimeout(() => { checkUpdate(); setInterval(checkUpdate, 6 * 3600_000); }, 20_000);
+// The tray menu: Settings, Setup check, Check for updates and the Start with Windows tick.
+bridge.onTray?.(what => {
+  if (what === 'settings') { $('setup').hidden = true; setupOpen = false; openSheet(true, 'general'); }
+  else if (what === 'setup') { openSheet(false); showSetup(); }
+  else if (what === 'update') bridge.checkUpdate().then(u => { update = u; paintUpdate(); toast(u ? `Version ${u.version} is ready to install` : `Edge Cockpit ${prefs.version} is up to date`); }, e => toast(`Could not check for updates: ${e?.message || e}`));
+});
+bridge.onAutostart?.(on => { opts.autostart = on; document.querySelectorAll('.opt[data-opt="autostart"]').forEach(o => o.classList.toggle('on', on)); });
 setOpt('night', opts.night);
 render();
 await reloadBinds();
 poll(); setInterval(poll, 2000);
 paintStatus();
 if (demo) { opts.auto = false; show(demo); }
+// The setup check shows once, on the first start (in the browser preview only with ?setup).
+if (bridge.inApp ? !store.get('setup-done', false) : new URLSearchParams(location.search).has('setup')) showSetup();
 stage.classList.remove('booting');
-window.xfd = { show, raise, recap: t => { session = { ...NEW_TALLY, ...t }; showRecap(); }, perf: perf.toggle, showSection, bindHealth, bindsProfile, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
+window.xfd = { show, raise, setup: showSetup, feed: (lines, live = true) => onLog({ lines, live }), recap: t => { session = { ...NEW_TALLY, ...t }; showRecap(); }, perf: perf.toggle, showSection, bindHealth, bindsProfile, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
 document.body.dataset.ready = '1';
