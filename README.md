@@ -27,7 +27,7 @@ It starts with Windows, wakes when Star Citizen starts and goes dark when you qu
 ## Pages
 
 - **Ship**: power plate with **Flight Ready**, a role module (target dial, mining laser, salvage beam, tractor beam...), flight and gear plates. Long-press a plate's title to rearrange or swap the role module, long-press a key to swap it; both saved. On another screen, pick which plates it shows.
-- **Yours**: long-press a ship page's title, then **New blank page** or **Duplicate & edit**. Drag controls from the palette onto a plate (16 px grid), tap one to pick its key, label and size. Switches take only actions with set-on and set-off binds, eject-type keys only a cover or slide. Undo, Try it (no keys sent), phone preview, Fit or Actual size. **Use for** picks the ships it replaces the ship page of. **Share** saves it to `Documents\Edge Cockpit\Pages`; **Import** adds one from there. A tablet or PC showing the whole console can edit it too, live on the Edge.
+- **Build your own pages**: long-press a ship page's title, then **New blank page** or **Duplicate & edit**. Drag controls from the palette onto a plate (16 px grid), tap one to pick its key, label and size. Switches take only actions with set-on and set-off binds, eject-type keys only a cover or slide. Undo, Try it (no keys sent), phone preview, Fit or Actual size. **Use for** picks the ships it replaces the ship page of. **Share** saves it to `Documents\Edge Cockpit\Pages`; **Import** adds one from there. A tablet or PC showing the whole console can edit it too, live on the Edge.
 - **On foot**: weapon wheel, suit, comms, emotes.
 - **Downed**: revive request.
 - **MFD & assists**: MFD screens, light amplification, auto precision, wind compensation, Self repair all.
