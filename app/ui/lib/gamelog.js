@@ -258,7 +258,7 @@ export function place(id) {
     if (!t || /^\d+$/.test(t)) continue;
     if (SYSTEMS.test(t)) { system ||= t.match(SYSTEMS)[1]; body ??= Number(t.match(/\d+/)?.[0]) || null; continue; }
     if (t in KINDS) { kind ||= KINDS[t]; continue; }
-    words.push(t.replace(/([a-z])([A-Z])/g, '$1 $2'));
+    words.push(t.replace(/([a-z])([A-Z]|\d)/g, '$1 $2'));
   }
   return { name: words.join(' ') || kind || system || '', kind: words.length ? kind : '', system, body };
 }

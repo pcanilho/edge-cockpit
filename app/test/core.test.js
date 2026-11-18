@@ -116,6 +116,7 @@ test('reads the build, kills, a wrecked ship and the location', () => {
   assert.equal(s.wrecked, 1);
   assert.equal(placeName(s.location), 'Lorville');
   assert.deepEqual(place('Stanton1_Lorville'), { name: 'Lorville', kind: '', system: 'Stanton', body: 1 });
+  assert.equal(place('Stanton3_Area18').name, 'Area 18'); // as the game spells it
   assert.deepEqual(place('AsteroidClusterBase_Nyx_Social_Keeger_001'), { name: 'Keeger', kind: 'Asteroid base', system: 'Nyx', body: null });
   assert.deepEqual(place('Stanton2b_RestStop_Daymar'), { name: 'Daymar', kind: 'Rest stop', system: 'Stanton', body: 2 });
   // Being killed counts as going down, not as a kill.
@@ -466,8 +467,8 @@ test('place unknown: best trades in the system; stock as reported', () => {
   assert.deepEqual(rows.map(r => r.profit), rows.map(r => r.profit).sort((a, b) => b - a));
   assert.deepEqual(W.stockText({ scu: 1200 }), { text: '1,200 SCU in stock', low: false });
   assert.deepEqual(W.stockText({ scu: 6 }), { text: '6 SCU in stock', low: true });
-  assert.deepEqual(W.stockText({ status: 1 }), { text: 'Their stock empty', low: false });
-  assert.deepEqual(W.stockText({ status: 7 }), { text: 'Their stock full', low: true });
+  assert.deepEqual(W.stockText({ status: 1 }), { text: 'Stock empty', low: false });
+  assert.deepEqual(W.stockText({ status: 7 }), { text: 'Stock full', low: true });
   assert.equal(W.stockText({ scu: 0, status: 0 }), null);
 });
 
