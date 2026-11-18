@@ -20,6 +20,9 @@ const SKIP = /\b(screw|title|rtitle|pager|swipe-hint|grab)\b/;
 
 let ctx = null; // { stage, current(), plateName(el), onSettings() }
 let cur = { plate: null, view: 0 }; // what shows: a plate key and a view of it
+// The last view on each page, kept on the device so it reopens where you left it.
+let seen = {}, page = null;
+try { seen = JSON.parse(localStorage.getItem('ph-seen') || '{}'); } catch { seen = {}; }
 let me = { plate: 'swipe', mode: 'copy', name: '' };
 let scale = 1;
 let views = []; // [{ key, el, label, fold }]
@@ -297,6 +300,8 @@ export function layout() {
   document.body.classList.toggle('ph-land', a.land);
   const plates = [$('status'), ...$('console').querySelectorAll(':scope > .plate')];
   for (const p of plates) { unfold(p); p.classList.remove('ph-on'); }
+  const now = ctx.current?.() ?? null;
+  if (now !== page) { page = now; if (me.plate === 'swipe') cur = { plate: null, view: 0, ...seen[page] }; }
   // A phone given one plate of the ship page keeps to it, where the page has it.
   const pinned = me.plate !== 'swipe' && plates.some(p => keyOf(p) === me.plate) ? me.plate : null;
   views = [];
@@ -316,6 +321,10 @@ function showView(i, a = area()) {
   const v = views[i];
   if (!v) return;
   cur = { plate: v.key, view: views.filter(w => w.key === v.key).indexOf(v) };
+  if (page !== null && me.plate === 'swipe') {
+    seen[page] = cur;
+    try { localStorage.setItem('ph-seen', JSON.stringify(seen)); } catch { /* private mode: not kept */ }
+  }
   const plates = [$('status'), ...$('console').querySelectorAll(':scope > .plate')];
   for (const p of plates) { if (p !== v.el) unfold(p); p.classList.toggle('ph-on', p === v.el); }
   unfold(v.el);

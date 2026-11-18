@@ -13,6 +13,7 @@ import * as arrange from './arrange.js';
 import * as perf from './perf.js';
 import * as world from './world.js';
 import * as phone from './phone.js';
+import { keepAwake } from './awake.js';
 
 const $ = id => document.getElementById(id);
 // On a phone (link.js set this up), the console shows one plate at a time.
@@ -156,6 +157,8 @@ const keyText = spec => (spec || '').split('+').map(p => ({ ralt: 'RAlt', lalt: 
 // ---------- sound ----------
 let audio;
 function tick(kind) {
+  // A device that can buzz (Android) feels each press. iPhone browsers don't allow it.
+  if (onPhone && navigator.vibrate) navigator.vibrate({ critical: [30, 40, 30], error: 60, detent: 5 }[kind] ?? 12);
   if (!opts.sound) return;
   try {
     audio ||= new AudioContext();
@@ -1209,7 +1212,7 @@ function startPhones() {
 // ---------- on a phone ----------
 function startPhone() {
   const link = window.__EC_PHONE__;
-  phone.init({ stage, tick, fit, onSettings: () => openSheet(true) });
+  phone.init({ stage, tick, fit, current: () => current, onSettings: () => openSheet(true) });
   // Toasts and alerts sit over the phone's screen, not on the stage.
   document.body.append($('toast'), $('banner'));
   opts.recap = false;
@@ -1217,11 +1220,9 @@ function startPhone() {
   bridge.onPhoneConfig?.(c => phone.configure(c));
   if (link.me) phone.configure(link.me);
   setInterval(() => phone.paintTop({ state: link.state, rtt: link.rtt }), 5000);
-  // Keep the screen on where the browser allows it (a secure page only; plain Wi-Fi pages can't).
-  let lock = null;
-  const awake = () => { if (navigator.wakeLock && !lock && !document.hidden) navigator.wakeLock.request('screen').then(l => { lock = l; l.addEventListener('release', () => { lock = null; }); }).catch(() => {}); };
-  addEventListener('pointerdown', awake, { passive: true });
-  document.addEventListener('visibilitychange', awake);
+  // Keep the screen on while the console shows.
+  addEventListener('pointerdown', keepAwake, { passive: true });
+  document.addEventListener('visibilitychange', keepAwake);
   // The ship's name in the top bar, and where you are under a short plate, follow the status display.
   let pending = false;
   new MutationObserver(() => {

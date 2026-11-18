@@ -496,6 +496,14 @@ for (const [W, H, tag] of [[393, 852, 'portrait'], [852, 393, 'landscape']]) {
       if (r.scale < 0.45) problems.push(`phone ${tag} ${id} ${r.view}: shown at ${Math.round(r.scale * 100)} %`);
     }
   }
+  // The device reopens on the view it showed last.
+  await ph.evaluate(() => window.xfd.show('flight'));
+  const last = await ph.evaluate(() => { const bs = document.querySelectorAll('#ph-rail button'); bs[bs.length - 1].click(); return document.body.dataset.phView; });
+  await ph.reload();
+  await ph.waitForSelector('body[data-ready]');
+  await ph.evaluate(() => window.xfd.show('flight'));
+  const back = await ph.evaluate(() => document.body.dataset.phView);
+  if (back !== last) problems.push(`phone ${tag}: reopened on "${back}", not "${last}"`);
   if (shots) { await ph.evaluate(() => window.xfd.show('light-fighter')); await ph.screenshot({ path: join(shots, `phone-${tag}.png`) }); }
   await ctx.close();
 }
