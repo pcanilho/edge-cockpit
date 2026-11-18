@@ -273,6 +273,9 @@ for (const sec of await page.evaluate(() => [...document.querySelectorAll('.tab[
     document.querySelectorAll('.tab[data-sec]').forEach(t => t.classList.toggle('cur', t.dataset.sec === sec));
   }, sec);
   await checkLabels(`settings: ${sec}`, true);
+  // Anything marked hidden must not show, whatever display its class gives it.
+  const shown = await page.evaluate(() => [...document.querySelectorAll('[hidden]')].filter(e => getComputedStyle(e).display !== 'none').map(e => e.id || e.className));
+  for (const x of shown) problems.push(`settings: ${sec}: ${x} is hidden but still shows`);
   if (shots) await page.screenshot({ path: join(shots, `settings-${sec}.png`) });
 }
 // Displays: Automatic plus each display, and a warning when touch maps to another one.
