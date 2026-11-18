@@ -238,7 +238,9 @@ impl Phones {
         let moved = list.iter().filter(|p| p.online && p.mode == "move" && p.plate != "swipe" && p.plate != "status").map(|p| p.plate.clone()).collect();
         View {
             enabled: g.enabled,
-            qr: url.as_deref().map(qr_svg),
+            // The QR also carries the code (after #, so it never reaches the server as a path):
+            // a scan pairs at once. It is on the same screen as the code, and expires with it.
+            qr: url.as_deref().map(|u| qr_svg(&format!("{u}#pair={}", g.code))),
             url,
             code: g.enabled.then(|| g.code.clone()),
             ttl: g.code_at.map(|t| CODE_TTL.saturating_sub(t.elapsed()).as_secs()).unwrap_or(0),

@@ -82,6 +82,9 @@
   const emit = (name, payload) => { for (const f of listeners.get(name) || []) f({ payload }); };
   function sendRaw(m) { if (ws?.readyState === 1) ws.send(JSON.stringify(m)); }
 
+  // A scanned QR carries the pairing code after #pair=: pair with it once, then drop it from the address.
+  let scanned = /^#pair=(\d{6})$/.exec(location.hash)?.[1] || null;
+  if (location.hash) history.replaceState(null, '', location.pathname + location.search);
   function connect() {
     if (!linked) return;
     setState(phone.state === 'pair' ? 'pair' : 'connecting');
@@ -91,7 +94,7 @@
       if (m.t === 'hello') {
         const me = saved();
         if (me?.id && me.token) sendRaw({ t: 'auth', id: me.id, mac: hex(hmac(unhex(me.token), utf8(m.nonce))) });
-        else setState('pair');
+        else if (scanned) { phone.pair(scanned); scanned = null; } else setState('pair');
       } else if (m.t === 'ok') {
         retry = 0;
         if (m.token) save({ id: m.id, token: m.token });
@@ -104,7 +107,7 @@
         sendRaw({ t: 'ping', at: performance.now() });
       } else if (m.t === 'denied') {
         if (m.why === 'unknown') save(null);
-        phone.error = m.why === 'code' ? 'That code did not match. Check Settings › Phones on the PC.' : null;
+        phone.error = m.why === 'code' ? 'That code did not match. Check Settings › Devices on the PC.' : null;
         setState('pair');
       } else if (m.t === 'pong') {
         lastPong = performance.now();
