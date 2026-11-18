@@ -379,14 +379,16 @@ function card(el) {
   if (!target) { c.hidden = true; return; }
   const rows = [];
   let title = '';
-  const btn = (a, t, cls = '') => `<button data-a="${a}" class="${cls}">${t}</button>`;
+  // Everything that goes into the card is escaped, numbers too: a draft comes back from storage.
+  const btn = (a, t, cls = '') => `<button data-a="${esc(a)}" class="${esc(cls)}">${esc(t)}</button>`;
+  const n = v => esc(String(Math.round(Number(v)) || 0));
   if (sel.add !== undefined) {
     const it = item();
     const t = TYPES[it.t];
     title = t.name;
     const keyRow = (slot, label, value, base = false) => {
       const bound = value ? ctx.bound(value, base) : true;
-      rows.push(`<div class="ed-row ${value ? '' : 'empty'}"><span><small>${label}</small><b>${esc(value || 'None yet')}</b>${bound ? '' : '<em class="amber">Not bound in your game yet</em>'}</span>${btn(`pick:${slot}`, value ? 'Change' : 'Pick', 'link')}</div>`);
+      rows.push(`<div class="ed-row ${value ? '' : 'empty'}"><span><small>${esc(label)}</small><b>${esc(value || 'None yet')}</b>${bound ? '' : '<em class="amber">Not bound in your game yet</em>'}</span>${btn(`pick:${slot}`, value ? 'Change' : 'Pick', 'link')}</div>`);
     };
     if (t.takes === 'tap' || t.takes === 'danger') keyRow('key', 'Key', it.key);
     if (t.takes === 'set') keyRow('key', 'Switches', it.key, true);
@@ -397,9 +399,9 @@ function card(el) {
       if (pos.length < 4) rows.push(`<div class="ed-row">${btn('addpos', 'Add a position', 'link')}</div>`);
     }
     if (t.takes === 'text') rows.push(`<div class="ed-row"><span><small>Text</small><b>${esc(it.text || '')}</b></span>${btn('text', 'Edit', 'link')}</div>`);
-    if (t.takes === 'field') rows.push(`<div class="ed-row col"><small>Shows</small><span class="ed-chips">${Object.entries(FIELDS).map(([f, n]) => `<button data-a="field:${f}" class="${it.field === f ? 'cur' : ''}">${esc(n)}</button>`).join('')}</span></div>`);
+    if (t.takes === 'field') rows.push(`<div class="ed-row col"><small>Shows</small><span class="ed-chips">${Object.entries(FIELDS).map(([f, name]) => `<button data-a="field:${esc(f)}" class="${it.field === f ? 'cur' : ''}">${esc(name)}</button>`).join('')}</span></div>`);
     if (['tap', 'set', 'danger'].includes(t.takes) && it.key) rows.push(`<div class="ed-row"><span><small>Label</small><b>${esc(it.label || `${it.key} (the key's own)`)}</b></span>${it.label ? btn('unlabel', 'Reset', 'link') : ''}${btn('label', 'Edit', 'link')}</div>`);
-    rows.push(`<div class="ed-row"><span><small>Size</small><b>${t.fixed ? `${t.min[0]} × ${t.min[1]} · fixed` : `${it.w} × ${it.h} · drag the corner`}</b></span></div>`);
+    rows.push(`<div class="ed-row"><span><small>Size</small><b>${t.fixed ? `${n(t.min[0])} × ${n(t.min[1])} · fixed` : `${n(it.w)} × ${n(it.h)} · drag the corner`}</b></span></div>`);
     rows.push(`<div class="ed-acts">${btn('dup', 'Duplicate')}${btn('remove', 'Remove', 'bad')}</div>`);
   } else if (sel.cid) {
     title = 'Stock control';
@@ -413,10 +415,10 @@ function card(el) {
       rows.push(`<div class="ed-row"><span><small>Title</small><b>${esc(pl.title || 'None')}</b></span>${btn('ptitle', 'Edit', 'link')}</div>`);
       const room = SPACE - used() + pl.w;
       rows.push(`<div class="ed-row col"><small>Width</small><span class="ed-chips">${Object.values(WIDTHS).sort((a, b) => a - b).map(w =>
-        `<button data-a="w:${w}" class="${pl.w === w ? 'cur' : ''}" ${w > room ? 'disabled' : ''}>${w}</button>`).join('')}</span></div>`);
+        `<button data-a="w:${n(w)}" class="${pl.w === w ? 'cur' : ''}" ${w > room ? 'disabled' : ''}>${n(w)}</button>`).join('')}</span></div>`);
     } else {
-      const n = pl.edits.hide.length + Object.keys(pl.edits.move).length;
-      if (n) rows.push(`<div class="ed-row"><span><small>Your changes</small><b>${pl.edits.hide.length} removed, ${Object.keys(pl.edits.move).length} moved</b></span>${btn('restock', 'Back to stock', 'link')}</div>`);
+      const count = pl.edits.hide.length + Object.keys(pl.edits.move).length;
+      if (count) rows.push(`<div class="ed-row"><span><small>Your changes</small><b>${n(pl.edits.hide.length)} removed, ${n(Object.keys(pl.edits.move).length)} moved</b></span>${btn('restock', 'Back to stock', 'link')}</div>`);
     }
     rows.push(`<div class="ed-acts">${sel.p > 0 ? btn('left', 'Move left') : ''}${sel.p < spec.plates.length - 1 ? btn('right', 'Move right') : ''}${spec.plates.length > 1 ? btn('premove', 'Remove plate', 'bad') : ''}</div>`);
   }
