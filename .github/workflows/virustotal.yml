@@ -11,12 +11,17 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: virustotal-${{ inputs.tag }}
+  cancel-in-progress: false
+
 jobs:
   scan:
     name: scan
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
-      contents: write
+      contents: write  # put the results in the release notes and the README badge
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

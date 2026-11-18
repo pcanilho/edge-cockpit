@@ -11,14 +11,20 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: scorecard-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   scorecard:
+    name: scorecard
     if: ${{ !github.event.repository.private }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
-      security-events: write
-      id-token: write
+      security-events: write  # upload the results
+      id-token: write         # publish the results for the badge
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

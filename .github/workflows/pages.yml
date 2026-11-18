@@ -20,6 +20,7 @@ jobs:
   build:
     name: site
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -50,9 +51,10 @@ jobs:
     name: deploy
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
-      pages: write
-      id-token: write
+      pages: write     # publish the site
+      id-token: write  # prove the deploy comes from this workflow
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
