@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Edge Cockpit · Touch cockpit for Star Citizen</title>
-<meta name="description" content="A free cockpit console for Star Citizen on a touchscreen. It presses your own keybinds, never takes focus from the game, and follows what you do in game.">
+<meta name="description" content="A free touch cockpit for Star Citizen. Presses your own keybinds, never takes focus from the game, and follows what you do in game.">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#0b0d10">
 <link rel="canonical" href="{{BASE_URL}}">
@@ -45,7 +45,7 @@
   <div class="hero-text">
     <p class="eyebrow">Star Citizen · Touch cockpit</p>
     <h1>Your ship's console, <span>on a touchscreen.</span></h1>
-    <p class="lead">Edge Cockpit turns a touchscreen into a cockpit panel. It presses your own keybinds, never takes focus from the game, and changes page as you board, step out or go down.</p>
+    <p class="lead">A cockpit panel on a touchscreen. Presses your own keybinds, never takes focus from the game, and switches page as you board, step out or go down.</p>
     <div class="cta">
       <a class="key primary" href="{{SETUP_URL}}" data-rel="setup">
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -62,7 +62,7 @@
 
 <figure class="device">
   <div class="bezel"><a href="img/panel.png"><img src="img/panel.png" width="2560" height="720" alt="The console on a fighter: status display, power plate with Flight Ready, a target wheel, flight and gear plates"></a></div>
-  <figcaption>Built for the Corsair Xeneon Edge, 2560 × 720. Other screens on request.</figcaption>
+  <figcaption>Built for the Corsair Xeneon Edge (2560 × 720). Other screens on request.</figcaption>
 </figure>
 
 <section id="features" class="features">
@@ -71,15 +71,15 @@
   <article class="feat">
     <div class="feat-text">
       <h3>Follows the game</h3>
-      <p>It reads the game's log while you play. Board a ship and its page opens in the maker's colours, with a render of the ship, its role and quantum target. Ships from nine makers, Drake to Consolidated Outland, also get their maker's plates and trim. Step out and you get On foot. Go down and a big revive button is waiting.</p>
+      <p>Reads <code>Game.log</code> as you play. Board a ship and its page opens with the ship's render, role and quantum target. Ships from nine makers get the maker's plates and trim. Step out for On foot. Go down and a revive button is waiting.</p>
     </div>
-    <a class="shot" href="img/panel-armistice.png"><img src="img/panel-armistice.png" width="2560" height="720" loading="lazy" alt="A Drake Cutlass in an armistice zone, with its render and Drake plates"></a>
+    <a class="shot" href="img/panel-armistice.png"><img src="img/panel-armistice.png" width="2560" height="720" loading="lazy" alt="A Drake Cutlass Black in an armistice zone, with Drake plates"></a>
   </article>
 
   <article class="feat">
     <div class="feat-text">
       <h3>A page for each role</h3>
-      <p>A target dial for fighters, a laser power knob for miners, a beam head for salvage, a tractor beam slider for cargo. Every ship page also has power, flight and gear plates and one big Flight Ready button. No key appears twice on a page.</p>
+      <p>Target dial for fighters, laser power knob for mining, beam dial for salvage, tractor beam slider for cargo. Every ship page also has power, flight and gear plates and a Flight Ready button.</p>
     </div>
     <a class="shot" href="img/panel-mining.png"><img src="img/panel-mining.png" width="2560" height="720" loading="lazy" alt="Mining page with laser power knob and mining modules"></a>
   </article>
@@ -87,15 +87,15 @@
   <article class="feat">
     <div class="feat-text">
       <h3>Knows where you stand</h3>
-      <p>Your location, mission objective and contract rewards sit on a glass display. Weapons grey out in armistice zones. The frame goes red only for a CrimeStat or a disabled ship. Nothing is guessed: a switch the game doesn't report stays a push-button, and the gear lever waits in the middle until you move it. If a patch changes the log lines it reads, an amber chip says so.</p>
+      <p>Location, mission objective and rewards on the status display. Weapons grey out in armistice zones. The frame turns red only for a CrimeStat or a disabled ship. No guessed state: switches stay unlit and the gear lever stays centred until you set them. If a patch changes the log lines it reads, an amber chip says so.</p>
     </div>
     <a class="shot" href="img/panel-alert.png"><img src="img/panel-alert.png" width="2560" height="720" loading="lazy" alt="Red alert frame with a CrimeStat"></a>
   </article>
 
   <article class="feat">
     <div class="feat-text">
-      <h3>Your session, logged</h3>
-      <p>The Log page shows time played, kills, times downed, missions and ships flown. It also shows who downed you last and with what, your region and shard, the last jump, finished refinery jobs, and a timeline of the session.</p>
+      <h3>Session log</h3>
+      <p>Time played, kills, times downed, missions and ships flown. Also who downed you last and with what, region and shard, last system jump, finished refinery jobs and a timeline.</p>
     </div>
     <a class="shot" href="img/panel-log.png"><img src="img/panel-log.png" width="2560" height="720" loading="lazy" alt="Log page with session stats and a timeline"></a>
   </article>
@@ -103,7 +103,7 @@
   <article class="feat">
     <div class="feat-text">
       <h3>The world around you</h3>
-      <p>The World page shows the executive hangar cycle once you sync it with the lights, timers for keycard printers and the Ruin vault door, and whether RSI's servers are up. Commodities start from where you are: what this place buys and sells, where else in the system pays more, and how much stock was reported. Prices are player reports from UEX, each with its age. If the console doesn't know where you are, Locate opens your inventory for a moment so the game's log names the place.</p>
+      <p>Executive hangar cycle (sync it once at the lights), keycard printer and Ruin vault door timers, and RSI server status. Commodities start where you are: what this place buys and sells, the best place in the system for each, and reported stock. Prices are player reports from UEX, each with its age. If the console doesn't know where you are, Locate (on foot) opens your inventory for a moment so <code>Game.log</code> names the place.</p>
     </div>
     <a class="shot" href="img/panel-world.png"><img src="img/panel-world.png" width="2560" height="720" loading="lazy" alt="World page with the executive hangar lights, timers, server status and commodity prices at Area 18"></a>
   </article>
@@ -111,21 +111,21 @@
   <article class="feat">
     <div class="feat-text">
       <h3>Your keys, not new ones</h3>
-      <p>It reads your <code>actionmaps.xml</code>, so keys you rebound in game just work. The game keeps focus while you tap. A setup check on first start shows what's ready, and Settings lists any key the console can't press. Large labels help in glare or from further away.</p>
+      <p>Reads your <code>actionmaps.xml</code>, so rebound keys just work. The game keeps focus while you tap. A setup check on first start shows what's ready; Settings lists any key it can't press. Large labels for glare or distance.</p>
     </div>
     <a class="shot" href="img/panel-settings.png"><img src="img/panel-settings.png" width="2560" height="720" loading="lazy" alt="Screen settings with the maker theme"></a>
   </article>
 
   <ul class="grid">
-    <li><b>Out of the way</b><span>Starts with Windows and waits in the tray. The screen goes dark when you quit and wakes when the game starts.</span></li>
-    <li><b>Your layout</b><span>Long-press a plate's title, drag the plates, tap Done. The order is kept for each role.</span></li>
-    <li><b>Night mode</b><span>On, off, or automatic from 20:00 to 07:00.</span></li>
-    <li><b>Updates when you're docked</b><span>A new release is offered with its notes, and only while you're not playing.</span></li>
-    <li><b>Light</b><span>A 1.5 MB installer. Nothing animates while the console is idle.</span></li>
-    <li><b>When it goes wrong</b><span>A disabled ship swaps Flight Ready for Self repair and Emergency exit. An amber chip shows when your client stalls.</span></li>
-    <li><b>MFD &amp; assists</b><span>A key for each MFD screen, and switches for light amplification, auto precision and wind compensation.</span></li>
-    <li><b>Fresh start</b><span>When the game restarts with a new log, the console starts over with it.</span></li>
-    <li><b>No accidents</b><span>Eject is a slide and self-destruct sits under a red cover, so neither fires on a stray tap.</span></li>
+    <li><b>Out of the way</b><span>Starts with Windows, sits in the tray. The screen goes dark when you quit and wakes when the game starts.</span></li>
+    <li><b>Your layout</b><span>Long-press a plate's title, drag, tap Done. Saved per role.</span></li>
+    <li><b>Night mode</b><span>On, off, or auto from 20:00 to 07:00.</span></li>
+    <li><b>Updates between sessions</b><span>New releases are offered with their notes, only while you're not playing.</span></li>
+    <li><b>Light</b><span>Under 2 MB to install. Nothing animates while idle.</span></li>
+    <li><b>When it goes wrong</b><span>A disabled ship swaps Flight Ready for Self repair and Emergency exit. An amber chip flags lag spikes.</span></li>
+    <li><b>MFD &amp; assists</b><span>A key per MFD screen, switches for light amplification, auto precision and wind compensation.</span></li>
+    <li><b>Fresh start</b><span>A new game session resets the console.</span></li>
+    <li><b>No accidents</b><span>Eject is a slide. Self-destruct sits under a red cover.</span></li>
   </ul>
 </section>
 
@@ -134,15 +134,15 @@
   <ol class="steps">
     <li>
       <b>Download and run the installer</b>
-      <span>Windows SmartScreen will warn, because the app isn't code signed. Click <em>More info</em>, then <em>Run anyway</em>.</span>
+      <span>SmartScreen warns because the app isn't code signed: <em>More info</em>, then <em>Run anyway</em>.</span>
     </li>
     <li>
       <b>Pick the control profile</b>
-      <span>In game: <em>Options › Keybindings › Advanced Controls Customization › Control Profiles</em>. Choose <em>edge-cockpit</em> and tick only <em>Keyboard</em>. This gives the console's extra actions a free key. Your own binds stay as they are.</span>
+      <span>In game: <em>Options › Keybindings › Advanced Controls Customization › Control Profiles</em>. Pick <em>edge-cockpit</em>, tick only <em>Keyboard</em>. This binds actions that have no default key. Your own binds stay.</span>
     </li>
     <li>
       <b>Launch Star Citizen</b>
-      <span>The console wakes, finds the touchscreen and opens the right page.</span>
+      <span>The console wakes on the touchscreen and opens the right page.</span>
     </li>
   </ol>
   <div class="cta center">
@@ -153,14 +153,14 @@
 
 <section id="safety" class="safety">
   <h2 class="plate-title">Safe to run</h2>
-  <p class="sub">Every release is built in public on GitHub from the tagged source. You can check what you download.</p>
+  <p class="sub">Every release is built on GitHub Actions from the tagged source. Check what you download.</p>
   <ul class="trust">
-    <li><b>VirusTotal</b><span>Each exe is scanned when it's released. The report links are in the release notes.</span><a href="{{RELEASE_URL}}" data-rel="notes">Latest scan</a></li>
-    <li><b>Build provenance</b><span>GitHub attests that the exe came from this repository's workflow. Check it with <code>gh attestation verify</code>.</span><a href="https://github.com/pcanilho/edge-cockpit/blob/main/SECURITY.md#verifying-a-download">How to verify</a></li>
-    <li><b>Checksums</b><span>SHA-256 for every file, published with the release.</span><a href="{{SUMS_URL}}" data-rel="sums">SHA256SUMS.txt</a></li>
-    <li><b>OpenSSF Best Practices</b><span>Passing badge, and an OpenSSF Scorecard for the repository.</span><a href="https://www.bestpractices.dev/projects/16854">Project 16854</a></li>
-    <li><b>Signed history</b><span>Every commit on main is signed and passes the security checks first.</span><a href="https://github.com/pcanilho/edge-cockpit/commits/main">Commits</a></li>
-    <li><b>Open source</b><span>MIT licensed. Read it, build it yourself, or send a fix.</span><a href="https://github.com/pcanilho/edge-cockpit">Source</a></li>
+    <li><b>VirusTotal</b><span>Each exe is scanned at release. Reports are linked in the release notes.</span><a href="{{RELEASE_URL}}" data-rel="notes">Latest scan</a></li>
+    <li><b>Build provenance</b><span>GitHub attests each exe was built by this repository's workflow. Check with <code>gh attestation verify</code>.</span><a href="https://github.com/pcanilho/edge-cockpit/blob/main/SECURITY.md#verifying-a-download">How to verify</a></li>
+    <li><b>Checksums</b><span>SHA-256 for each exe, published with the release.</span><a href="{{SUMS_URL}}" data-rel="sums">SHA256SUMS.txt</a></li>
+    <li><b>OpenSSF Best Practices</b><span>Passing badge, plus an OpenSSF Scorecard.</span><a href="https://www.bestpractices.dev/projects/16854">Project 16854</a></li>
+    <li><b>Signed history</b><span>Every commit on main is signed and passes the security checks.</span><a href="https://github.com/pcanilho/edge-cockpit/commits/main">Commits</a></li>
+    <li><b>Open source</b><span>MIT licensed. Read it, build it, or send a fix.</span><a href="https://github.com/pcanilho/edge-cockpit">Source</a></li>
   </ul>
   <p class="badges">
     <a href="https://www.bestpractices.dev/projects/16854"><img alt="OpenSSF Best Practices" src="https://www.bestpractices.dev/projects/16854/badge" height="20" loading="lazy"></a>
@@ -174,31 +174,31 @@
   <h2 class="plate-title">Questions</h2>
   <details>
     <summary>Do I need a Xeneon Edge?</summary>
-    <p>It's the only screen fully supported for now. The console scales to fit other touchscreens, and layouts for other sizes come on request: <a href="https://github.com/pcanilho/edge-cockpit/issues/new/choose">ask for your device</a>.</p>
+    <p>It's the only screen fully supported. The console scales to other touchscreens, and layouts for other sizes come on request: <a href="https://github.com/pcanilho/edge-cockpit/issues/new?template=device.yml">ask for your device</a>.</p>
   </details>
   <details>
     <summary>Is it safe to use with the game?</summary>
-    <p>It works like a second keyboard. It sends key presses and reads <code>Game.log</code>, a text file the game writes. It doesn't read game memory, inject anything or change game files.</p>
+    <p>It works like a second keyboard: it sends key presses and reads <code>Game.log</code>, a text file the game writes. It doesn't read game memory, inject code or change game files. It only adds its keybind profile to the game's keybind folder.</p>
   </details>
   <details>
     <summary>Does it take focus from the game?</summary>
-    <p>No. The window never becomes active, so your mouse and keyboard stay in the game while you tap.</p>
+    <p>No. The window never becomes active, so mouse and keyboard stay in the game.</p>
   </details>
   <details>
     <summary>Does it cost anything?</summary>
-    <p>No. It's free and MIT licensed, with no account, ads or tracking. Sponsoring is optional.</p>
+    <p>No. Free, MIT licensed, no account, ads or tracking. Sponsoring is optional.</p>
   </details>
   <details>
     <summary>What does it connect to?</summary>
-    <p>FleetYards.net, once per ship, for its outline and render, which are then kept on your PC. GitHub, to check for updates. While the World page shows: UEX for commodity prices and RSI's status page. Nothing else.</p>
+    <p>FleetYards.net, once per ship, for its outline and render (kept on your PC). GitHub, for updates. While the World page is open: UEX for prices (every 30 min) and RSI's status page (every 5 min). Nothing else.</p>
   </details>
   <details>
     <summary>Which game version does it support?</summary>
-    <p>The current live build. Each release says which game build it was tested on.</p>
+    <p>The current LIVE build. Each release notes the game build it was tested on.</p>
   </details>
   <details>
     <summary>Something doesn't work. Where do I report it?</summary>
-    <p><a href="https://github.com/pcanilho/edge-cockpit/issues/new/choose">Open an issue</a>. The bug form asks for what's needed, such as the game build and your screen.</p>
+    <p><a href="https://github.com/pcanilho/edge-cockpit/issues/new?template=bug.yml">Open a bug report</a>. The form asks for what's needed.</p>
   </details>
 </section>
 
@@ -206,7 +206,7 @@
   <img src="img/logo.svg" alt="" width="64" height="64">
   <div>
     <h2>Keep it flying</h2>
-    <p>Edge Cockpit is made in spare time. Sponsoring pays for the hours that go into new pages, ships and game patches.</p>
+    <p>Made in spare time. Sponsoring pays for new pages, ships and game-patch fixes.</p>
   </div>
   <div class="cta">
     <a class="key amber" href="https://github.com/sponsors/pcanilho"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 14.25.345 6.756A4.5 4.5 0 0 1 6.71.388L8 1.6 9.29.388a4.5 4.5 0 0 1 6.365 6.368Z"/></svg>Sponsor on GitHub</a>
