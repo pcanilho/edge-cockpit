@@ -85,6 +85,15 @@
   // A scanned QR carries the pairing code after #pair=: pair with it once, then drop it from the address.
   let scanned = /^#pair=(\d{6})$/.exec(location.hash)?.[1] || null;
   if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+  // Opened by address and not paired yet: move to the console's name when this network resolves
+  // it, so a Home Screen icon keeps working after the router hands the PC a new address.
+  const NAME = 'edge-cockpit.local';
+  // The link waits for the answer (1.5 s at most), so a scanned code isn't spent on the old address.
+  const there = `http://${NAME}:${location.port}`;
+  const moving = linked && /^[\d.]+$|^\[/.test(location.hostname) && !saved()?.token
+    ? fetch(`${there}/manifest.webmanifest`, { mode: 'no-cors', cache: 'no-store', signal: AbortSignal.timeout(1500) })
+      .then(() => { location.replace(`${there}/${location.search}${scanned ? `#pair=${scanned}` : ''}`); return true; }, () => false)
+    : Promise.resolve(false);
   function connect() {
     if (!linked) return;
     setState(phone.state === 'pair' ? 'pair' : 'connecting');
@@ -155,7 +164,7 @@
         },
       },
     };
-    connect();
+    moving.then(moved => { if (!moved) connect(); });
     // Coming back to the app: reconnect at once rather than waiting out the backoff.
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden && (!ws || ws.readyState > 1)) { retry = 0; connect(); }
