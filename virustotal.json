@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "label": "VirusTotal",
+  "message": "2/71 engines",
+  "color": "yellowgreen",
+  "namedLogo": "virustotal",
+  "logoColor": "white"
+}
