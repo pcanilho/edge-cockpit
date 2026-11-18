@@ -86,7 +86,41 @@ async function checkLabels(where, sheet = false) {
 }
 
 // The World page's prices and server status, as the app's Rust side hands them over.
+// Wrapped text keeps the console whole: no text over other text, none out of its button or
+// screen, and no word split across lines. Runs in the page, on the Edge and on devices.
+const TEXT_CHECK = () => {
+  window.__textCheck = root => {
+    const out = [];
+    const name = e => e.textContent.trim().replace(/\s+/g, ' ').slice(0, 24) || e.className.split(' ')[0];
+    const leaves = [...root.querySelectorAll('*')].filter(t => !t.children.length && t.textContent.trim() && t.offsetWidth && !t.closest('.ph-hide, [hidden], [aria-hidden=true]') && getComputedStyle(t).visibility !== 'hidden' && +getComputedStyle(t).opacity !== 0);
+    const rs = leaves.map(t => t.getBoundingClientRect());
+    const range = document.createRange();
+    leaves.forEach((t, i) => {
+      const box = t.closest('button, .cap, .seg, .screen, .placard');
+      if (box && box !== t) {
+        const br = box.getBoundingClientRect();
+        if (rs[i].bottom > br.bottom + 2 || rs[i].right > br.right + 2 || rs[i].left < br.left - 2 || rs[i].top < br.top - 2) out.push(`"${name(t)}" falls out of its ${box.matches('.screen') ? 'screen' : 'button'}`);
+      }
+      const node = t.firstChild;
+      if (node?.nodeType === 3) {
+        for (const m of node.data.matchAll(/\S+/g)) {
+          range.setStart(node, m.index); range.setEnd(node, m.index + m[0].length);
+          const lines = new Set([...range.getClientRects()].filter(r => r.width > 0.5).map(r => Math.round(r.top)));
+          if (lines.size > 1) { out.push(`"${m[0]}" is split across lines`); break; }
+        }
+      }
+      for (let j = i + 1; j < leaves.length; j++) {
+        // A guard cover lies over its own key's label on purpose.
+        if (t.contains(leaves[j]) || leaves[j].contains(t) || !!t.closest('.cover') !== !!leaves[j].closest('.cover')) continue;
+        const a = rs[i], b = rs[j];
+        if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2) out.push(`"${name(t)}" and "${name(leaves[j])}" overlap`);
+      }
+    });
+    return out;
+  };
+};
 const MARKET = JSON.parse(await readFile(join(UI, '..', 'test', 'fixtures', 'world-market.json'), 'utf8'));
+await page.addInitScript(TEXT_CHECK);
 await page.addInitScript(m => { window.xfdTestWorld = { prices: m, status: { fetched: Date.now(), summary: 'disrupted', services: [{ name: 'Platform', status: 'operational' }, { name: 'Persistent Universe', status: 'disrupted' }, { name: 'Arena Commander', status: 'operational' }] } }; }, MARKET);
 
 // Every page, then each mood of the demo.
@@ -144,6 +178,7 @@ for (const id of ids) {
     return out;
   });
   for (const o of overlaps) problems.push(`${id}: ${o}`);
+  for (const t of await page.evaluate(() => [...document.querySelectorAll('#status, #console .plate')].flatMap(p => window.__textCheck(p)))) problems.push(`${id}: ${t}`);
   if (shots) await page.screenshot({ path: join(shots, `${id}.png`) });
 }
 // Large labels: every page again with the bigger text, which must still fit.
@@ -406,6 +441,7 @@ for (const [W, H, tag] of [[393, 852, 'portrait'], [852, 393, 'landscape']]) {
   const ctx = await browser.newContext({ viewport: { width: W, height: H }, hasTouch: true, isMobile: true });
   const ph = await ctx.newPage();
   ph.on('pageerror', e => errors.push(`phone ${tag}: ${e.message}`));
+  await ph.addInitScript(TEXT_CHECK);
   await ph.addInitScript(m => { window.xfdTestWorld = { prices: m, status: { fetched: Date.now(), summary: 'ok', services: [] } }; }, MARKET);
   await ph.route(/fleetyards|fltyrd/, r => r.abort());
   await ph.goto(base + '?phone&demo=ship');
@@ -450,20 +486,7 @@ for (const [W, H, tag] of [[393, 852, 'portrait'], [852, 393, 'landscape']]) {
           if (t.closest('.ph-hide') || !t.offsetWidth || t.children.length || !t.textContent.trim()) continue;
           if (t.scrollWidth > t.clientWidth + 1 && getComputedStyle(t).overflow !== 'visible') out.push(`"${name(t)}" is cut off`);
         }
-        // Text inside a screen (prices, hangar) neither overlaps nor falls out of the screen.
-        for (const sc of plate.querySelectorAll(':scope > .screen:not(.ph-hide)')) {
-          const sr = sc.getBoundingClientRect();
-          const leaves = [...sc.querySelectorAll('*')].filter(t => !t.children.length && t.textContent.trim() && t.offsetWidth && !t.closest('[hidden], [aria-hidden=true]'));
-          const rs = leaves.map(t => t.getBoundingClientRect());
-          leaves.forEach((t, i) => {
-            if (rs[i].bottom > sr.bottom + 2 || rs[i].right > sr.right + 2) out.push(`"${name(t)}" falls out of its screen`);
-            for (let j = i + 1; j < leaves.length; j++) {
-              if (t.contains(leaves[j]) || leaves[j].contains(t)) continue;
-              const a = rs[i], b = rs[j];
-              if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2) out.push(`"${name(t)}" and "${name(leaves[j])}" overlap`);
-            }
-          });
-        }
+        out.push(...window.__textCheck(plate));
         for (const b of document.querySelectorAll('#ph-rail button')) if (b.scrollWidth > b.clientWidth + 1) out.push(`rail label "${b.textContent}" is cut off`);
         return { out, scale, view: document.body.dataset.phView };
       }, k);
