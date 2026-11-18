@@ -87,7 +87,7 @@ export function keycap(x, y, w, ht, l, o = {}) {
     <div class="cap ${o.lit ? 'lit' : ''}">
       ${tog && !o.noLed && k.state?.kind === 'set' ? '<span class="led"></span>' : ''}
       ${o.icon === false ? '' : icon(o.icon || k.icon, o.is || 22)}
-      <span class="lg" style="${o.fs ? `font-size:${o.fs}px` : ''}">${lbl(k, o.label)}</span>
+      <span class="lg" style="${o.fs ? `--fs:${o.fs}px` : ''}">${lbl(k, o.label)}</span>
       ${(k.state?.kind === 'set' && k.state.labels) || o.sub ? `<span class="st">${esc(o.sub || '')}</span>` : ''}
       ${bind ? `<span class="kb">${esc(bind)}</span>` : ''}${tag ? `<span class="tg">${tag}</span>` : ''}${mark}
       <span class="bar"><i></i></span>

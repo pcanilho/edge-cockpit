@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { EMPTY, parseLine, reduce, shipName, shipClass, version, untested, placeName, place, contractText, markup } from '../ui/lib/gamelog.js';
 import { pageFor } from '../ui/lib/pages.js';
 import { lookup } from '../ui/lib/ships.js';
-import { slugsOf } from '../ui/outlines.js';
+import { slugsOf, shot } from '../ui/outlines.js';
 
 const layout = JSON.parse(readFileSync(new URL('../../layouts/star-citizen.json', import.meta.url), 'utf8'));
 const SET = "<2026-11-17T08:00:01.123Z> [Notice] <Vehicle Control Flow> CVehicleMovementBase::SetDriver: Local client node [204721322607] granted control token for 'MISC_Prospector_771690342710' [771690342710] [Team_VehicleFeatures][Vehicle]";
@@ -303,4 +303,53 @@ test('every log pattern gets past the Rust line filter', async () => {
     assert.match(line, re, name);
     assert.ok(markers.some(m => line.includes(m)), `${name}: the Rust filter drops "${line}"`);
   }
+});
+
+test('a broken angled render falls back to the store image', async () => {
+  const tried = [];
+  const media = { angledView: { mediumUrl: 'a-med', url: 'a' }, storeImage: { mediumUrl: 's-med', url: 's' } };
+  const fake = { createElement: () => ({ getContext: () => ({ drawImage() {} }), toDataURL: () => 'data:ok' }) };
+  globalThis.document = fake;
+  try {
+    const load = async u => { tried.push(u); if (u.startsWith('a')) throw new Error('xml'); return { naturalWidth: 800, naturalHeight: 400 }; };
+    assert.equal(await shot({ media }, load), 'data:ok');
+    assert.deepEqual(tried, ['a-med', 'a', 's-med']);
+    assert.equal(await shot({ media: {} }, load), null);
+    await assert.rejects(shot({ media: { angledView: { url: 'a' } } }, load));
+  } finally { delete globalThis.document; }
+});
+
+// A whole 4.10 session, as the Rust filter passed it on (see replays_a_recorded_session in
+// game.rs), replayed through the parser: the state at points along the way and at the end.
+test('replays a 4.10 session from the filtered Game.log', () => {
+  const lines = readFileSync(new URL('./fixtures/game-4.10.filtered.log', import.meta.url), 'utf8').split('\n').filter(Boolean);
+  const upTo = mark => {
+    const end = lines.findIndex(l => l.includes(mark));
+    assert.ok(end >= 0, `the filter dropped "${mark}"`);
+    return lines.slice(0, end + 1).map(parseLine).filter(Boolean).reduce(reduce, EMPTY);
+  };
+  let s = upTo('Context Establisher Done');
+  assert.equal(s.menu, false);
+  assert.equal(s.me?.name, 'Argoneth');
+  assert.equal(version(s.build.branch), '4.10.3');
+  s = upTo('Platform state changed to OpenIdle');
+  assert.equal(s.armistice, true);
+  assert.equal(s.hangar?.lift, 'up');
+  s = upTo('GetStarmapRouteSegmentData');
+  assert.equal(s.seated, true);
+  assert.equal(s.ship, 'AEGS_Sabre_Firebird');
+  s = upTo('OnQuantumDriveArrived');
+  assert.equal(s.qtArrived, 'Yela');
+  assert.equal(s.mission?.target, 'Yela');
+  s = lines.map(parseLine).filter(Boolean).reduce(reduce, EMPTY);
+  assert.equal(s.kills, 3);
+  assert.equal(s.system, 'Pyro');
+  assert.deepEqual(s.jump, { from: 'Stanton', to: 'Pyro' });
+  assert.equal(s.wrecked, 2);
+  assert.equal(s.downedBy?.by, 'Kaboos_Raider');
+  assert.equal(s.downedBy?.hospital, 'Checkmate');
+  assert.equal(s.refinery?.place, 'Ruin Station');
+  assert.equal(s.lag?.len, 3.2);
+  assert.equal(s.shard, 'pub_euw1b_13165946_031');
+  assert.equal(s.location, 'RR_P6_LEO_Ruin_Station');
 });

@@ -317,7 +317,7 @@ function comms(x, w) {
 /** A key that opens another console page rather than pressing a game key. */
 function pageKey(x, y, w, ht, text, glyph, page) {
   const el = h(`<div class="well key page-key" style="left:${x}px;top:${y}px;width:${w}px;height:${ht}px">
-    <div class="cap">${icon(glyph, 22)}<span class="lg" style="font-size:14px">${esc(text)}</span><span class="tg">PAGE</span></div></div>`);
+    <div class="cap">${icon(glyph, 22)}<span class="lg" style="--fs:14px">${esc(text)}</span><span class="tg">PAGE</span></div></div>`);
   pressable(el, { up: () => K.go(page) });
   return el;
 }

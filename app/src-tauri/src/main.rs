@@ -3,6 +3,7 @@
 // itself is the web UI in ../ui.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod family;
 mod game;
 mod keys;
 #[cfg(windows)]
@@ -86,6 +87,10 @@ struct GameInfo {
     /// True while Star Citizen is the window in front.
     focused: bool,
     running: bool,
+    /// Whether the game runs as administrator, known only while it is in front.
+    game_elevated: Option<bool>,
+    /// The channel's Game.log exists, so the panel can follow the game.
+    log: bool,
 }
 
 #[derive(Serialize, Clone)]
@@ -191,6 +196,7 @@ async fn press(chord: &[keys::Key], up: bool) -> Result<(), String> {
     }
 }
 
+#[cfg_attr(not(windows), allow(dead_code))]
 async fn tokio_sleep(ms: u64) {
     tauri::async_runtime::spawn_blocking(move || std::thread::sleep(Duration::from_millis(ms))).await.ok();
 }
@@ -228,14 +234,22 @@ fn game_info(app: State<'_, App>) -> GameInfo {
             .and_then(|m| m.modified())
             .is_ok_and(|t| t.elapsed().map(|e| e.as_secs() < 60).unwrap_or(false))
     });
+    let focused = game_focused();
+    #[cfg(windows)]
+    let game_elevated = focused.then(win::foreground_elevated);
+    #[cfg(not(windows))]
+    let game_elevated = None;
+    let log = channel.as_ref().is_some_and(|c| c.join("Game.log").is_file());
     GameInfo {
         channel: channel.map(|c| c.to_string_lossy().into_owned()),
         #[cfg(windows)]
         elevated: win::is_elevated(),
         #[cfg(not(windows))]
         elevated: false,
-        focused: game_focused(),
-        running: running || game_focused() || app.game.load(Ordering::SeqCst) != 0,
+        focused,
+        running: running || focused || app.game.load(Ordering::SeqCst) != 0,
+        game_elevated,
+        log,
     }
 }
 
@@ -499,6 +513,7 @@ fn set_dark(handle: &AppHandle, dark: bool) {
 }
 
 /// Star Citizen started: wake the screen, show the panel and wait for it to exit.
+#[cfg_attr(not(windows), allow(dead_code))]
 fn game_started(handle: &AppHandle, pid: u32) {
     let app = handle.state::<App>();
     if app.game.swap(pid, Ordering::SeqCst) == pid {

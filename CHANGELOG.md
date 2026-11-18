@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Ship backdrop: when a ship's angled render on FleetYards is broken, the store image shows instead. Ships whose FleetYards id carries a suffix (Constellation Andromeda) are found.
+- Long ship and maker names shrink to fit one line (Constellation Andromeda, CRUSADER, ROBERTS SPACE INDUSTRIES).
+- Maker themes for RSI, Crusader, Argo and Consolidated Outland, each with its own line art.
+- Settings > Screen > Large labels: key text a quarter bigger, placards a fifth, key hints hidden. For glare or a screen further away. Two rows on a tall screen moved to General.
+- CI replays a whole 4.10 session log through the app's own Game.log reader and line filter, then through the console's parser, and runs the Rust tests on Linux.
+
 ## 0.5.0
 
 - Ship backdrop: behind the status screen, a dimmed render of the ship you sit in over its maker's name. The render comes from FleetYards.net the first time and is kept on your PC; offline, themed makers show line art instead.

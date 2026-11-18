@@ -18,10 +18,23 @@ const CHANNELS: &[&str] = &["LIVE", "PTU", "EPTU", "HOTFIX", "TECH-PREVIEW"];
 pub const BINDS_XML: &str = include_str!("../../../binds/layout_edge_cockpit_exported.xml");
 pub const BINDS_NAME: &str = "layout_edge_cockpit_exported.xml";
 
+/// The last part of a path, split on either separator, so Windows paths read the same in
+/// tests on any system.
+fn last_part(p: &str) -> &str {
+    p.trim_end_matches(['\\', '/']).rsplit(['\\', '/']).next().unwrap_or("")
+}
+
+/// The path without its last part, or None at the top.
+#[cfg_attr(not(windows), allow(dead_code))]
+fn parent_of(p: &str) -> Option<&str> {
+    let t = p.trim_end_matches(['\\', '/']);
+    t.rfind(['\\', '/']).map(|i| &t[..i])
+}
+
 /// Every place a channel folder (…\StarCitizen\LIVE) usually is, or the ones under `game_dir`.
 pub fn candidates(game_dir: Option<&Path>) -> Vec<PathBuf> {
     if let Some(dir) = game_dir {
-        let base = dir.file_name().map(|n| n.to_string_lossy().to_uppercase()).unwrap_or_default();
+        let base = last_part(&dir.to_string_lossy()).to_uppercase();
         return if CHANNELS.contains(&base.as_str()) {
             vec![dir.to_path_buf()]
         } else {
@@ -53,16 +66,16 @@ pub fn find_channel(game_dir: Option<&Path>) -> Option<PathBuf> {
 }
 
 /// …\StarCitizen\PTU\Bin64\StarCitizen.exe -> …\StarCitizen\PTU
+#[cfg_attr(not(windows), allow(dead_code))]
 pub fn channel_from_exe(exe: &str) -> Option<PathBuf> {
-    let p = Path::new(exe);
-    if !p.file_name()?.to_string_lossy().eq_ignore_ascii_case("StarCitizen.exe") {
+    if !last_part(exe).eq_ignore_ascii_case("StarCitizen.exe") {
         return None;
     }
-    let bin = p.parent()?;
-    if !bin.file_name()?.to_string_lossy().eq_ignore_ascii_case("Bin64") {
+    let bin = parent_of(exe)?;
+    if !last_part(bin).eq_ignore_ascii_case("Bin64") {
         return None;
     }
-    Some(bin.parent()?.to_path_buf())
+    Some(PathBuf::from(parent_of(bin)?))
 }
 
 pub fn actionmaps(channel: &Path) -> PathBuf {
@@ -212,6 +225,35 @@ mod tests {
             assert!(relevant(l), "{l}");
         }
         assert!(!relevant("<2026-11-17> [Notice] <CEntityComponentPhysics> nothing to see"));
+    }
+
+    /// A whole 4.10 session (test/fixtures/game-4.10.log: the game's own line formats, with
+    /// noise between them and CRLF endings), appended to a log in three parts as the game
+    /// writes it, through the real tail and line filter. What gets through must match
+    /// test/fixtures/game-4.10.filtered.log, which the JS tests then replay through the
+    /// parser. After changing the filter: UPDATE_REPLAY=1 cargo test replays.
+    #[test]
+    fn replays_a_recorded_session() {
+        let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("../test/fixtures");
+        let log = fs::read(fixtures.join("game-4.10.log")).unwrap();
+        let dir = std::env::temp_dir().join(format!("xfd-replay-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let p = dir.join("Game.log");
+        fs::write(&p, b"").unwrap();
+        let mut t = Tail::new(p.clone());
+        let mut got = vec![];
+        for part in log.chunks(log.len() / 3 + 1) {
+            fs::OpenOptions::new().append(true).open(&p).unwrap().write_all(part).unwrap();
+            got.extend(t.poll());
+        }
+        fs::remove_dir_all(dir).ok();
+        let expected = fixtures.join("game-4.10.filtered.log");
+        let text = got.join("\n") + "\n";
+        if std::env::var_os("UPDATE_REPLAY").is_some() {
+            fs::write(&expected, &text).unwrap();
+        }
+        assert_eq!(text, fs::read_to_string(&expected).unwrap().replace("\r\n", "\n"));
+        assert!(got.len() < 80, "the filter let {} lines through", got.len());
     }
 
     #[test]

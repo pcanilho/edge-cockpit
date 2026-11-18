@@ -56,10 +56,11 @@ const store = {
 // Night mode is off, on, or auto (dark from 20:00 to 07:00 by this PC's clock). Older builds stored a boolean.
 const NIGHT_FROM = 20, NIGHT_TO = 7;
 // Maker theme: auto (the ship's maker), off, or one maker's theme always. Older builds stored a boolean.
-const THEMED = new Set(['DRAK', 'AEGS', 'ORIG', 'MISC', 'ANVL']);
+const THEMED = new Set(['DRAK', 'AEGS', 'ORIG', 'MISC', 'ANVL', 'RSI', 'CRUS', 'ARGO', 'CNOU']);
 const themeMode = v => (v === false ? 'off' : v === 'off' || THEMED.has(v) ? v : 'auto');
 const nightMode = v => (v === true ? 'on' : ['on', 'auto'].includes(v) ? v : 'off');
-const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), anywhere: store.get('anywhere', false), stack: store.get('stack', true), makerTheme: themeMode(store.get('makerTheme', 'auto')) };
+const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), anywhere: store.get('anywhere', false), stack: store.get('stack', true), large: store.get('large', false), makerTheme: themeMode(store.get('makerTheme', 'auto')) };
+stage.classList.toggle('large', opts.large);
 
 // ---------- binds: the player's actionmaps.xml, then our Xeneon profile, then the defaults ----------
 function parseActionmaps(text) {
@@ -517,6 +518,7 @@ function setOpt(name, v) {
   if (name === 'stack') fit();
   if (name === 'makerTheme') paintStatus();
   paintNight();
+  stage.classList.toggle('large', !!opts.large);
   document.querySelectorAll('.opt[data-opt]').forEach(o => o.classList.toggle('on', !!opts[o.dataset.opt]));
   $('auto').classList.toggle('on', opts.auto);
   if (name === 'anywhere') paintIdle();
@@ -579,7 +581,7 @@ $('qt').querySelector('svg').innerHTML = GLYPHS.quantum;
 
 // ---------- profile: settings, plate order, ship roles and keyboard binds in one file ----------
 // Saved as Documents\Edge Cockpit\profile.json, to copy to another PC or keep as a backup.
-const PROFILE_OPTS = ['night', 'sound', 'flash', 'auto', 'recap', 'alertSound', 'anywhere', 'stack', 'makerTheme', 'autostart', 'screen_off'];
+const PROFILE_OPTS = ['night', 'sound', 'flash', 'auto', 'recap', 'alertSound', 'anywhere', 'stack', 'large', 'makerTheme', 'autostart', 'screen_off'];
 /** The keyboard binds in an actionmaps.xml, as a Control Profile the game can load. */
 function bindsProfile(text) {
   const doc = new DOMParser().parseFromString(text, 'application/xml');
@@ -752,6 +754,12 @@ const MAKER_NAMES = { AEGS: ['Aegis', 'Dynamics'], ANVL: ['Anvil', 'Aerospace'],
 // then kept), dimmed and faded, over the maker's name. Without a render (offline, or none),
 // themed makers get their line art instead. A dark fade keeps the text readable.
 let backdropKey = null;
+// Shrinks one line of text from `max` px until it fits its box.
+function fitText(el, max, min = 1) {
+  el.style.fontSize = max + 'px';
+  const room = el.clientWidth, need = el.scrollWidth;
+  if (need > room) el.style.fontSize = Math.max(min, Math.floor(max * room / need)) + 'px';
+}
 function paintBackdrop(cls, artMaker, nameMaker) {
   const key = `${cls}|${artMaker}|${nameMaker}`;
   if (key === backdropKey) return;
@@ -770,9 +778,10 @@ function paintBackdrop(cls, artMaker, nameMaker) {
     t.setAttribute('aria-hidden', 'true');
     const b = document.createElement('b'), s = document.createElement('small');
     b.textContent = words[0]; s.textContent = words[1];
-    b.style.fontSize = Math.min(76, Math.floor(300 / (words[0].length * 0.62))) + 'px';
     t.append(b, s);
     mfd.append(t);
+    // Sized by measuring, so long names (Crusader, Consolidated) fit the screen's width.
+    fitText(b, 76); fitText(s, 15);
     requestAnimationFrame(fitMakerName);
   }
   if (!cls) return art();
@@ -833,7 +842,8 @@ function paintStatus() {
   paintBackdrop(off ? null : game.seated && game.ship || null, artMaker, off ? null : code || artMaker);
   document.querySelectorAll('#theme-seg button').forEach(b => b.classList.toggle('cur', b.dataset.v === opts.makerTheme));
   paintIdle();
-  $('ship-name').textContent = name;
+  // Long names (Constellation Andromeda) shrink to one line rather than run into the role below.
+  if ($('ship-name').textContent !== name) { $('ship-name').textContent = name; fitText($('ship-name'), 28, 16); }
   $('ship-role').textContent = role;
 
   // Law: red for CrimeStat; amber outside monitored space, with comms down or in lawless
@@ -1007,7 +1017,7 @@ function follow(force) {
   lastAuto = id;
 }
 
-bridge.onGameLog(({ lines, live, reset }) => {
+function onLog({ lines, live, reset }) {
   // A new Game.log means a new channel or a restart: its binds may differ too.
   if (reset) { game = { ...EMPTY }; session = { ...NEW_TALLY }; lastSeq = 0; logRows = []; if (bridge.inApp) { reloadBinds(); loadUserShips(); } }
   for (const line of lines) {
@@ -1026,7 +1036,8 @@ bridge.onGameLog(({ lines, live, reset }) => {
   follow(!live);
   paintStatus();
   paintChannel();
-});
+}
+bridge.onGameLog(onLog);
 
 let info = { running: false, focused: false, elevated: false, channel: null };
 function paintChannel() {
@@ -1124,5 +1135,5 @@ poll(); setInterval(poll, 2000);
 paintStatus();
 if (demo) { opts.auto = false; show(demo); }
 stage.classList.remove('booting');
-window.xfd = { show, raise, recap: t => { session = { ...NEW_TALLY, ...t }; showRecap(); }, perf: perf.toggle, showSection, bindHealth, bindsProfile, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
+window.xfd = { show, raise, feed: lines => onLog({ lines, live: true }), recap: t => { session = { ...NEW_TALLY, ...t }; showRecap(); }, perf: perf.toggle, showSection, bindHealth, bindsProfile, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
 document.body.dataset.ready = '1';

@@ -142,6 +142,14 @@ for (const id of ids) {
   for (const o of overlaps) problems.push(`${id}: ${o}`);
   if (shots) await page.screenshot({ path: join(shots, `${id}.png`) });
 }
+// Large labels: every page again with the bigger text, which must still fit.
+await page.evaluate(() => document.getElementById('stage').classList.add('large'));
+for (const id of ids) {
+  await page.evaluate(id => window.xfd.show(id), id);
+  await checkLabels(`${id} (large labels)`);
+  if (shots && ['flight', 'light-fighter', 'onfoot'].includes(id)) await page.screenshot({ path: join(shots, `large-${id}.png`) });
+}
+await page.evaluate(() => document.getElementById('stage').classList.remove('large'));
 for (const id of ['mining', 'light-fighter', 'onfoot', 'downed']) {
   const ms = await page.evaluate(id => { const t = performance.now(); window.xfd.show(id); document.body.offsetHeight; return performance.now() - t; }, id);
   worstSwitch = Math.max(worstSwitch, ms);
