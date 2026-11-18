@@ -19,92 +19,80 @@ Unofficial fan project, not affiliated with Cloud Imperium Games.
 
 ## Install
 
-1. Download `Edge-Cockpit-<version>-setup.exe` from the [latest release](../../releases/latest) and run it.
-   Windows SmartScreen warns because the app is not code signed: click **More info**, then **Run anyway**. Each release lists SHA-256 checksums and a VirusTotal scan, and carries a build provenance attestation ([how to verify](SECURITY.md#verifying-a-download)).
-2. In game, open **Options > Keybindings > Advanced Controls Customization > Control Profiles**, pick **edge-cockpit** and tick only **Keyboard**. This gives the console's actions that have no default key a free key. Your own binds stay as they are.
+1. Run `Edge-Cockpit-<version>-setup.exe` from the [latest release](../../releases/latest). SmartScreen warns because the exe isn't code signed: **More info** > **Run anyway**. [How to verify a download](SECURITY.md#verifying-a-download).
+2. In game: **Options > Keybindings > Advanced Controls Customization > Control Profiles**, pick **edge-cockpit**, tick only **Keyboard**. This adds keys for actions that have none. Your own binds stay.
 
-That's all. Edge Cockpit starts with Windows and waits in the tray with its screen dark. It wakes when Star Citizen starts and turns the screen off again when you quit. When a new release is out it asks you, with the release notes, and only while you're not playing.
+It starts with Windows, wakes when Star Citizen starts and goes dark when you quit. Updates are offered only while you're not playing.
 
-It finds the touchscreen by itself (or pick one in **Settings > Screen**), and has a night mode: on, off, or automatic from 20:00 to 07:00.
+## Pages
 
-## The console
-
-Every ship page has a power plate with a big **Flight Ready** button, a module for your ship's role, a flight plate and a gear plate. The role module is a target dial for fighters, a laser power knob for mining, a beam head for salvage, a tractor beam slider for cargo, and so on. Swipe it sideways or tap the arrows to see the others. No key appears twice on a page. To rearrange the plates, long-press a plate's title, drag the plates and tap **Done**. The order is saved for each role. On foot you get a weapon wheel, your suit and comms, and an Emotes page with hand signals and emotes. Downed, a big revive button. The **MFD & assists** page has a key for each MFD screen, ON/OFF switches for light amplification, auto precision and wind compensation, and Self repair all. The **Log** page shows this session: time played, kills, times downed, missions, ships flown, who downed you last, region and shard, the last jump, finished refinery jobs, and a timeline.
+- **Ship**: power plate with **Flight Ready**, a role module (target dial, mining laser, salvage beam, tractor beam...), flight and gear plates. Long-press a plate's title to rearrange; saved per role.
+- **On foot**: weapon wheel, suit, comms, emotes.
+- **Downed**: revive request.
+- **MFD & assists**: MFD screens, light amplification, auto precision, wind compensation, Self repair all.
+- **Log**: this session's stats, who downed you, region and shard, last jump, refinery jobs, a timeline.
 
 | | |
 | --- | --- |
 | ![Mining](docs/panel-mining.png) | ![On foot](docs/panel-onfoot.png) |
-| Mining | On foot |
 | ![Armistice](docs/panel-armistice.png) | ![Red alert](docs/panel-alert.png) |
-| Weapons grey out in armistice zones | Red alert with a CrimeStat |
-| ![Downed](docs/panel-downed.png) | ![Settings](docs/panel-settings.png) |
-| The Downed page opens when you go down | Settings, with the maker theme |
-| ![Log](docs/panel-log.png) | ![MFD & assists](docs/panel-mfd.png) |
-| Log page: this session at a glance | MFD screens and assists |
+| ![Log](docs/panel-log.png) | ![Settings](docs/panel-settings.png) |
 
 | Control | How it works |
 | --- | --- |
-| Keycap | Tap. Most switches are push-buttons, because the game doesn't say whether they're on |
-| HOLD tag | The key stays down while you hold it |
-| LONG or 2× tag | Long press or double tap for a second action |
-| MACRO (cut corners) | One tap runs a sequence, such as Ready & ATC or Battle stations |
-| ON/OFF switch | Top half sets on, bottom half sets off. Unlit until you set it |
-| Switch, knob | Tap or turn |
-| Lever, slider | Drag |
-| Red cover | Tap to lift it, then tap again within 3 seconds |
+| Keycap | Tap |
+| HOLD | Held while you hold it |
+| LONG / 2× | Long press or double tap for a second action |
+| MACRO (cut corners) | Runs a sequence |
+| ON/OFF switch | Top half on, bottom half off. Unlit until set |
+| Lever, slider, knob | Drag or turn |
+| Red cover | Tap to lift, tap again within 3 s |
 
 ## It follows the game
 
-- Opens the page for what you are doing: your ship's role page when you board, On foot when you leave, Downed when you go down.
-- Takes your ship maker's colours and shows its role and quantum target, with "Arrived" when the drive drops out. Behind it sits a dimmed render of the ship over the maker's name. Renders and outlines come from [FleetYards.net](https://fleetyards.net) the first time a ship is seen and are kept on your PC. On foot it shows the ship you last flew.
-- Maker themes: in a Drake, Aegis, Origin, MISC or Anvil ship, the plates and title trim take that maker's style. **Settings > Screen > Maker theme**: Auto, Off, or one maker always.
-- Shows where you are ("Keeger · Nyx", "Asteroid base · Ungoverned") on a line of the system's planets.
-- Shows your mission: the objective, the contract with its rewards as chips, and where the objective's marker points. Game colour tags, and those of StarStrings and SmartCitizen, are read rather than shown. The game logs no distances, so there are none.
-- Lights a red frame only for a CrimeStat or your ship disabled. Unmonitored or ungoverned space is an amber note. While the ship is disabled, Flight ready and All systems on become Self repair all and Emergency exit.
-- Shows an amber lag chip when the log reports your client stalled.
-- Starts over when the game restarts and writes a new `Game.log`.
-- Reads your `actionmaps.xml`, so keys you rebound in game just work. **Settings > Keybinds** lists any key the console can't press.
+From `Game.log` it opens the right page and shows your ship, mission, location, quantum target and alerts. Behind the status screen sits a render of your ship from [FleetYards.net](https://fleetyards.net), fetched once and kept. Drake, Aegis, Origin, MISC and Anvil ships get their maker's theme (**Settings > Screen**). The frame goes red only for a CrimeStat or a disabled ship.
 
-The game doesn't report gear, power, doors, lights or most switches. Where 4.x has separate on and off binds (power, lights, VTOL, limiter, decoupled, G-safe and others), the console uses an ON/OFF switch that sends exactly that state. It shows nothing until you set it, because the console can't know what the ship is doing. **All systems on** sets the main ones in one tap, so the switches match the ship. They go back to unknown when you leave the seat or change ship. Everything else is a push-button (doors get separate Open and Close keys), and the gear lever and missiles show what you last pressed. Hold the EDGE COCKPIT title for 2 seconds to see frame rate, CPU, memory and touch-to-key latency.
+It reads your `actionmaps.xml`, so rebound keys just work. **Settings > Keybinds** lists any it can't press.
 
-No telemetry. The only network calls are ship outlines and renders from FleetYards and the update check against these releases.
+The game doesn't report most switch states, so nothing is guessed: ON/OFF switches stay unlit until you set them, and **All systems on** syncs them. Everything else is a push-button.
+
+No telemetry. Network calls: FleetYards for ship images, GitHub for updates.
 
 ## If keys do nothing
 
-- Keys only go to Star Citizen while it is the window in front. Turn on **Test mode** in settings to try them elsewhere.
-- If the game runs as administrator, the console must too: **Run as administrator** in settings or the tray menu.
-- If touches land on your main screen, run **Calibrate the pen and touch input** in Windows, pick **Setup** and touch the console's screen when asked.
+- Keys only reach the game while it's in front. **Test mode** sends them anywhere.
+- Game running as administrator? So must the console: **Run as administrator** in settings or the tray.
+- Touches land on the wrong screen? Windows **Calibrate the pen and touch input** > **Setup**.
 
 ## Ships
 
-Ships are sorted into roles (light fighter, heavy fighter, multi-crew, mining, salvage, cargo, medical, ground vehicle). To move a ship, create `Documents\Edge Cockpit\ships.json`:
+Each ship has a role. To change one, create `Documents\Edge Cockpit\ships.json`:
 
 ```json
 { "ships": { "DRAK_Cutlass_Black": "cargo", "AEGS_Gladius": { "role": "heavy-fighter", "has": ["missiles"] } } }
 ```
 
-Names are class names from `Game.log`. A prefix like `AEGS_Gladius` covers every variant.
+Use `Game.log` class names; a prefix covers every variant.
 
 ## Supported devices
 
-Only the Corsair Xeneon Edge (2560 x 720) is fully supported for now. If you would like another touchscreen supported, open a [device request](../../issues/new?template=device.yml). More devices will come if there is demand.
+Corsair Xeneon Edge (2560 x 720). Other touchscreens: open a [device request](../../issues/new?template=device.yml).
 
 ## Feedback
 
-Found a bug? Open a [bug report](../../issues/new?template=bug.yml). Have an idea? Open a [feature request](../../issues/new?template=feature.yml).
-Want to help with code? See [CONTRIBUTING.md](CONTRIBUTING.md).
+[Bug report](../../issues/new?template=bug.yml) · [Feature request](../../issues/new?template=feature.yml) · [Contributing](CONTRIBUTING.md)
 
 ## Support
 
-Edge Cockpit is free and always will be, with every feature included. If it improves your flights and you'd like to support its development, you can [sponsor the developer](https://github.com/sponsors/pcanilho).
+Free, with every feature. [Sponsor](https://github.com/sponsors/pcanilho) if you'd like to support it.
 
 ## Security
 
-See [SECURITY.md](SECURITY.md) for what the app can do and how to report a vulnerability privately.
+[SECURITY.md](SECURITY.md): what the app can do and how to report a vulnerability.
 
 ## Development
 
-The app is Tauri 2: Rust in `app/src-tauri` does the window, keys, files, screen and updates, and the console is plain HTML, CSS and JS in `app/ui`. `layouts/star-citizen.json` is the source of truth for every key.
+Tauri 2: Rust in `app/src-tauri` (window, keys, files, updates), plain HTML/CSS/JS in `app/ui`. Every key comes from `layouts/star-citizen.json`.
 
 ```sh
 cd app
@@ -114,15 +102,15 @@ npm run test:ui        # every page: full labels, no idle work, fast touches (ne
 npx tauri dev          # run it (Windows)
 ```
 
-Open `app/ui/index.html?demo=ship` from a local web server to preview the console in a browser (also `demo=armistice`, `demo=alert`, `demo=downed`, or `page=mining`). Run `node scripts/sync.mjs` in `app` first.
+Browser preview: run `node scripts/sync.mjs` in `app`, then serve `app/ui` and open `index.html?demo=ship` (also `armistice`, `alert`, `downed`, `log`, or `page=mining`).
 
-After a game patch, take `defaultProfile.xml` from `Data.p4k` (or a current dump such as [Boxxy-Binder's AllBinds.xml](https://github.com/BoxximusPrime/Boxxy-Binder)) and run `scripts/check_patch.py`, `scripts/build_layout.py` and `scripts/build_binds.py` on it. The ship list refreshes itself each month.
+After a game patch: run `scripts/check_patch.py`, `build_layout.py` and `build_binds.py` on the new `defaultProfile.xml` (or [Boxxy-Binder's AllBinds.xml](https://github.com/BoxximusPrime/Boxxy-Binder)). The ship list refreshes monthly.
 
-To release, add a section for the version to [CHANGELOG.md](CHANGELOG.md), set the version in `app/src-tauri/tauri.conf.json`, and run the **App** workflow with **release** ticked.
+Release: add the version to [CHANGELOG.md](CHANGELOG.md) and `tauri.conf.json`, then run the **App** workflow with **release** ticked.
 
 ## Credits
 
-Ship roles come from the [Star Citizen Wiki API](https://api.star-citizen.wiki). Ship outlines and renders are fetched at runtime from [FleetYards.net](https://fleetyards.net) and are not part of this repository. Star Citizen, its ships and its logos belong to Cloud Imperium Games.
+Ship roles: [Star Citizen Wiki API](https://api.star-citizen.wiki). Ship outlines and renders: [FleetYards.net](https://fleetyards.net), fetched at runtime, not in this repository. Star Citizen, its ships and logos belong to Cloud Imperium Games.
 
 ## License
 
