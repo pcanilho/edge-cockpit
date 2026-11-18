@@ -1,0 +1,56 @@
+name: Regress
+
+# The curated console must not change by accident: every page on the Edge and every phone view
+# is rendered from the PR and from its base, and compared pixel by pixel. A PR that means to
+# change the look carries the look-change label; the differences are then listed, not failed.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions: {}
+
+concurrency:
+  group: regress-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regress:
+    name: regress
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: base
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+        working-directory: app
+      - name: Build both UIs
+        run: |
+          node app/scripts/sync.mjs
+          ln -s "$PWD/app/node_modules" base/app/node_modules
+          node base/app/scripts/sync.mjs
+      - name: Curated pages and phone views look the same as on the base
+        working-directory: app
+        env:
+          LOOK_CHANGE: ${{ contains(github.event.pull_request.labels.*.name, 'look-change') && '1' || '0' }}
+        run: |
+          npx playwright install --with-deps chromium
+          node test/regress.mjs ../base/app/ui ui --out "$RUNNER_TEMP/regress"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: regress-diffs
+          path: ${{ runner.temp }}/regress
+          retention-days: 7
