@@ -17,6 +17,8 @@ import * as phone from './phone.js';
 const $ = id => document.getElementById(id);
 // On a phone (link.js set this up), the console shows one plate at a time.
 const onPhone = !!window.__EC_PHONE__;
+// A device big enough for the whole console (a tablet across, another computer) shows all of it.
+let whole = false;
 // Pairing comes first: the console below waits for the PC to answer.
 if (onPhone) window.__EC_PHONE__.onState(st => phone.linkScreen(st, window.__EC_PHONE__.error));
 const stage = $('stage');
@@ -399,7 +401,7 @@ const K = {
   family,
   bind, fire, wheel, flip, isOn, known, local, tick, toast, theme,
   fired: node => { if (opts.flash) flash(node, 'fired'); },
-  scale: () => (onPhone ? phone.phoneScale() : stacked ? twoRows() : oneRow()),
+  scale: () => (onPhone && !whole ? phone.phoneScale() : stacked ? twoRows() : oneRow()),
   swipe: dir => {
     const i = SWIPE.findIndex(s => current.startsWith(s));
     const base = SWIPE[(i + dir + SWIPE.length) % SWIPE.length];
@@ -1155,7 +1157,7 @@ async function poll() {
 }
 
 // ---------- phones: Settings > Phones on the PC ----------
-const PLATES = [['swipe', 'Swipe'], ['status', 'Status'], ['power', 'Power'], ['role', 'Role'], ['flight', 'Flight'], ['gear', 'Gear']];
+const PLATES = [['swipe', 'All'], ['status', 'Status'], ['power', 'Power'], ['role', 'Role'], ['flight', 'Flight'], ['gear', 'Gear']];
 let phonesState = null;
 async function paintPhones() {
   const v = phonesState = await bridge.phonesView().catch(() => null);
@@ -1164,7 +1166,7 @@ async function paintPhones() {
   $('phones-dot').hidden = !v.list.some(p => p.online);
   const qr = $('ph-qr');
   qr.classList.toggle('off', !v.qr);
-  if (v.qr) qr.innerHTML = v.qr; else qr.textContent = v.enabled ? 'No home network' : 'Phones off';
+  if (v.qr) qr.innerHTML = v.qr; else qr.textContent = v.enabled ? 'No home network' : 'Devices off';
   $('ph-code').textContent = v.code ? `${v.code.slice(0, 3)} ${v.code.slice(3)}` : '––– –––';
   $('ph-addr').textContent = v.url || '';
   const esc = controls.esc;
@@ -1176,8 +1178,8 @@ async function paintPhones() {
     <span class="txt">${esc(p.name)}<small><i class="live"></i>${p.online ? 'Connected' : `Seen ${ago(p.seen)}`}</small></span>
     ${seg('which', PLATES, p.plate)}${seg('mode', [['copy', 'Copy'], ['move', 'Move']], p.mode, p.plate === 'swipe' || p.plate === 'status')}
     <button class="forget">Forget</button></div>`).join('');
-  $('ph-list').innerHTML = (v.list.length ? `<div class="here"><small>This screen shows</small>${here.map(k => `<span class="${gone.has(k) ? 'gone' : ''}">${k}</span>`).join('')}${gone.size ? '<em>Moved plates come back when their phone disconnects.</em>' : ''}</div>` : '')
-    + rows + `<p class="hint">${v.list.length ? 'Copy shows the plate on the phone and here. Move takes it off this screen. Swipe steps through every plate with the phone\'s rail and always copies. Each phone can change this in its own settings too.' : 'No phones yet. Turn Phones on, then scan the code with a phone on the same Wi-Fi.'}</p>`;
+  $('ph-list').innerHTML = (v.list.length ? `<div class="here"><small>This screen shows</small>${here.map(k => `<span class="${gone.has(k) ? 'gone' : ''}">${k}</span>`).join('')}${gone.size ? '<em>Moved plates come back when their device disconnects.</em>' : ''}</div>` : '')
+    + rows + `<p class="hint">${v.list.length ? 'Copy shows the plate on the device and here. Move takes it off this screen. All shows every plate: the whole console on a big screen, one at a time on a phone. Each device can change this in its own settings too.' : 'No devices yet. Turn Devices on, then open the address on a phone, tablet or computer on the same network.'}</p>`;
   $('ph-list').querySelectorAll('.opt[data-id]').forEach(row => {
     const id = row.dataset.id;
     row.querySelectorAll('.seg.which button').forEach(b => controls.pressable(b, { up: () => { tick('toggle'); bridge.phonesSet(id, b.dataset.v, null).then(paintPhones); } }));
@@ -1198,7 +1200,7 @@ function startPhones() {
 // ---------- on a phone ----------
 function startPhone() {
   const link = window.__EC_PHONE__;
-  phone.init({ stage, tick, onSettings: () => openSheet(true) });
+  phone.init({ stage, tick, fit, onSettings: () => openSheet(true) });
   // Toasts and alerts sit over the phone's screen, not on the stage.
   document.body.append($('toast'), $('banner'));
   opts.recap = false;
@@ -1259,10 +1261,20 @@ function contentWidth() {
   const plates = [...$('console').querySelectorAll(':scope > .plate:not(.moved)')];
   return Math.max(382, ...plates.map(p => p.offsetLeft + p.offsetWidth)) + 6;
 }
+const BIG = 0.5;
 function fit() {
-  if (onPhone) { phone.layout(); return; }
+  if (onPhone) {
+    whole = phone.allPlates() && Math.max(Math.min(innerWidth / 2560, innerHeight / 720), twoRows()) >= BIG;
+    document.body.classList.toggle('ph-whole', whole);
+    if (!whole) {
+      if (stacked) { stacked = false; stage.classList.remove('stacked'); stage.style.width = stage.style.height = ''; stack(); }
+      phone.layout();
+      return;
+    }
+    phone.clear();
+  }
   const was = stacked;
-  stacked = opts.stack && twoRows() > Math.min(innerWidth / 2560, innerHeight / 720) * 1.08;
+  stacked = (opts.stack || onPhone) && twoRows() > Math.min(innerWidth / 2560, innerHeight / 720) * 1.08;
   stage.classList.toggle('stacked', stacked);
   stage.style.width = stacked ? `${ROW_W}px` : '';
   stage.style.height = stacked ? '1440px' : '';

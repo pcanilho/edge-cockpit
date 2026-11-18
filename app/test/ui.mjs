@@ -462,6 +462,22 @@ for (const [W, H, tag] of [[393, 852, 'portrait'], [852, 393, 'landscape']]) {
   await ctx.close();
 }
 report.push(`phone views checked: ${phoneViews}, smallest ${Math.round(phoneLow * 100)} %`);
+// Another computer or a tablet across: the whole console, not one plate at a time.
+for (const [W, H] of [[1920, 1080], [1180, 820]]) {
+  const ctx = await browser.newContext({ viewport: { width: W, height: H } });
+  const big = await ctx.newPage();
+  big.on('pageerror', e => errors.push(`device ${W}x${H}: ${e.message}`));
+  await big.route(/fleetyards|fltyrd/, r => r.abort());
+  await big.goto(base + '?phone&demo=ship');
+  await big.waitForSelector('body[data-ready]');
+  const r = await big.evaluate(() => {
+    const plates = [document.getElementById('status'), ...document.querySelectorAll('#console > .plate')];
+    return { whole: document.body.classList.contains('ph-whole'), shown: plates.filter(p => getComputedStyle(p).visibility === 'visible').length, all: plates.length,
+      inside: plates.every(p => { const b = p.getBoundingClientRect(); return b.left >= -1 && b.top >= -1 && b.right <= innerWidth + 1 && b.bottom <= innerHeight + 1; }) };
+  });
+  if (!r.whole || r.shown !== r.all || !r.inside) problems.push(`device ${W}x${H}: whole console not shown (${JSON.stringify(r)})`);
+  await ctx.close();
+}
 
 // The PC with a plate moved to a phone: the rest close up, the settings list shows the phones.
 {

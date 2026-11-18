@@ -825,11 +825,12 @@ body.is-dark #stage { visibility: hidden; }
 
 /* ---------- phones: one plate at a time (phone.js) ---------- */
 body.phone { touch-action: none; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
-body.phone #stage { height: 1800px; transition: none; }
-body.phone #stage :is(#status, #console > .plate):not(.ph-on) { visibility: hidden; }
+body.phone:not(.ph-whole) #stage { height: 1800px; transition: none; }
+body.phone:not(.ph-whole) #stage :is(#status, #console > .plate):not(.ph-on) { visibility: hidden; }
+body.ph-whole .ph-chrome { display: none; }
 body.phone .ph-hide { display: none !important; }
 body.phone #stage .swipe-hint, body.phone #stage .plate > .pager { display: none; }
-body.phone #stage::before { position: fixed; }
+body.phone:not(.ph-whole) #stage::before { position: fixed; }
 .ph-chrome > * { position: fixed; z-index: 50; }
 .ph-top { top: env(safe-area-inset-top); left: max(env(safe-area-inset-left), 8px); right: max(env(safe-area-inset-right), 8px); height: 44px; display: flex; align-items: center; gap: 8px; }
 .ph-link { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 9px; border-radius: 6px; font: 700 11px/1 var(--hud); letter-spacing: .12em; color: var(--hold); box-shadow: inset 0 0 0 1px #ffb54755; background: #ffb54710; white-space: nowrap; }
@@ -938,4 +939,4 @@ body.phone { position: fixed; inset: 0; overflow: hidden; touch-action: manipula
 .ph-folded.logp .stats div { padding-left: 14px; }
 .ph-folded.logp .stats b { white-space: nowrap; }
 /* A folded plate can reach past the 2560 x 720 stage. */
-body.phone #stage { overflow: visible; contain: layout style; }
+body.phone:not(.ph-whole) #stage { overflow: visible; contain: layout style; }

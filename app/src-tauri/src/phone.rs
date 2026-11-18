@@ -178,7 +178,15 @@ pub fn device_name(ua: &str) -> String {
     } else if ua.contains("iPad") || (ua.contains("Macintosh") && ua.contains("Mobile")) {
         "iPad"
     } else if ua.contains("Android") {
-        "Android"
+        if ua.contains("Mobile") { "Android" } else { "Android tablet" }
+    } else if ua.contains("CrOS") {
+        "Chromebook"
+    } else if ua.contains("Windows") {
+        "Windows PC"
+    } else if ua.contains("Macintosh") {
+        "Mac"
+    } else if ua.contains("Linux") {
+        "Linux PC"
     } else {
         "Browser"
     };
@@ -698,7 +706,10 @@ mod tests {
     #[test]
     fn names_devices() {
         assert_eq!(device_name("Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X)"), "iPhone");
-        assert_eq!(device_name("Mozilla/5.0 (Linux; Android 15; Pixel 8)"), "Android");
+        assert_eq!(device_name("Mozilla/5.0 (Linux; Android 15; Pixel 8) Mobile Safari/537.36"), "Android");
+        assert_eq!(device_name("Mozilla/5.0 (Linux; Android 15; SM-X710) Safari/537.36"), "Android tablet");
+        assert_eq!(device_name("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/142.0"), "Windows PC");
+        assert_eq!(device_name("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"), "Mac");
     }
     struct Fake {
         phones: Phones,

@@ -13,6 +13,7 @@ const GAP = 8;
 const WHOLE = 0.6; // a whole plate is fine down to this scale
 const GOOD = 0.78; // a folded plate aims for at least this
 const MAX_VIEWS = 3;
+const MAX_S = 2; // a plate grows up to twice its size on a tablet
 const FLOW = 0.85; // the scale a narrowed text screen is shown at
 const FLOWS = /\b(screen|cm-head|cm-foot|lab)\b/;
 const SKIP = /\b(screw|title|rtitle|pager|swipe-hint|grab)\b/;
@@ -133,7 +134,7 @@ const extent = v => ({ w: Math.max(...v.map(c => c.x + c.p.w)), h: Math.max(...v
 export function plan(plate, aw, ah) {
   const W = plate.offsetWidth, H = plate.offsetHeight;
   const whole = Math.min(aw / W, ah / H);
-  if (whole >= WHOLE) return { whole: true, views: [null], scales: [Math.min(whole, 1.25)] };
+  if (whole >= WHOLE) return { whole: true, views: [null], scales: [Math.min(whole, MAX_S)] };
   const list = items(plate);
   if (!list.length) return { whole: true, views: [null], scales: [whole] };
   // Text screens (log, prices, timers) flow: a wide one narrows to the phone and grows taller.
@@ -159,7 +160,7 @@ export function plan(plate, aw, ah) {
     for (const pack of [shelves, columns]) {
       const vs = pack(ps, mw, mh);
       if (vs.length > MAX_VIEWS) continue;
-      const scales = vs.map(v => { const e = extent(v); return Math.min(aw / (e.w + PAD.x * 2), ah / (e.h + PAD.top + PAD.bottom), 1.25); });
+      const scales = vs.map(v => { const e = extent(v); return Math.min(aw / (e.w + PAD.x * 2), ah / (e.h + PAD.top + PAD.bottom), MAX_S); });
       const low = Math.min(...scales);
       // Below GOOD, size wins over fewer views.
       const score = (low >= GOOD ? -low : 10 + (GOOD - low) * 30) + vs.length * 2;
@@ -296,7 +297,7 @@ function showView(i, a = area()) {
   if (v.fold) fold(v.el, v.fold);
   const W = v.el.offsetWidth, H = v.el.offsetHeight;
   // Room left under a short plate holds where you are and the mission (upright only).
-  const s = Math.min(a.w / W, a.h / H, 1.25);
+  const s = Math.min(a.w / W, a.h / H, MAX_S);
   let y = a.y + (a.h - H * s) / 2;
   const room = a.h - H * s;
   const showMini = !a.land && v.key !== 'status' && room > 150 && paintMini();
@@ -388,7 +389,17 @@ export function refresh() {
 export function configure(c) {
   me = { ...me, ...c };
   if (me.plate !== 'swipe') cur = { plate: me.plate, view: 0 };
-  layout();
+  ctx?.fit();
+}
+
+/** Every plate, rather than one: a big screen shows the whole console. */
+export const allPlates = () => me.plate === 'swipe';
+
+/** Leaves phone layout for the whole console. */
+export function clear() {
+  for (const p of [$('status'), ...$('console').querySelectorAll(':scope > .plate')]) { unfold(p); p.classList.remove('ph-on'); }
+  if (mini) mini.hidden = true;
+  views = [];
 }
 
 export function init(c) {
@@ -399,16 +410,15 @@ export function init(c) {
   chrome.innerHTML = `<header class="ph-top" id="ph-top"><span class="ph-link" id="ph-link"><i></i><span id="ph-link-t">LINK</span></span>
     <span class="ph-pin" id="ph-pin" hidden><svg class="i" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span id="ph-pin-name"></span></span>
     <span class="ph-ship" id="ph-ship"></span>
-    <button class="ph-gear" id="ph-gear" aria-label="This phone"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg></button></header>
+    <button class="ph-gear" id="ph-gear" aria-label="This device"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg></button></header>
     <div class="ph-mini" id="ph-mini" hidden></div>
     <nav class="ph-rail" id="ph-rail"></nav>`;
   document.body.appendChild(chrome);
   rail = $('ph-rail'); mini = $('ph-mini');
   swipeRail();
   $('ph-gear').addEventListener('click', () => ctx.onSettings?.());
-  addEventListener('resize', () => layout());
   // Rotating sometimes reports the new size a moment late.
-  addEventListener('orientationchange', () => setTimeout(layout, 250));
+  addEventListener('orientationchange', () => setTimeout(() => ctx.fit(), 250));
 }
 
 /** The link light and the ship name in the top bar. */
@@ -429,11 +439,11 @@ export function linkScreen(state, error) {
     pairEl = document.createElement('div');
     pairEl.className = 'ph-pair';
     pairEl.innerHTML = `<img class="logo" src="icon-192.png" alt=""><h1>EDGE <span>COCKPIT</span></h1>
-      <div class="ph-pairing"><h2>Pair this phone</h2><p>Enter the code shown in Settings › Phones on the PC.</p>
+      <div class="ph-pairing"><h2>Pair this device</h2><p>Enter the code shown in Settings › Devices on the PC.</p>
         <div class="digits">${'<i></i>'.repeat(6)}</div><p class="err" id="ph-err"></p>
         <div class="pad">${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button data-k="${n}">${n}</button>`).join('')}<button class="k" data-k="c">Clear</button><button data-k="0">0</button><button class="k" data-k="b">Back</button></div>
-        <p class="hint">Then add it to your home screen (Share › Add to Home Screen) to open it full screen.</p></div>
-      <div class="ph-wait"><h2 id="ph-wait-t">Looking for the PC</h2><p>Edge Cockpit must be running, with Phones on in Settings, on the same Wi-Fi.</p></div>`;
+        <p class="hint">On a phone, add it to your home screen (Share › Add to Home Screen) to open it full screen.</p></div>
+      <div class="ph-wait"><h2 id="ph-wait-t">Looking for the PC</h2><p>Edge Cockpit must be running, with Devices on in Settings, on the same network.</p></div>`;
     document.body.appendChild(pairEl);
     pairEl.querySelectorAll('.pad button').forEach(b => b.addEventListener('click', () => {
       ctx?.tick?.('tap');
@@ -455,7 +465,7 @@ function paintDigits() {
 
 // ---------- this phone's settings ----------
 
-const PLATE_OPTS = [['swipe', 'Swipe'], ['status', 'Status'], ['power', 'Power'], ['role', 'Role'], ['flight', 'Flight'], ['gear', 'Gear']];
+const PLATE_OPTS = [['swipe', 'All'], ['status', 'Status'], ['power', 'Power'], ['role', 'Role'], ['flight', 'Flight'], ['gear', 'Gear']];
 let sheet = null;
 /** This phone's own settings: its plate, Copy or Move, touch feedback, unpair. */
 export function openSettings({ set, opts, setOpt }) {
@@ -466,13 +476,13 @@ export function openSettings({ set, opts, setOpt }) {
   }
   const seg = (name, list, v) => `<span class="seg" data-seg="${name}">${list.map(([k, l]) => `<button data-v="${k}" class="${k === v ? 'cur' : ''}">${l}</button>`).join('')}</span>`;
   sheet.innerHTML = `<div class="ph-card"><button class="close" aria-label="Close"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
-    <small>This phone</small><h3>${(me.name || 'Phone').replace(/[<>&]/g, '')}</h3>
+    <small>This device</small><h3>${(me.name || 'Device').replace(/[<>&]/g, '')}</h3>
     <h4>Shows</h4>${seg('plate', PLATE_OPTS, me.plate)}
-    <p class="note">Swipe steps through every plate with the rail. A plate keeps this phone on it.</p>
+    <p class="note">All shows every plate: the whole console when the screen is big enough, otherwise one at a time with the rail. A plate keeps this device on it.</p>
     <h4>On the PC's screen</h4>${seg('mode', [['copy', 'Copy'], ['move', 'Move']], me.mode)}
-    <p class="note">Move takes the plate off the PC's screen while this phone is connected.</p>
+    <p class="note">Move takes the plate off the PC's screen while this device is connected.</p>
     <h4>Touch feedback</h4>${seg('sound', [['on', 'Sound on'], ['off', 'Off']], opts.sound ? 'on' : 'off')}
-    <div class="row"><button class="act" id="ph-unpair">Unpair this phone</button></div></div>`;
+    <div class="row"><button class="act" id="ph-unpair">Unpair this device</button></div></div>`;
   sheet.hidden = false;
   sheet.querySelector('.close').addEventListener('click', () => { sheet.hidden = true; });
   sheet.querySelectorAll('.seg').forEach(sg => sg.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
