@@ -7,6 +7,18 @@
 - Arrange mode (long-press a plate title) also picks the role module, so a ship page can carry another module. Saved per role.
 - Settings > Screen: choose which ship plates this screen shows; the rest leave and the others grow to fill it. Size: Fit, or Actual size (never larger than designed).
 
+## 0.8.0
+
+- Devices: phones, tablets and other PCs on your network join as extra screens. No app to install.
+  - Settings > Devices: turn it on and scan the QR to pair at once, or open the address and enter the 6-digit code. On a phone, Add to Home Screen opens it full screen.
+  - A phone shows one plate at a time, upright or sideways, with a rail to step through it. A tablet or another PC shows the whole console.
+  - Per device: all plates or one, and Copy or Move (Move takes the plate off the Edge). Set it from the PC or from the device.
+  - The console answers to `edge-cockpit.local`, so a Home Screen icon keeps working when the router hands the PC a new address.
+  - The device's screen stays on, it reopens on the view it showed last, and Android phones buzz on a press.
+  - Off until you turn it on. Only private addresses are served and only paired devices can press keys. Forget a device to unpair it.
+- Network: with Devices on, the console is served on your home network (port 47823) and announced as `edge-cockpit.local`.
+- README and site: Devices, with phone screenshots.
+
 ## 0.7.1
 
 - World: the sell side's stock reads "Stock full" instead of "Their stock full".

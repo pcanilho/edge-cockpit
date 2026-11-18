@@ -438,7 +438,7 @@ for (const mood of ['ship', 'armistice', 'alert', 'downed']) {
 // overlapping or cut off, and big enough to press.
 let phoneViews = 0, phoneLow = 9;
 for (const [W, H, tag] of [[393, 852, 'portrait'], [852, 393, 'landscape']]) {
-  const ctx = await browser.newContext({ viewport: { width: W, height: H }, hasTouch: true, isMobile: true });
+  const ctx = await browser.newContext({ viewport: { width: W, height: H }, hasTouch: true, isMobile: true, deviceScaleFactor: shots ? 2 : 1 });
   const ph = await ctx.newPage();
   ph.on('pageerror', e => errors.push(`phone ${tag}: ${e.message}`));
   await ph.addInitScript(TEXT_CHECK);
@@ -504,7 +504,15 @@ for (const [W, H, tag] of [[393, 852, 'portrait'], [852, 393, 'landscape']]) {
   await ph.evaluate(() => window.xfd.show('flight'));
   const back = await ph.evaluate(() => document.body.dataset.phView);
   if (back !== last) problems.push(`phone ${tag}: reopened on "${back}", not "${last}"`);
-  if (shots) { await ph.evaluate(() => window.xfd.show('light-fighter')); await ph.screenshot({ path: join(shots, `phone-${tag}.png`) }); }
+  // Docs shots: docs/phone-flight.png and phone-power.png (upright), phone-role.png (sideways).
+  if (shots) {
+    await ph.evaluate(() => window.xfd.show('light-fighter'));
+    for (const view of tag === 'portrait' ? ['Flight', 'Power'] : ['Role']) {
+      await ph.evaluate(v => [...document.querySelectorAll('#ph-rail button')].find(b => b.textContent === v)?.click(), view);
+      await ph.waitForTimeout(200);
+      await ph.screenshot({ path: join(shots, `phone-${view.toLowerCase()}.png`) });
+    }
+  }
   await ctx.close();
 }
 report.push(`phone views checked: ${phoneViews}, smallest ${Math.round(phoneLow * 100)} %`);
