@@ -330,14 +330,14 @@ function bind(node, k, { label } = {}) {
 // ---------- switch state ----------
 // The game doesn't report what a toggle key leaves on or off (G-safe, doors, lights), and
 // it can change in game without the panel, so a toggle shows no state: it flicks and springs
-// back. Keys that set one state (gimbals locked) and the gear lever, which needs a side to
-// sit on, show the last one sent.
-const states = { gear: true };
-const TRACKED = new Set(['gear']);
-const tracked = st => st.kind === 'set' || TRACKED.has(st.key);
-const isOn = st => st.kind === 'set' ? states[st.key] === st.value : TRACKED.has(st.key) && !!states[st.key];
+// back. Keys that set one state (gimbals locked, gear down) show the last one sent, and
+// nothing until one is sent.
+const states = {};
+const tracked = st => st.kind === 'set';
+const isOn = st => st.kind === 'set' && states[st.key] === st.value;
+const known = key => key in states;
 function flip(st) {
-  if (tracked(st)) { states[st.key] = st.kind === 'set' ? st.value : !states[st.key]; repaint(); return; }
+  if (tracked(st)) { states[st.key] = st.value; repaint(); return; }
   // A toggle flips whatever the game had, so the matching switch no longer knows.
   if (st.key in states) { delete states[st.key]; repaint(); }
   for (const node of document.querySelectorAll(`#console [data-state]`)) {
@@ -382,7 +382,7 @@ const K = {
   bindText: k => (k.role === 'macro' ? '' : mine.stick[k.action] ? 'STICK' : keyText(bindOf(k))),
   isWeapon,
   family,
-  bind, fire, wheel, flip, isOn, local, tick, toast, theme,
+  bind, fire, wheel, flip, isOn, known, local, tick, toast, theme,
   fired: node => { if (opts.flash) flash(node, 'fired'); },
   scale: () => (stacked ? twoRows() : oneRow()),
   swipe: dir => {
@@ -1047,7 +1047,7 @@ function forgetStates() {
   const ship = game.seated ? game.ship : null;
   if (ship === stateShip) return;
   stateShip = ship;
-  for (const key of Object.keys(states)) if (key !== 'gear') delete states[key];
+  for (const key of Object.keys(states)) delete states[key];
   repaint();
 }
 function follow(force) {

@@ -46,7 +46,7 @@ function powerPlate() {
 function flightPlate() {
   const p = plate(X.flight, W.flight, 'Flight');
   add(p,
-    slider(20, 62, 112, 480, { value: 'speed', title: 'Speed limit', onStep: s => K.wheel(s, p) }),
+    slider(20, 62, 112, 480, { title: 'Speed limit', onStep: s => K.wheel(s, p) }),
     onOffKey(20, 590, 112, 96, 'Speed limiter', { label: 'Limiter' }),
     rotary(150, 52, 116, [{ label: 'SCM', angle: -40, key: 'Set SCM' }, { label: 'NAV', angle: 40, key: 'Set NAV' }], { title: 'Flight mode', pointer: 'var(--cyan)', radius: 92 }),
     quantum(372, 44, 220, 'Quantum'),
@@ -67,7 +67,7 @@ function flightPlate() {
 function gearPlate() {
   const p = plate(X.gear, W.gear, 'Gear');
   return add(p,
-    gearLever(24, 40, 'Landing gear'),
+    gearLever(24, 40, 'Gear'),
     placard(24, 456, 'Eject', 'red'), slideConfirm(24, 480, 226, 88, 'Eject', { text: 'SLIDE TO EJECT' }),
     placard(24, 584, 'Self destruct', 'red'), guard(24, 608, 226, 78, 'Self destruct'));
 }
@@ -121,7 +121,7 @@ function crew() {
 
 function mining() {
   return [
-    wheelKnob(259, 116, 200, { value: 'laser', title: 'Laser power', marks: [{ from: 66, to: 84, colour: 'var(--ok)' }, { from: 84, to: 100, colour: 'var(--danger)' }] }),
+    wheelKnob(259, 116, 200, { title: 'Laser power' }),
     keycap(254, 610, 310, 76, 'Mining mode', { fs: 14, lc: 'var(--cyan)' }),
     keycap(20, 60, 150, 110, 'Scan mode', { fs: 13, lc: 'var(--cyan)' }), keycap(20, 178, 150, 110, 'Ping', { fs: 13 }),
     keycap(20, 296, 150, 100, 'Lock rotation', { fs: 12 }), keycap(20, 404, 150, 100, 'Operator mode', { fs: 12 }),
@@ -143,7 +143,7 @@ function salvage() {
     keycap(20, 60, 150, 110, 'Salvage mode', { fs: 13, lc: 'var(--cyan)' }),
     keycap(20, 178, 150, 100, 'Head gimbal', { fs: 12 }), keycap(20, 286, 150, 100, 'Reset gimbal', { fs: 12 }),
     keycap(20, 394, 150, 100, 'Focus fracture', { fs: 12 }), keycap(20, 502, 150, 84, 'Scan mode', { fs: 12 }), keycap(20, 594, 150, 92, 'Lock rotation', { fs: 12 }),
-    slider(666, 66, 112, 420, { value: 'spacing', title: 'Beam spacing', onStep: s => K.wheel(s, null), colour: 'var(--hold)' }),
+    slider(666, 66, 112, 420, { title: 'Beam spacing', onStep: s => K.wheel(s, null), colour: 'var(--hold)' }),
     placard(648, 534, 'Jettison', 'red'), guard(648, 558, 150, 128, 'Jettison cargo'),
     keycap(200, 600, 200, 86, 'Ping', { fs: 13 }), keycap(418, 600, 200, 86, 'Operator mode', { fs: 13 }),
   ];
@@ -158,7 +158,7 @@ function cargo() {
     keycap(20, 458, 154, 92, 'Scan mode', { fs: 12 }), keycap(180, 458, 154, 92, 'Operator mode', { fs: 12 }),
     keycap(20, 558, 314, 128, 'Docking request', { fs: 14 }),
     placard(380, 54, 'Tractor beam'),
-    slider(380, 86, 112, 520, { value: 'beam', title: 'Beam distance', onStep: beam, colour: 'var(--hold)' }),
+    slider(380, 86, 112, 520, { title: 'Beam distance', onStep: beam, colour: 'var(--hold)' }),
     roundButton(540, 80, 230, 'Tractor rotate', { colour: 'var(--hold)', is: 40 }),
     keycap(530, 340, 250, 100, 'Tractor detach', { fs: 14 }),
     keycap(530, 452, 250, 120, 'Look behind', { fs: 13 }),

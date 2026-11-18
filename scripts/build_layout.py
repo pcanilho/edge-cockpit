@@ -77,6 +77,8 @@ CATALOG = {
     'Hail target': ('v_target_hail', 'tap', 'chat'),
     'Push to talk': ('foip_pushtotalk', 'hold', 'chat'),
     'Landing gear': ('v_toggle_landing_system', 'tap', 'gear'),
+    'Gear down': ('v_deploy_landing_system', 'tap', 'gear'),
+    'Gear up': ('v_retract_landing_system', 'tap', 'gear'),
     'Autoland': ('v_autoland', 'hold', 'land'),
     'VTOL': ('v_vtol_toggle', 'tap', 'vtol'),
     'ATC request': ('v_atc_request', 'tap', 'tower'),
@@ -464,6 +466,8 @@ SETS = {
     'v_power_set_weapons_off': ('pwr_wpn', False),
     'v_lights_on': ('lights', True),
     'v_lights_off': ('lights', False),
+    'v_deploy_landing_system': ('gear', True),
+    'v_retract_landing_system': ('gear', False),
     'v_vtol_on': ('vtol', True),
     'v_vtol_off': ('vtol', False),
     'v_ifcs_speed_limiter_on': ('limiter', True),
@@ -522,7 +526,7 @@ def load_actions(path):
 # Keys only the console's own plates use.
 EXTRAS = ['Open doors', 'Close doors', 'Chat window', 'Push to talk',
           'Power on', 'Power off', 'Thrusters on', 'Thrusters off', 'Shields on', 'Shields off', 'Weapons on', 'Weapons off', 'Lights on', 'Lights off', 'VTOL on', 'VTOL off', 'Speed limiter on', 'Speed limiter off', 'Decoupled on', 'Decoupled off', 'G-safe on', 'G-safe off', 'Proximity assist on', 'Proximity assist off', 'Advanced HUD on', 'Advanced HUD off', 'Stability on', 'Stability off', 'Gravity comp on', 'Gravity comp off', 'Staggered fire on', 'Staggered fire off', 'Set NAV', 'Set SCM', 'Panic decoy', 'Hail target', 'All systems on', 'Accept', 'Ignore', 'Next hostile', 'Next attacker', 'Subtarget', 'Missile mode', 'Aim mode', 'Horn',
-          'Light amp on', 'Light amp off', 'Auto precision on', 'Auto precision off', 'Wind comp on', 'Wind comp off', 'Self repair', 'Emergency exit',
+          'Light amp on', 'Light amp off', 'Auto precision on', 'Auto precision off', 'Wind comp on', 'Wind comp off', 'Self repair', 'Emergency exit', 'Gear down', 'Gear up',
           'MFD Comms', 'MFD Diagnostics', 'MFD IFCS', 'MFD Power', 'MFD Scanning', 'MFD Self status', 'MFD Target status', 'MFD Config',
           'Dance', 'Bow', 'Greet', 'Threaten', 'Taunt', 'Rude', 'Sit', 'Sleep', 'Flex', 'Gloat', 'Angry', 'At ease', 'Attention', 'Whistle']
 

@@ -132,6 +132,14 @@
   <action name="v_master_mode_set_scm">
    <rebind input="kb1_rctrl+rshift+insert"/>
   </action>
+  <!-- Gear down -->
+  <action name="v_deploy_landing_system">
+   <rebind input="kb1_rshift+insert"/>
+  </action>
+  <!-- Gear up -->
+  <action name="v_retract_landing_system">
+   <rebind input="kb1_rshift+home"/>
+  </action>
  </actionmap>
  <actionmap name="spaceship_quantum">
   <!-- Quantum -->

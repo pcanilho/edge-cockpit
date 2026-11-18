@@ -241,31 +241,28 @@ export function rotary(x, y, size, positions, { title, cycle, stateKey, pointer,
 }
 
 /** A free-turning knob read by the game as the mouse wheel: each detent is one click. */
-export function wheelKnob(x, y, size, { value = 'power', title, unit = '%', colour = 'var(--cyan)', marks } = {}) {
+export function wheelKnob(x, y, size, { title, colour = 'var(--cyan)' } = {}) {
+  // It sends wheel clicks and the game keeps the value, so it shows which way you turned, never a number.
   const c = size / 2 + 50, R = size / 2 + 36;
-  const v = () => K.local[value] ?? 50;
-  const sweep = a => arc(c, c, R - 12, R, -125, -125 + 250 * a / 100);
   const el = h(`<div class="wheelknob" style="${box(x, y, size + 100, size + 100)};--kc:${colour}">
     <svg class="dial" viewBox="0 0 ${size + 100} ${size + 100}">
       <path d="${arc(c, c, R - 12, R, -125, 125)}" fill="#0a0e12" stroke="#ffffff14"/>
-      <path class="sweep" fill="${colour}" filter="url(#glow)"/>
-      ${(marks || []).map(m => `<path d="${arc(c, c, R + 5, R + 11, -125 + 250 * m.from / 100, -125 + 250 * m.to / 100)}" fill="${m.colour}" opacity=".85"/>`).join('')}
+      <path class="turn" fill="${colour}" filter="url(#glow)"/>
       ${Array.from({ length: 51 }, (_, i) => -125 + i * 5).map(a => { const [x0, y0] = polar(c, c, R - 16, a), [x1, y1] = polar(c, c, R - (a % 25 ? 22 : 30), a); return `<line x1="${x0}" y1="${y0}" x2="${x1}" y2="${y1}" stroke="#ffffff40"/>`; }).join('')}
     </svg>
     <div class="kn" style="left:50px;top:50px">${knobHtml(size, colour)}</div>
-    <div class="read"><b></b><span>${esc(title || '')}</span></div></div>`);
-  const ptr = el.querySelector('.ptr'), sw = el.querySelector('.sweep'), read = el.querySelector('.read b');
-  const paint = () => {
-    const a = v();
-    ptr.style.transform = `rotate(${-125 + 250 * a / 100}deg)`;
-    sw.setAttribute('d', a > 0 ? sweep(a) : '');
-    read.textContent = Math.round(a) + unit;
+    <div class="read"><b><i class="less">−</i><i class="more">+</i></b><span>${esc(title || '')}</span></div></div>`);
+  const ptr = el.querySelector('.ptr'), turn = el.querySelector('.turn'), read = el.querySelector('.read b');
+  // While turning, the pointer follows the hand and the arc shows how far from where you started.
+  const paint = a => {
+    ptr.style.transform = `rotate(${a}deg)`;
+    turn.setAttribute('d', a ? arc(c, c, R - 12, R, Math.min(0, a), Math.max(0, a)) : '');
+    read.classList.toggle('up', a > 0); read.classList.toggle('dn', a < 0);
   };
-  // Turning: the angle around the centre, one wheel click per 10 degrees.
   const kn = el.querySelector('.kn');
-  let last = null, acc = 0;
+  let last = null, acc = 0, turned = 0;
   const angle = e => { const r = kn.getBoundingClientRect(); return Math.atan2(e.clientX - (r.left + r.width / 2), -(e.clientY - (r.top + r.height / 2))) * 180 / Math.PI; };
-  kn.addEventListener('pointerdown', e => { e.stopPropagation(); kn.setPointerCapture(e.pointerId); last = angle(e); acc = 0; kn.classList.add('pressed'); });
+  kn.addEventListener('pointerdown', e => { e.stopPropagation(); kn.setPointerCapture(e.pointerId); last = angle(e); acc = 0; turned = 0; kn.classList.add('pressed'); ptr.style.transition = 'none'; });
   kn.addEventListener('pointermove', e => {
     if (last === null) return;
     const a = angle(e);
@@ -273,16 +270,17 @@ export function wheelKnob(x, y, size, { value = 'power', title, unit = '%', colo
     if (d > 180) d -= 360;
     if (d < -180) d += 360;
     last = a; acc += d;
+    // One wheel click per 10 degrees.
     while (Math.abs(acc) >= 10) {
       const s = Math.sign(acc); acc -= s * 10;
-      K.local[value] = Math.max(0, Math.min(100, v() + s * 5));
+      turned = Math.max(-120, Math.min(120, turned + s * 10));
       K.wheel(s, el); K.tick('detent');
-      paint();
+      paint(turned);
     }
   });
-  const end = () => { last = null; kn.classList.remove('pressed'); };
+  const end = () => { if (last === null) return; last = null; kn.classList.remove('pressed'); ptr.style.transition = ''; paint(0); };
   kn.addEventListener('pointerup', end); kn.addEventListener('pointercancel', end);
-  paint();
+  paint(0);
   return el;
 }
 
@@ -292,30 +290,36 @@ export function wheelKnob(x, y, size, { value = 'power', title, unit = '%', colo
  * A vertical lever on a slotted track. Dragging sends one step per notch:
  * onStep(+1/-1). `value` names the remembered position (0-100).
  */
-export function slider(x, y, w, ht, { value, title, onStep, colour = 'var(--cyan)', marks = [100, 50, 0], step = 5 }) {
-  const v = () => K.local[value] ?? 50;
-  const travel = ht - 60;
+export function slider(x, y, w, ht, { title, onStep, colour = 'var(--cyan)', step = 5 }) {
+  // Each detent sends one step and the game keeps the value, so the handle springs back to the
+  // middle and shows no number: the console never knows the real one.
+  const travel = ht - 60, mid = 30 + travel / 2;
   const el = h(`<div class="slider" style="${box(x, y, w, ht)};--kc:${colour}">
     ${Array.from({ length: 11 }, (_, i) => `<i class="tick ${i % 5 ? '' : 'big'}" style="top:${30 + i * travel / 10}px"></i>`).join('')}
-    ${marks.map(m => `<span class="mk" style="top:${24 + (100 - m) / 100 * travel}px">${m}</span>`).join('')}
+    <span class="mk more" style="top:30px">MORE</span><span class="mk less" style="top:${travel - 4}px">LESS</span>
     <div class="slot"></div><div class="fill"></div>
-    <div class="handle">${'<span></span>'.repeat(4)}</div><div class="val"></div>
+    <div class="handle">${'<span></span>'.repeat(4)}</div>
     ${title ? `<div class="lab" style="left:0;right:0;bottom:-26px">${esc(title)}</div>` : ''}</div>`);
-  const handle = el.querySelector('.handle'), fill = el.querySelector('.fill'), val = el.querySelector('.val');
+  const handle = el.querySelector('.handle'), fill = el.querySelector('.fill');
+  const px = travel / (100 / step);
+  let off = 0;
+  // The fill runs from the middle to the handle while you drag.
   const paint = () => {
-    const top = 30 + (100 - v()) / 100 * travel;
+    const top = mid - off * px;
     handle.style.top = top - 30 + 'px';
-    val.style.top = top - 52 + 'px';
-    fill.style.top = top + 'px';
-    val.textContent = Math.round(v()) + '%';
+    fill.style.top = Math.min(top, mid) + 'px';
+    fill.style.height = Math.abs(top - mid) + 'px';
+    el.classList.toggle('up', off > 0); el.classList.toggle('dn', off < 0);
   };
+  const half = Math.floor(travel / 2 / px);
   stepper(handle, {
-    step: travel / (100 / step),
+    step: px,
     onStep: s => {
-      const nv = Math.max(0, Math.min(100, v() + s * step));
-      if (nv === v()) return;
-      K.local[value] = nv; onStep(s, el); K.tick('detent'); paint();
+      const n = Math.max(-half, Math.min(half, off + s));
+      if (n === off) return;
+      off = n; onStep(s, el); K.tick('detent'); paint();
     },
+    onEnd: () => { off = 0; handle.style.transition = 'top .25s var(--ease)'; fill.style.transition = 'top .25s var(--ease), height .25s var(--ease)'; paint(); setTimeout(() => { handle.style.transition = fill.style.transition = ''; }, 260); },
   });
   paint();
   return el;
@@ -370,7 +374,8 @@ export function guard(x, y, w, ht, l, { text } = {}) {
 // ---------- gear lever ----------
 
 export function gearLever(x, y, l) {
-  const k = keyOf(l);
+  // Deploy and retract each set one side, so the lever only shows a side once you've moved it.
+  const kDn = keyOf(`${l} down`), kUp = keyOf(`${l} up`);
   const el = h(`<div class="gear" style="${box(x, y, 226, 384)}">
     <div class="lights">${['NOSE', 'LEFT', 'RIGHT'].map(n => `<div><i></i><span>${n}</span></div>`).join('')}</div>
     <div class="placard gstate"></div>
@@ -384,25 +389,34 @@ export function gearLever(x, y, l) {
         ${[0, 72, 144, 216, 288].map(a => { const [px, py] = polar(65, 65, 20, a); return `<circle cx="${px}" cy="${py}" r="4" fill="#3a4148"/>`; }).join('')}
         <circle cx="65" cy="65" r="8" fill="#2a3036" stroke="#ffffff40"/></svg></div>
     <div class="lab" style="left:0;right:0;top:392px">slide the lever</div></div>`);
-  if (!k) return el;
-  el.dataset.state = JSON.stringify(k.state);
+  if (!kDn || !kUp) return el;
+  el.classList.add('painted');
+  const known = () => K.known(kDn.state.key);
+  const down = () => K.isOn(kDn.state);
+  el.paint = () => {
+    el.classList.toggle('on', known() && down());
+    el.classList.toggle('up', known() && !down());
+  };
   const arm = el.querySelector('.arm');
   let y0 = null, dy = 0;
-  const down = () => K.isOn(k.state);
+  // Travel from where the lever sits: the middle can go either way, half as far.
+  const range = () => !known() ? [-90, 90] : down() ? [-180, 0] : [0, 180];
   arm.addEventListener('pointerdown', e => { e.stopPropagation(); arm.setPointerCapture(e.pointerId); y0 = e.clientY; arm.style.transition = 'none'; });
   arm.addEventListener('pointermove', e => {
     if (y0 === null) return;
-    dy = (e.clientY - y0) / K.scale();
-    dy = down() ? Math.max(-180, Math.min(0, dy)) : Math.max(0, Math.min(180, dy));
+    const [lo, hi] = range();
+    dy = Math.max(lo, Math.min(hi, (e.clientY - y0) / K.scale()));
     arm.style.transform = `translateY(${dy}px)`;
   });
   const end = async () => {
     if (y0 === null) return;
     y0 = null; arm.style.transition = ''; arm.style.transform = '';
-    if (Math.abs(dy) > 90) { K.tick('toggle'); if (await K.fire(k, el)) K.flip(k.state); }
+    const [lo, hi] = range(), k = dy >= hi / 2 && hi > 0 ? kDn : dy <= lo / 2 && lo < 0 ? kUp : null;
     dy = 0;
+    if (k) { K.tick('toggle'); if (await K.fire(k, el)) K.flip(k.state); }
   };
   arm.addEventListener('pointerup', end); arm.addEventListener('pointercancel', end);
+  el.paint();
   return el;
 }
 

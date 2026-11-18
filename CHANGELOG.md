@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Gear lever: sends gear down and gear up (new keys in the edge-cockpit control profile: reload it in game) instead of the toggle. It sits in the middle with its lights dark until you move it, since the game doesn't report the gear.
+- Speed limit, beam distance, beam spacing and laser power show no made-up value. They send steps and the game keeps the number, so the slider springs back to the middle and the knob shows which way you turned.
+- Armistice: locked weapon keys keep their own label, dimmed, with a small ARMISTICE tag instead of the word printed over it.
+
 ## 0.6.0
 
 - Ship backdrop: when a ship's angled render on FleetYards is broken, the store image shows instead. Ships whose FleetYards id carries a suffix (Constellation Andromeda) are found.
