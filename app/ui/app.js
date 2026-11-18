@@ -64,9 +64,14 @@ const KIT_KEYS = { missiles: ['Missiles +', 'Missiles reset', 'Missile mode'], e
 // showing, swiping and the soft keys treat it like any page. The curated pages are not touched.
 const mainPages = layout.decks.find(d => d.id === 'main').pages;
 const CURATED = mainPages.length;
+// A Device keeps no pages of its own: it shows the PC's, which arrive with the shared state.
+const devicePages = new Map();
+function storedPages() {
+  if (window.__EC_PHONE__) return [...devicePages.values()];
+  try { return JSON.parse(localStorage.getItem('xfd-pages') || '[]'); } catch { return []; /* broken: start empty */ }
+}
 function loadPages() {
-  let list = [];
-  try { list = JSON.parse(localStorage.getItem('xfd-pages') || '[]'); } catch { /* broken: start empty */ }
+  const list = storedPages();
   CUSTOM.clear();
   mainPages.length = CURATED;
   for (const raw of Array.isArray(list) ? list : []) {
@@ -82,6 +87,12 @@ function loadPages() {
 }
 loadPages();
 const savePages = list => { try { localStorage.setItem('xfd-pages', JSON.stringify(list)); } catch { /* private mode */ } };
+/** Stores a page of yours (null deletes it) and tells the other screens. */
+function putPage(id, spec, tell = true) {
+  if (window.__EC_PHONE__) { if (spec) devicePages.set(id, spec); else devicePages.delete(id); }
+  else savePages([...storedPages().filter(p => p?.id !== id), ...(spec ? [spec] : [])]);
+  if (tell) bridge.share({ pages: { [id]: spec } });
+}
 
 // ---------- settings ----------
 const store = {
@@ -388,7 +399,32 @@ function flip(st) {
   }
 }
 /** State another screen (the PC or a phone) changed. */
+/** A page of yours left: nothing points at it any more. */
+function pageGone(id) {
+  loadPages(); cache.delete(id);
+  if (lastShip === id) lastShip = 'flight';
+  if (rolePage === id) rolePage = null;
+  if (current === id) show('flight');
+}
 function shared(s) {
+  // Pages of yours, saved on another screen (the PC keeps them; a Device shows them).
+  if (s.pages && typeof s.pages === 'object') {
+    for (const [id, spec] of Object.entries(s.pages)) {
+      const clean = spec && cleanPage(spec);
+      if (spec && !clean) continue;
+      putPage(id, clean, false);
+      if (!clean) pageGone(id);
+      else if (!(editor.isOpen() && current === id)) { loadPages(); cache.delete(id); if (current === id) render(); }
+    }
+  }
+  // A page being edited on another screen: shown here as it changes, until Done.
+  if ('preview' in s && !editor.isOpen()) {
+    const spec = s.preview && cleanPage(s.preview);
+    if (spec && CUSTOM.has(spec.id)) CUSTOM.set(spec.id, spec);
+    else if (!s.preview) loadPages();
+    for (const id of CUSTOM.keys()) cache.delete(id);
+    if (CUSTOM.has(current)) render();
+  }
   if ('st' in s) {
     if (s.st === null) for (const key of Object.keys(states)) delete states[key];
     else for (const [k, v] of Object.entries(s.st)) { if (v === null) delete states[k]; else states[k] = v; }
@@ -529,12 +565,14 @@ function openEditorPicker(o) {
   query = ''; typing = false;
   $('pick-title').textContent = o.title;
   $('pick-clear').hidden = true;
-  $('pick-now').innerHTML = o.now ? `Now: <b>${controls.esc(o.now)}</b>` : 'Empty';
+  $('pick-now').innerHTML = o.list ? `${o.list.length} found` : o.now ? `Now: <b>${controls.esc(o.now)}</b>` : 'Empty';
+  $('picker').classList.toggle('listing', !!o.list);
   showPickGroup(suggested().length ? 'sug' : pickNow ? groupOf(pickNow) : 'flight');
   $('picker').hidden = false;
 }
 function openPicker(id, k, stock = null) {
   pickFor = null;
+  $('picker').classList.remove('listing');
   picking = id; pickStock = stock; pickNow = k;
   query = ''; typing = false;
   const changed = stock ? k && k !== stock : !!k;
@@ -630,7 +668,15 @@ function showPickGroup(g) {
 function paintPick() {
   const out = [];
   const q = query.trim().toLowerCase();
-  if (q) {
+  if (pickFor?.list) {
+    const row = Object.assign(document.createElement('div'), { className: 'pk-row' });
+    for (const it of pickFor.list) {
+      const b = controls.h(`<div class="pick" role="button">${controls.icon('download', 22)}<span class="pn">${controls.esc(it.label)}<small class="why">${controls.esc(it.note || '')}</small></span></div>`);
+      controls.pressable(b, { up: () => setSlot(it.label) });
+      row.appendChild(b);
+    }
+    out.push(row);
+  } else if (q) {
     const words = q.split(/\s+/);
     const hits = pickKeys().filter(k => words.every(w => k.label.toLowerCase().includes(w))).sort((a, b) => a.label.localeCompare(b.label));
     $('pick-count').textContent = `${hits.length} key${hits.length === 1 ? '' : 's'}`;
@@ -660,7 +706,8 @@ function setSlot(label) {
     const o = pickFor;
     pickFor = null; picking = null;
     $('picker').hidden = true;
-    if (label) { store.set(RECENT, [label, ...store.get(RECENT, []).filter(l => l !== label)].slice(0, 9)); o.onPick(label); }
+    if (label && KEYS.has(label)) store.set(RECENT, [label, ...store.get(RECENT, []).filter(l => l !== label)].slice(0, 9));
+    if (label) o.onPick(label);
     return;
   }
   const stockPick = pickStock && label === pickStock.label;
@@ -899,6 +946,7 @@ async function saveProfile() {
     slots,
     keys,
     modules,
+    pages: storedPages(),
     ships: (() => { try { return ships ? JSON.parse(ships) : null; } catch { return null; } })(),
     binds: binds ? bindsProfile(binds) : null,
   };
@@ -921,6 +969,9 @@ async function loadProfile() {
   for (const [slot, label] of Object.entries(p.slots || {})) if (typeof label === 'string' && KEYS.has(label)) store.set(`slot:${slot}`, label);
   for (const [id, label] of Object.entries(p.keys || {})) if (typeof label === 'string' && KEYS.has(label)) store.set(`map:${id}`, label);
   for (const [role, m] of Object.entries(p.modules || {})) if (typeof m === 'string' && MODULE_NAMES[m]) store.set(`module:${role}`, m);
+  // Pages of yours in the profile replace the ones by the same id.
+  for (const raw of Array.isArray(p.pages) ? p.pages : []) { const spec = cleanPage(raw); if (spec) putPage(spec.id, spec); }
+  loadPages();
   if (p.ships && typeof p.ships === 'object') await bridge.saveUserShips(JSON.stringify(p.ships, null, 2)).catch(() => {});
   let note = 'Profile loaded.';
   if (typeof p.binds === 'string') {
@@ -1569,7 +1620,8 @@ const ROLE_NAMES = { fighter: 'fighter', crew: 'multi-crew', mining: 'mining', s
 arrange.init($('console'), {
   store, tick, scale: K.scale, role: () => moduleOf(current), roleName: () => ROLE_NAMES[moduleOf(current)] || 'ship',
   canArrange: () => !CUSTOM.has(current),
-  onEdit: () => { if (!onPhone) editor.openEditor(current, CUSTOM.get(current)); },
+  onEdit: () => { if (!onPhone || whole) editor.openEditor(current, CUSTOM.get(current)); },
+  onImport: () => importPages(),
   onNew: () => newPage(blankPage(`My page ${CUSTOM.size + 1}`, newId())),
   onDuplicate: () => newPage(duplicate(current, `My ${(ship?.name || pageById(layout, current)?.name || 'page').slice(0, 20)}`, moduleOf(current), newId())),
   modules: MODULE_NAMES, module: () => K.moduleFor(current) || moduleOf(current), stockModule: () => moduleOf(current),
@@ -1583,6 +1635,49 @@ arrange.init($('console'), {
     if (!quiet) toast('Layout saved for this role');
   },
 });
+// Ships by the curated page they get, for the editor's Use for.
+let shipGroups = null;
+function groupShips() {
+  const by = new Map();
+  for (const cls of Object.keys(shipsDb.ships)) {
+    const { id } = pageFor(layout, { seated: true, ship: cls }, shipsDb.ships, overrides.ships);
+    if (!moduleOf(id)) continue;
+    if (!by.has(id)) by.set(id, []);
+    by.get(id).push({ cls, name: shipLabel(cls) });
+  }
+  // Pages that share a name (a role with and without some kit) make one group.
+  const named = new Map();
+  for (const [id, list] of by) {
+    const name = pageById(layout, id)?.name || id;
+    if (!named.has(name)) named.set(name, { id, name, ships: [] });
+    named.get(name).ships.push(...list);
+  }
+  return [...named.values()].map(g => ({ ...g, ships: g.ships.sort((a, b) => a.name.localeCompare(b.name)) })).sort((a, b) => a.name.localeCompare(b.name));
+}
+/** The class a Game.log model belongs to (AEGS_Gladius_1234 -> AEGS_Gladius), so a page follows every one of it. */
+function lookupClass(model) {
+  if (shipsDb.ships[model]) return model;
+  let best = null;
+  for (const cls of Object.keys(shipsDb.ships)) if (model.startsWith(cls + '_') && (!best || cls.length > best.length)) best = cls;
+  return best || model;
+}
+/** Page files in Documents\Edge Cockpit\Pages, offered in the key picker's sheet to import. */
+async function importPages() {
+  if (onPhone) { toast('Import pages on the PC'); return; }
+  const files = await bridge.pageFiles().catch(() => []);
+  const pages = files.map(([file, text]) => { try { const f = JSON.parse(text); return f?.app === 'edge-cockpit' && f.kind === 'page' ? { file, page: f.page } : null; } catch { return null; } })
+    .filter(x => x && cleanPage(x.page));
+  if (!pages.length) { toast('No page files found. Put one in Documents\\Edge Cockpit\\Pages, then Import'); return; }
+  openEditorPicker({
+    title: 'Import a page', now: null, base: false, refuse: () => '',
+    list: pages.map(({ file, page }) => ({ label: page.name || file.replace(/\.json$/i, ''), note: `${file} · ${page.plates?.length || 0} plates` })),
+    onPick: label => {
+      const hit = pages.find(({ file, page }) => (page.name || file.replace(/\.json$/i, '')) === label);
+      // Always a new page: an import never replaces one of yours.
+      if (hit) newPage({ ...hit.page, id: newId(), ships: [] });
+    },
+  });
+}
 /** A new page of yours: saved, shown, and open in the editor. */
 function newPage(spec) {
   const saved = spec && window.xfd.savePage(spec);
@@ -1595,13 +1690,24 @@ editor.init({
   pageName: id => pageById(layout, id)?.name,
   bound: (label, base) => (base ? !!(bindOf(KEYS.get(`${label} on`) || {}) && bindOf(KEYS.get(`${label} off`) || {})) : !!bindOf(KEYS.get(label) || {})),
   openPicker: openEditorPicker,
+  ships: () => {
+    shipGroups ||= groupShips();
+    return { groups: shipGroups, current: game.seated && game.ship ? { cls: lookupClass(game.ship), name: shipLabel(game.ship) } : null, name: shipLabel };
+  },
   // The draft is drawn as if saved; null draws the saved page again.
   preview: (spec, id = spec?.id) => {
+    bridge.share({ preview: spec });
     if (spec) { CUSTOM.set(spec.id, spec); const pg = mainPages.find(p => p.id === spec.id); if (pg) pg.name = spec.name; } else loadPages();
     cache.delete(id);
     if (current === id) render();
   },
   save: spec => window.xfd.savePage(spec),
+  share: async spec => {
+    if (onPhone) { toast('Share a page from the PC'); return; }
+    const file = { app: 'edge-cockpit', kind: 'page', format: 1, saved: new Date().toISOString(), page: spec };
+    try { toast(`Saved to ${await bridge.savePageFile(spec.name, JSON.stringify(file, null, 2))}. Send that file to share the page`); }
+    catch (e) { toast(`The page was not saved: ${e?.message || e}`); }
+  },
   remove: id => window.xfd.deletePage(id),
 });
 world.init({ fire, keyHint: k => bindOf(k), game: () => game, location: () => ({ id: placeSeen.id || game.location, ...placeSeen }), store, bridge, raise, tick, hhmm, current: () => current, painted: els => { if (onPhone) phone.repainted(els); } });
@@ -1628,6 +1734,8 @@ bridge.onTray?.(what => {
 bridge.onAutostart?.(on => { opts.autostart = on; document.querySelectorAll('.opt[data-opt="autostart"]').forEach(o => o.classList.toggle('on', on)); });
 setOpt('night', opts.night);
 bridge.onShared?.(shared);
+// The PC holds the pages of yours: every Device gets them, and no stale edit from a closed one.
+if (!onPhone) bridge.share({ pages: Object.fromEntries(storedPages().filter(p => p?.id).map(p => [p.id, p])), preview: null });
 if (onPhone) startPhone(); else startPhones();
 render();
 await reloadBinds();
@@ -1640,22 +1748,16 @@ stage.classList.remove('booting');
 window.xfd = {
   myPages: () => [...CUSTOM.values()],
   edit: id => { show(id); editor.openEditor(id, CUSTOM.get(id)); },
+  shared,
   editing: editor.isOpen,
   /** Saves a page of yours (adds or replaces by id); returns the cleaned page, or null. */
   savePage: raw => {
     const spec = cleanPage(raw);
     if (!spec) return null;
-    const list = [...CUSTOM.values()].filter(p => p.id !== spec.id);
-    savePages([...list, spec]);
+    putPage(spec.id, spec);
     loadPages(); cache.delete(spec.id); if (current === spec.id) render();
     return CUSTOM.get(spec.id) || null;
   },
-  deletePage: id => {
-    savePages([...CUSTOM.values()].filter(p => p.id !== id));
-    loadPages(); cache.delete(id);
-    if (lastShip === id) lastShip = 'flight';
-    if (rolePage === id) rolePage = null;
-    if (current === id) show('flight');
-  },
+  deletePage: id => { putPage(id, null); pageGone(id); },
   show, raise, setup: showSetup, feed: (lines, live = true) => onLog({ lines, live }), recap: t => { session = { ...NEW_TALLY, ...t }; showRecap(); }, perf: perf.toggle, showSection, bindHealth, bindsProfile, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
 document.body.dataset.ready = '1';

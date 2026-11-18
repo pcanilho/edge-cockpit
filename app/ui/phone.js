@@ -262,6 +262,23 @@ function fold(plate, view) {
   plate.style.height = `${H}px`;
 }
 
+/**
+ * The page editor's phone preview: copies of a plate laid out as a phone shows it in an
+ * aw x ah area, one per view, each with its scale. `host` holds them (they need layout).
+ */
+export function previewPlate(plate, aw, ah, host) {
+  const copy = () => { const c = plate.cloneNode(true); c.style.left = '0px'; c.style.top = '0px'; c.style.translate = ''; host.appendChild(c); return c; };
+  const first = copy();
+  const p = plan(first, aw, ah);
+  first.remove();
+  return p.views.map((v, i) => {
+    const c = copy();
+    const q = plan(c, aw, ah);
+    if (!q.whole && q.views[i]) fold(c, q.views[i]);
+    return { el: c, scale: q.scales[i] ?? q.scales[0] };
+  });
+}
+
 // ---------- the phone screen ----------
 
 // Short names, so a rail label stays on one line with its view number.

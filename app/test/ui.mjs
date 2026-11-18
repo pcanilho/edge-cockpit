@@ -723,6 +723,59 @@ for (const [W, H] of [[1920, 1080], [1180, 820]]) {
   await ctx.close();
 }
 
+// Pages of yours across screens and files: Use for links ships, the phone preview folds a plate,
+// a page file imports as a new page, and pages saved or edited on a Device reach this screen.
+{
+  const ctx = await browser.newContext({ viewport: { width: 2560, height: 720 } });
+  const pg = await ctx.newPage();
+  pg.on('pageerror', e => errors.push(`pages across screens: ${e.message}`));
+  await pg.route(/fleetyards|fltyrd/, r => r.abort());
+  await pg.addInitScript(() => { window.xfdTestPageFiles = [['Shared Cutlass.json', JSON.stringify({ app: 'edge-cockpit', kind: 'page', format: 1, page: { id: 'my-zzzz9', name: 'Shared Cutlass', ships: ['DRAK_Cutlass'], plates: [{ w: 450, title: 'Extras', add: [{ t: 'key', x: 32, y: 64, w: 160, h: 96, key: 'Ping' }] }] } })], ['broken.json', '{']]; });
+  await pg.goto(base + '?demo=ship');
+  await pg.waitForSelector('body[data-ready]');
+  await pg.evaluate(() => { window.xfd.savePage({ id: 'my-glad1', name: 'My Gladius', from: 'light-fighter', plates: [{ stock: 'power' }, { stock: 'role' }, { stock: 'flight' }, { stock: 'gear' }] }); window.xfd.edit('my-glad1'); });
+  const r = await (await pg.$('#console > .plate[data-slot="role"]')).boundingBox();
+  await pg.mouse.click(r.x + 400, r.y + 690);
+  await pg.click('.ed-bar [data-a="phone"]');
+  const views = await pg.evaluate(() => document.querySelectorAll('.ed-ph-rail button').length);
+  if (views < 1) problems.push('the phone preview shows no views');
+  if (shots) await pg.screenshot({ path: join(shots, 'editor-phone.png') });
+  await pg.click('.ed-bar [data-a="phone"]');
+  await pg.click('.ed-bar [data-a="ships"]');
+  const groups = await pg.evaluate(() => [...document.querySelectorAll('.ed-groups button')].map(b => b.textContent));
+  if (new Set(groups).size !== groups.length || !groups.length) problems.push(`Use for groups ships as ${groups.join(', ')}`);
+  await pg.evaluate(() => document.querySelector('.ed-shiplist button').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+  if (shots) await pg.screenshot({ path: join(shots, 'editor-use-for.png') });
+  await pg.evaluate(() => document.querySelector('.ed-ships [data-close]').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+  await pg.click('.ed-bar [data-a="done"]');
+  const linked = await pg.evaluate(() => window.xfd.myPages()[0].ships.length);
+  if (linked !== 1) problems.push(`Use for linked ${linked} ships`);
+  // Import: the readable file becomes a new page of yours, without its ships.
+  await pg.evaluate(() => window.xfd.show('light-fighter'));
+  const t = await (await pg.$('#console .plate[data-slot="role"] .rtitle')).boundingBox();
+  await pg.mouse.move(t.x + t.width / 2, t.y + t.height / 2); await pg.mouse.down(); await pg.waitForTimeout(700); await pg.mouse.up();
+  await pg.click('.arrange-bar [data-a="import"]');
+  const offered = await pg.evaluate(() => document.querySelectorAll('#pick-grid .pick').length);
+  if (offered !== 1) problems.push(`Import offers ${offered} pages`);
+  await checkLabels('import a page', true, pg);
+  await pg.click('#pick-grid .pick');
+  await pg.click('.ed-bar [data-a="done"]');
+  const imp = await pg.evaluate(() => window.xfd.myPages().find(p => p.name === 'Shared Cutlass'));
+  if (!imp || imp.id === 'my-zzzz9' || imp.ships.length) problems.push(`the imported page came in as ${JSON.stringify(imp && { id: imp.id, ships: imp.ships })}`);
+  // A Device saves a page, shows a live edit, then deletes the page.
+  await pg.evaluate(() => window.xfd.shared({ pages: { 'my-dev01': { id: 'my-dev01', name: 'From a tablet', plates: [{ w: 450, add: [] }] } } }));
+  const stored = await pg.evaluate(() => JSON.parse(localStorage.getItem('xfd-pages')).map(p => p.id));
+  if (!stored.includes('my-dev01')) problems.push('a page saved on a Device was not kept');
+  await pg.evaluate(() => { window.xfd.show('my-glad1'); window.xfd.shared({ preview: { id: 'my-glad1', name: 'My Gladius', plates: [{ stock: 'power' }] } }); });
+  const live = await pg.evaluate(() => document.querySelectorAll('#console > .plate').length);
+  await pg.evaluate(() => window.xfd.shared({ preview: null }));
+  const back = await pg.evaluate(() => document.querySelectorAll('#console > .plate').length);
+  if (live !== 1 || back !== 4) problems.push(`a Device's live edit showed ${live} plates, then ${back}`);
+  await pg.evaluate(() => window.xfd.shared({ pages: { 'my-dev01': null } }));
+  if ((await pg.evaluate(() => window.xfd.pages())).includes('my-dev01')) problems.push('a page deleted on a Device stayed');
+  await ctx.close();
+}
+
 const heap = await page.evaluate(() => performance.memory?.usedJSHeapSize || 0);
 
 report.push(`pages checked: ${ids.length}`, `slowest first build: ${worstBuild.toFixed(1)} ms (budget ${BUDGET.firstBuildMs})`,

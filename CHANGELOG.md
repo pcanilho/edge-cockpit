@@ -13,6 +13,11 @@
   - The key picker dims what a control can't take and says why. A switch takes only actions with set-on and set-off binds. An amber note marks keys not bound in your game.
   - Done is blocked while a control has no key, a label doesn't fit or two controls overlap.
   - Undo, an autosaved draft, Try it (presses light up, no keys sent), Fit or Actual size per page, Delete.
+- Pages of yours, beyond the Edge:
+  - Use for: pick the ships a page replaces the ship page of; sitting in one shows it.
+  - Phone: the editor previews a plate as an upright phone folds it.
+  - Share saves the page to Documents\Edge Cockpit\Pages; Import (arrange mode) adds a page file from there as a new page. Profiles carry your pages too.
+  - Devices show your pages, and a tablet or PC showing the whole console can edit them: the Edge shows each change live, and Done saves on the PC.
 - CI: every PR pixel-compares all curated pages and phone views against its base.
 
 ## 0.8.0

@@ -5,9 +5,10 @@
 // rules don't allow (a switch without set-on/set-off binds, an eject key without a cover).
 import { TYPES, GRID, WIDTHS, PLATE_H, SPACE, GAP, FIELDS, cleanPage, refuse, unset } from './lib/custom.js';
 import { esc, h } from './controls.js';
+import { previewPlate } from './phone.js';
 
 let ctx = null; // { K, keys, store, tick, toast, scale, preview(spec), save(spec), remove(id), pageName(id), openPicker(o), bound(label, base) }
-let spec = null, undo = [], sel = null, trying = false, open = false;
+let spec = null, undo = [], sel = null, trying = false, open = false, phoneOn = false, phoneView = 0, phonePlate = 0;
 let ui = {};
 
 export const isOpen = () => open;
@@ -79,7 +80,7 @@ function build() {
   // Bar: name, undo, size, try it, delete, done.
   ui.bar = h(`<div class="arrange-bar ed-bar"><span class="ed-name" role="button"></span><small class="ed-from"></small>
     <button data-a="undo">Undo</button><span class="ed-seg"><button data-a="fit">Fit</button><button data-a="actual">Actual size</button></span>
-    <button data-a="try">Try it</button><button data-a="delete">Delete</button><button data-a="done" class="primary">Done</button></div>`);
+    <button data-a="ships">Use for</button><button data-a="phone">Phone</button><button data-a="try">Try it</button><button data-a="share">Share</button><button data-a="delete">Delete</button><button data-a="done" class="primary">Done</button></div>`);
   stage.appendChild(ui.bar);
   ui.bar.addEventListener('pointerup', barTap);
   ui.note = h('<div class="ed-note" hidden></div>');
@@ -91,6 +92,73 @@ function build() {
   ['pointerup', 'pointercancel', 'click'].forEach(t => $c().addEventListener(t, swallow, true));
 }
 
+// ---------- phone preview: the plate as a phone in portrait shows it ----------
+const PHONE = { w: 393, h: 852, top: 44, rail: 64, s: 0.78 };
+function phone(plates) {
+  ui.phone?.remove(); ui.phone = null;
+  if (!phoneOn) return;
+  if (sel) phonePlate = sel.p;
+  const plate = plates[Math.min(phonePlate, plates.length - 1)];
+  if (!plate) return;
+  const aw = PHONE.w - 12, ah = PHONE.h - PHONE.top - PHONE.rail - 8;
+  const box = h(`<div class="ed-phone"><div class="ed-ph-screen"><div class="ed-ph-top"></div><div class="ed-ph-area"></div><div class="ed-ph-rail"></div></div></div>`);
+  Object.assign(box.style, { width: `${PHONE.w * PHONE.s}px`, height: `${PHONE.h * PHONE.s}px` });
+  Object.assign(box.querySelector('.ed-ph-screen').style, { width: `${PHONE.w}px`, height: `${PHONE.h}px`, scale: PHONE.s });
+  // On the right, unless that hides the plate you're on.
+  const right = plate.offsetLeft + plate.offsetWidth > 2560 - PHONE.w * PHONE.s - 40;
+  box.style.left = right ? '390px' : `${2560 - PHONE.w * PHONE.s - 20}px`;
+  document.getElementById('stage').appendChild(box);
+  ui.phone = box;
+  const area = box.querySelector('.ed-ph-area');
+  Object.assign(area.style, { left: '6px', top: `${PHONE.top}px`, width: `${aw}px`, height: `${ah}px` });
+  const views = previewPlate(plate, aw, ah, area);
+  phoneView = Math.min(phoneView, views.length - 1);
+  views.forEach((v, i) => {
+    v.el.classList.remove('ed-psel', 'ed-drop');
+    v.el.querySelectorAll('.ed-sel, .ed-handle, .ed-guide').forEach(e => { e.classList.remove('ed-sel'); if (!e.classList.length || e.matches('.ed-handle, .ed-guide')) e.remove(); });
+    Object.assign(v.el.style, { scale: v.scale, transformOrigin: '0 0', position: 'absolute', display: i === phoneView ? '' : 'none' });
+  });
+  box.querySelector('.ed-ph-top').textContent = `${plate.querySelector(':scope > .title')?.textContent.trim() || (plate.querySelector(':scope > .rtitle') ? spec.name : 'Plate')} · ${views.length} view${views.length > 1 ? 's' : ''}`;
+  const rail = box.querySelector('.ed-ph-rail');
+  views.forEach((v, i) => {
+    const b = h(`<button class="${i === phoneView ? 'cur' : ''}">${i + 1}</button>`);
+    b.addEventListener('pointerup', () => { phoneView = i; ctx.tick('tap'); phone(platesEl()); });
+    rail.appendChild(b);
+  });
+}
+
+// ---------- use for: ships this page replaces the ship page of ----------
+let shipGroup = null;
+function ships() {
+  if (ui.ships) { ui.ships.remove(); ui.ships = null; return; }
+  const { groups, current } = ctx.ships();
+  shipGroup = groups.find(g => g.name === ctx.pageName(spec.from))?.id || groups.find(g => g.ships.some(x => x.cls === current?.cls))?.id || groups[0]?.id;
+  ui.ships = h('<div class="ed-ships"></div>');
+  ui.ships.addEventListener('pointerup', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    ctx.tick('tap');
+    if (b.dataset.g) { shipGroup = b.dataset.g; paintShips(); return; }
+    if (b.dataset.close !== undefined) { ui.ships.remove(); ui.ships = null; return; }
+    const cls = b.dataset.cls;
+    if (cls) commit(sp => { sp.ships = sp.ships.includes(cls) ? sp.ships.filter(x => x !== cls) : [...sp.ships, cls].slice(0, 12); });
+  });
+  document.getElementById('stage').appendChild(ui.ships);
+  paintShips();
+}
+function paintShips() {
+  const { groups, current, name } = ctx.ships();
+  const chip = (cls, n) => `<button data-cls="${esc(cls)}" class="${spec.ships.includes(cls) ? 'cur' : ''}">${esc(n)}</button>`;
+  const g = groups.find(x => x.id === shipGroup);
+  const others = spec.ships.filter(c => !g?.ships.some(x => x.cls === c));
+  ui.ships.innerHTML = `<header><h3>Use ${esc(spec.name)} for</h3><button data-close class="primary">Done</button></header>
+    <p>When you sit in one of these ships, this page shows in place of its ship page. ${esc(String(spec.ships.length))}/12 picked.</p>
+    ${current ? `<h4>Your ship now</h4><div class="ed-chips">${chip(current.cls, current.name)}</div>` : ''}
+    ${others.length ? `<h4>Picked</h4><div class="ed-chips">${others.map(c => chip(c, name(c))).join('')}</div>` : ''}
+    <h4>Ships by page</h4><div class="ed-chips ed-groups">${groups.map(x => `<button data-g="${esc(x.id)}" class="${x.id === shipGroup ? 'cur' : ''}">${esc(x.name)}</button>`).join('')}</div>
+    <div class="ed-chips ed-shiplist">${(g?.ships || []).map(x => chip(x.cls, x.name)).join('')}</div>`;
+}
+
 let deleting = 0;
 function barTap(e) {
   const b = e.target.closest('button, .ed-name');
@@ -100,6 +168,9 @@ function barTap(e) {
   if (b.matches('.ed-name')) return type('Page name', spec.name, 24, v => commit(s => { s.name = v || s.name; }));
   if (a === 'undo' && undo.length) { spec = JSON.parse(undo.pop()); saveDraft(); paint(); }
   if (a === 'fit' || a === 'actual') commit(s => { s.size = a; });
+  if (a === 'ships') return ships();
+  if (a === 'share') return ctx.share(spec);
+  if (a === 'phone') { phoneOn = !phoneOn; phoneView = 0; paint(); }
   if (a === 'try') { trying = !trying; ctx.K.dry = trying; sel = trying ? null : sel; paint(); }
   if (a === 'delete') {
     if (Date.now() - deleting < 3000) { ctx.store.set(draftKey(spec.id), null); const id = spec.id; open = false; closeQuiet(); ctx.remove(id); return; }
@@ -200,6 +271,10 @@ function paint() {
   const size = spec.size || ctx.size();
   ui.bar.querySelectorAll('.ed-seg button').forEach(b => b.classList.toggle('cur', b.dataset.a === size));
   ui.bar.querySelector('[data-a="try"]').classList.toggle('cur', trying);
+  ui.bar.querySelector('[data-a="phone"]').classList.toggle('cur', phoneOn);
+  ui.bar.querySelector('[data-a="ships"]').textContent = spec.ships.length ? `Use for · ${spec.ships.length}` : 'Use for';
+  if (ui.ships) paintShips();
+  phone(plates);
   const problems = check();
   note(trying ? 'Try it: presses light up as in flight, but no keys are sent' : problems[0] || '', trying ? 'info' : problems.length ? 'warn' : '');
   card(el);

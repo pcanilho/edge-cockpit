@@ -359,6 +359,45 @@ fn load_profile(handle: AppHandle) -> Option<String> {
     std::fs::read_to_string(user_dir(&handle)?.join("profile.json")).ok()
 }
 
+/// Largest page file read or written: a page is a few kilobytes.
+const PAGE_MAX: usize = 256 * 1024;
+
+/// A file name for a shared page, from its name: letters, digits, spaces and dashes only.
+fn page_file(name: &str) -> String {
+    let clean: String = name.chars().filter(|c| c.is_alphanumeric() || *c == ' ' || *c == '-').take(40).collect();
+    let clean = clean.trim();
+    format!("{}.json", if clean.is_empty() { "Page" } else { clean })
+}
+
+/// Saves a page of yours as Documents\Edge Cockpit\Pages\<name>.json, to share. Returns the path.
+#[tauri::command]
+fn save_page(handle: AppHandle, name: String, json: String) -> Result<String, String> {
+    if json.len() > PAGE_MAX {
+        return Err("The page is too big".into());
+    }
+    let dir = user_dir(&handle).ok_or("No Documents folder")?.join("Pages");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let path = dir.join(page_file(&name));
+    std::fs::write(&path, json).map_err(|e| e.to_string())?;
+    Ok(path.to_string_lossy().into_owned())
+}
+
+/// Page files in Documents\Edge Cockpit\Pages, to import: (file name, contents).
+#[tauri::command]
+fn page_files(handle: AppHandle) -> Vec<(String, String)> {
+    let Some(dir) = user_dir(&handle).map(|d| d.join("Pages")) else { return Vec::new() };
+    let Ok(rd) = std::fs::read_dir(dir) else { return Vec::new() };
+    let mut out: Vec<(String, String)> = rd
+        .flatten()
+        .filter(|e| e.path().extension().is_some_and(|x| x.eq_ignore_ascii_case("json")))
+        .filter(|e| e.metadata().is_ok_and(|m| m.is_file() && (m.len() as usize) <= PAGE_MAX))
+        .filter_map(|e| Some((e.file_name().to_string_lossy().into_owned(), std::fs::read_to_string(e.path()).ok()?)))
+        .take(50)
+        .collect();
+    out.sort();
+    out
+}
+
 /// Writes ships.json from an imported profile.
 #[tauri::command]
 fn save_user_ships(handle: AppHandle, json: String) -> Result<(), String> {
@@ -1026,7 +1065,7 @@ fn main() {
         .manage(App::default())
         .invoke_handler(tauri::generate_handler![
             key, wheel, ui_ready, user_ships, release_keys, game_info, read_binds, install_binds, run_as_admin, quit,
-            save_profile, load_profile, save_user_ships, install_profile_binds,
+            save_profile, load_profile, save_user_ships, install_profile_binds, save_page, page_files,
             get_prefs, set_pref, wake_screen, sleep_screen, check_update, install_update, perf,
             displays, set_display, fix_touch, report_issue, world_prices, world_status,
             phones_view, phones_enable, phones_set, phones_forget, share
@@ -1112,6 +1151,14 @@ mod tests {
 
     fn d(id: &str, name: &str, w: i32, h: i32, primary: bool, touch: bool) -> Disp {
         Disp { id: id.into(), name: name.into(), rect: (0, 0, w, h), primary, touch }
+    }
+
+    #[test]
+    fn names_page_files_safely() {
+        assert_eq!(super::page_file("My Gladius"), "My Gladius.json");
+        assert_eq!(super::page_file("..\\..\\evil/../x"), "evilx.json");
+        assert_eq!(super::page_file("  "), "Page.json");
+        assert_eq!(super::page_file(&"a".repeat(80)).len(), 45);
     }
 
     #[test]
