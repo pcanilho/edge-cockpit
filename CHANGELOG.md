@@ -1,10 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.6.1
 
-- Gear lever: sends gear down and gear up (new keys in the edge-cockpit control profile: reload it in game) instead of the toggle. It sits in the middle with its lights dark until you move it, since the game doesn't report the gear.
+- **Reload the edge-cockpit control profile** after updating (Options > Keybindings > Advanced Controls Customization > Control Profiles, Keyboard only). It adds keys for gear down and gear up.
+- Gear lever: sends gear down and gear up instead of the toggle. It sits in the middle with its lights dark until you move it, since the game doesn't report the gear.
 - Speed limit, beam distance, beam spacing and laser power show no made-up value. They send steps and the game keeps the number, so the slider springs back to the middle and the knob shows which way you turned.
 - Armistice: locked weapon keys keep their own label, dimmed, with a small ARMISTICE tag instead of the word printed over it.
+- Fix: Settings > Screen always showed "Touches land on another display", and the key picker showed Clear slot on an empty slot.
+- README and site screenshots retaken on this version.
 
 ## 0.6.0
 

@@ -45,7 +45,8 @@ It starts with Windows, wakes when Star Citizen starts and goes dark when you qu
 | LONG / 2× | Long press or double tap for a second action |
 | MACRO (cut corners) | Runs a sequence |
 | ON/OFF switch | Top half on, bottom half off. Unlit until set |
-| Lever, slider, knob | Drag or turn |
+| Gear lever | Slide up or down. Sits in the middle until you move it |
+| Slider, knob | Drag or turn. Each step goes to the game, which keeps the value, so no number is shown |
 | Red cover | Tap to lift, tap again within 3 s |
 
 ## It follows the game
@@ -54,7 +55,7 @@ From `Game.log` it opens the right page and shows your ship, mission, location, 
 
 It reads your `actionmaps.xml`, so rebound keys just work. **Settings > Keybinds** lists any it can't press.
 
-The game doesn't report most switch states, so nothing is guessed: ON/OFF switches stay unlit until you set them, and **All systems on** syncs them. Everything else is a push-button.
+The game doesn't report most switch states, so nothing is guessed: ON/OFF switches stay unlit and the gear lever waits in the middle until you set them, and **All systems on** syncs them. Everything else is a push-button.
 
 If a patch changes the log lines it reads, an amber **Log lines missing** chip says so, with a button to report it.
 

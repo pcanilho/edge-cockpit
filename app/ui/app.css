@@ -11,6 +11,9 @@
 @font-face { font-family: "Inter"; font-weight: 600; src: url(vendor/fonts/inter-600.woff2) format("woff2"); }
 @font-face { font-family: "JetBrains Mono"; font-weight: 500; src: url(vendor/fonts/jetbrains-mono-500.woff2) format("woff2"); }
 
+/* hidden always hides, whatever display a class sets. */
+[hidden] { display: none !important; }
+
 :root {
   --ink: #e4ebf1; --paint: #c3ccd5; --muted: #7f8c99; --dim: #56626e;
   --accent: #5cc8e6; --ship: var(--accent); --hold: #ffb547; --cyan: #58d2f0; --ok: #5fe0a0; --danger: #ff4232;
