@@ -1046,3 +1046,10 @@ body.phone .cm-head, body.phone .cm-foot { container-type: inline-size; }
 .rows.r3 .opt .seg button { padding: 0 14px; }
 #plates-seg button { min-width: 0; padding: 0 12px; }
 .pick.fold { grid-column: span 2; }
+
+/* your pages */
+.rtitle small.yours { color: var(--cyan); background: color-mix(in oklab, var(--cyan) 14%, transparent); }
+.custom-screen > .cs-f { left: 18px; right: 18px; top: 16px; }
+.custom-screen > .cs-v { left: 18px; right: 18px; top: 38px; bottom: 10px; }
+.custom-screen .cs-f { font: 700 11px/1 var(--hud); letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+.custom-screen .cs-v { font: 700 20px/1.2 var(--hud); color: var(--ink); overflow-wrap: anywhere; }
