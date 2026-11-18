@@ -947,7 +947,7 @@ body.phone:not(.ph-whole) { background: var(--noise), linear-gradient(180deg, #0
 body.phone:not(.ph-whole) #stage { background: none; }
 
 /* Commodities on a narrow device: each row becomes a card, the price columns carry their own labels. */
-body.phone .screen.cm, body.phone .screen.xh { container-type: inline-size; }
+body.phone:not(.ph-whole) .screen.cm, body.phone:not(.ph-whole) .screen.xh { container-type: inline-size; }
 @container (max-width: 640px) {
   .cm-at { flex-wrap: wrap; white-space: normal; row-gap: 4px; }
   .cm table, .cm tbody { display: block; }
@@ -991,4 +991,16 @@ body.phone .cm-head, body.phone .cm-foot { container-type: inline-size; }
   .cm-head .upd { flex: 1 1 100%; margin-left: 0; text-align: left; }
   .cm-foot .lab { flex: 1 1 100%; }
   .cm-foot .wpg { margin-left: auto; }
+}
+
+/* Prices on a device held sideways: the same table in bigger type, long places wrap. */
+@container (min-width: 641px) and (max-width: 1100px) {
+  .cm td { height: 52px; padding-top: 5px; padding-bottom: 5px; }
+  .cm td.n { font-size: 21px; }
+  .cm td b { font-size: 21px; white-space: normal; }
+  .cm td b .age { font-size: 14px; }
+  .cm td p { font-size: 15px; white-space: normal; }
+  .cm td.p { font-size: 22px; }
+  .cm th { font-size: 12px; }
+  .cm-at b { font-size: 23px; } .cm-at span { font-size: 16px; }
 }

@@ -82,6 +82,18 @@
   const emit = (name, payload) => { for (const f of listeners.get(name) || []) f({ payload }); };
   function sendRaw(m) { if (ws?.readyState === 1) ws.send(JSON.stringify(m)); }
 
+  // A scanned QR carries the pairing code after #pair=: pair with it once, then drop it from the address.
+  let scanned = /^#pair=(\d{6})$/.exec(location.hash)?.[1] || null;
+  if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+  // Opened by address and not paired yet: move to the console's name when this network resolves
+  // it, so a Home Screen icon keeps working after the router hands the PC a new address.
+  const NAME = 'edge-cockpit.local';
+  // The link waits for the answer (1.5 s at most), so a scanned code isn't spent on the old address.
+  const there = `http://${NAME}:${location.port}`;
+  const moving = linked && /^[\d.]+$|^\[/.test(location.hostname) && !saved()?.token
+    ? fetch(`${there}/manifest.webmanifest`, { mode: 'no-cors', cache: 'no-store', signal: AbortSignal.timeout(1500) })
+      .then(() => { location.replace(`${there}/${location.search}${scanned ? `#pair=${scanned}` : ''}`); return true; }, () => false)
+    : Promise.resolve(false);
   function connect() {
     if (!linked) return;
     setState(phone.state === 'pair' ? 'pair' : 'connecting');
@@ -91,7 +103,7 @@
       if (m.t === 'hello') {
         const me = saved();
         if (me?.id && me.token) sendRaw({ t: 'auth', id: me.id, mac: hex(hmac(unhex(me.token), utf8(m.nonce))) });
-        else setState('pair');
+        else if (scanned) { phone.pair(scanned); scanned = null; } else setState('pair');
       } else if (m.t === 'ok') {
         retry = 0;
         if (m.token) save({ id: m.id, token: m.token });
@@ -104,7 +116,7 @@
         sendRaw({ t: 'ping', at: performance.now() });
       } else if (m.t === 'denied') {
         if (m.why === 'unknown') save(null);
-        phone.error = m.why === 'code' ? 'That code did not match. Check Settings › Phones on the PC.' : null;
+        phone.error = m.why === 'code' ? 'That code did not match. Check Settings › Devices on the PC.' : null;
         setState('pair');
       } else if (m.t === 'pong') {
         lastPong = performance.now();
@@ -152,7 +164,7 @@
         },
       },
     };
-    connect();
+    moving.then(moved => { if (!moved) connect(); });
     // Coming back to the app: reconnect at once rather than waiting out the backoff.
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden && (!ws || ws.readyState > 1)) { retry = 0; connect(); }

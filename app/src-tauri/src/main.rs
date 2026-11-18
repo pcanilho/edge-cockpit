@@ -19,7 +19,7 @@ use std::sync::Mutex;
 use std::time::Duration;
 use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
-use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, State, WebviewWindow};
+use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, State, WebviewWindow};
 
 #[derive(Default)]
 struct App {
@@ -793,12 +793,13 @@ fn place(w: &WebviewWindow) {
             #[cfg(not(windows))]
             {
                 let _ = w.set_position(PhysicalPosition::new(x, y));
-                let _ = w.set_size(PhysicalSize::new(wd as u32, ht as u32));
+                let _ = w.set_size(tauri::PhysicalSize::new(wd as u32, ht as u32));
             }
         }
         None => {
-            // Only one display: a 2560 x 720 window on it, scaled down to fit.
-            let _ = w.set_size(PhysicalSize::new(1600u32, 450u32));
+            // Only one display: a 2560 x 720 window on it, at half size in points, so a Retina
+            // screen shows it at full resolution and labels stay readable.
+            let _ = w.set_size(tauri::LogicalSize::new(1280.0, 360.0));
             let _ = w.set_position(PhysicalPosition::new(40, 40));
         }
     }

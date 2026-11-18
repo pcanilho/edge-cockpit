@@ -238,7 +238,9 @@ impl Phones {
         let moved = list.iter().filter(|p| p.online && p.mode == "move" && p.plate != "swipe" && p.plate != "status").map(|p| p.plate.clone()).collect();
         View {
             enabled: g.enabled,
-            qr: url.as_deref().map(qr_svg),
+            // The QR also carries the code (after #, so it never reaches the server as a path):
+            // a scan pairs at once. It is on the same screen as the code, and expires with it.
+            qr: url.as_deref().map(|u| qr_svg(&format!("{u}#pair={}", g.code))),
             url,
             code: g.enabled.then(|| g.code.clone()),
             ttl: g.code_at.map(|t| CODE_TTL.saturating_sub(t.elapsed()).as_secs()).unwrap_or(0),
@@ -372,6 +374,39 @@ pub trait Host: Send + Sync + 'static {
 }
 
 /// Starts the listener once; it stays up while the app runs and refuses everyone while off.
+/// The console's name on the home network, announced over mDNS while devices are on.
+pub const LOCAL_NAME: &str = "edge-cockpit.local";
+
+/// Announces LOCAL_NAME (and an HTTP service) at the LAN address while devices are on, and
+/// follows the address when it changes. Off, nothing is announced.
+fn announce<H: Host>(host: std::sync::Arc<H>) {
+    announce_at(move || if host.phones().enabled() { lan_ip() } else { None });
+}
+
+fn announce_at(at: impl Fn() -> Option<IpAddr> + Send + 'static) {
+    std::thread::spawn(move || {
+        let Ok(daemon) = mdns_sd::ServiceDaemon::new() else { return };
+        let full = "edge-cockpit._http._tcp.local.";
+        let mut now: Option<IpAddr> = None;
+        loop {
+            let want = at();
+            if want != now {
+                if now.is_some() {
+                    let _ = daemon.unregister(full);
+                }
+                if let Some(ip) = want {
+                    let props: &[(&str, &str)] = &[("path", "/")];
+                    if let Ok(info) = mdns_sd::ServiceInfo::new("_http._tcp.local.", "edge-cockpit", &format!("{LOCAL_NAME}."), ip, PORT, props) {
+                        let _ = daemon.register(info);
+                    }
+                }
+                now = want;
+            }
+            std::thread::sleep(Duration::from_secs(10));
+        }
+    });
+}
+
 pub fn start<H: Host>(host: std::sync::Arc<H>) {
     {
         let mut g = host.phones().0.lock().unwrap();
@@ -380,6 +415,7 @@ pub fn start<H: Host>(host: std::sync::Arc<H>) {
         }
         g.running = true;
     }
+    announce(host.clone());
     tauri::async_runtime::spawn(async move {
         let listener = match tokio::net::TcpListener::bind(("0.0.0.0", PORT)).await {
             Ok(l) => l,
@@ -479,8 +515,10 @@ async fn serve<H: Host>(host: std::sync::Arc<H>, stream: tokio::net::TcpStream, 
         return reply(stream, 404, "text/plain", b"Not found".to_vec(), "").await;
     }
     let csp = format!(
-        "default-src 'self'; script-src 'self'; connect-src 'self' ws://{h} https://api.fleetyards.net https://fleetyards.net https://storage.fltyrd.net; img-src 'self' data: https://api.fleetyards.net https://fleetyards.net https://storage.fltyrd.net; media-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
-        h = req.host
+        "default-src 'self'; script-src 'self'; connect-src 'self' ws://{h} http://{n}:{p} https://api.fleetyards.net https://fleetyards.net https://storage.fltyrd.net; img-src 'self' data: https://api.fleetyards.net https://fleetyards.net https://storage.fltyrd.net; media-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+        h = req.host,
+        n = LOCAL_NAME,
+        p = PORT
     );
     match host.asset(&file) {
         Some((bytes, mime)) => reply(stream, 200, &mime, bytes, &csp).await,
@@ -767,6 +805,28 @@ mod tests {
                 _ => return Value::Null,
             }
         }
+    }
+
+    /// The name resolves on the network (multicast, so not in CI): WAN_IP=<this host's address>.
+    #[test]
+    #[ignore]
+    fn live_announces_the_name() {
+        let ip: IpAddr = std::env::var("WAN_IP").expect("WAN_IP").parse().unwrap();
+        announce_at(move || Some(ip));
+        let d = mdns_sd::ServiceDaemon::new().unwrap();
+        let rx = d.resolve_hostname(&format!("{LOCAL_NAME}."), Some(5000)).unwrap();
+        let mut found = false;
+        while let Ok(ev) = rx.recv() {
+            match ev {
+                mdns_sd::HostnameResolutionEvent::AddressesFound(_, a) => {
+                    found = a.iter().any(|x| x.to_ip_addr() == ip);
+                    break;
+                }
+                mdns_sd::HostnameResolutionEvent::SearchTimeout(_) => break,
+                _ => {}
+            }
+        }
+        assert!(found, "{LOCAL_NAME} did not resolve to {ip}");
     }
 
     /// The whole link on a real socket: files, the Host and Origin checks, pairing, proving, a call, and keys let go on a drop.
