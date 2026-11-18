@@ -406,6 +406,7 @@ for (const [W, H, tag] of [[393, 852, 'portrait'], [852, 393, 'landscape']]) {
   const ctx = await browser.newContext({ viewport: { width: W, height: H }, hasTouch: true, isMobile: true });
   const ph = await ctx.newPage();
   ph.on('pageerror', e => errors.push(`phone ${tag}: ${e.message}`));
+  await ph.addInitScript(m => { window.xfdTestWorld = { prices: m, status: { fetched: Date.now(), summary: 'ok', services: [] } }; }, MARKET);
   await ph.route(/fleetyards|fltyrd/, r => r.abort());
   await ph.goto(base + '?phone&demo=ship');
   await ph.waitForSelector('body[data-ready]');
@@ -448,6 +449,20 @@ for (const [W, H, tag] of [[393, 852, 'portrait'], [852, 393, 'landscape']]) {
         for (const t of plate.querySelectorAll('*')) {
           if (t.closest('.ph-hide') || !t.offsetWidth || t.children.length || !t.textContent.trim()) continue;
           if (t.scrollWidth > t.clientWidth + 1 && getComputedStyle(t).overflow !== 'visible') out.push(`"${name(t)}" is cut off`);
+        }
+        // Text inside a screen (prices, hangar) neither overlaps nor falls out of the screen.
+        for (const sc of plate.querySelectorAll(':scope > .screen:not(.ph-hide)')) {
+          const sr = sc.getBoundingClientRect();
+          const leaves = [...sc.querySelectorAll('*')].filter(t => !t.children.length && t.textContent.trim() && t.offsetWidth && !t.closest('[hidden], [aria-hidden=true]'));
+          const rs = leaves.map(t => t.getBoundingClientRect());
+          leaves.forEach((t, i) => {
+            if (rs[i].bottom > sr.bottom + 2 || rs[i].right > sr.right + 2) out.push(`"${name(t)}" falls out of its screen`);
+            for (let j = i + 1; j < leaves.length; j++) {
+              if (t.contains(leaves[j]) || leaves[j].contains(t)) continue;
+              const a = rs[i], b = rs[j];
+              if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 2 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 2) out.push(`"${name(t)}" and "${name(leaves[j])}" overlap`);
+            }
+          });
         }
         for (const b of document.querySelectorAll('#ph-rail button')) if (b.scrollWidth > b.clientWidth + 1) out.push(`rail label "${b.textContent}" is cut off`);
         return { out, scale, view: document.body.dataset.phView };

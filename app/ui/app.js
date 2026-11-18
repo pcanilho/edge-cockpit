@@ -1310,7 +1310,7 @@ arrange.init($('console'), {
   store, tick, scale: K.scale, role: () => moduleOf(current), roleName: () => ROLE_NAMES[moduleOf(current)] || 'ship',
   onDone: () => toast('Layout saved for this role'),
 });
-world.init({ fire, keyHint: k => bindOf(k), game: () => game, location: () => ({ id: placeSeen.id || game.location, ...placeSeen }), store, bridge, raise, tick, hhmm, current: () => current });
+world.init({ fire, keyHint: k => bindOf(k), game: () => game, location: () => ({ id: placeSeen.id || game.location, ...placeSeen }), store, bridge, raise, tick, hhmm, current: () => current, painted: els => { if (onPhone) phone.repainted(els); } });
 perf.init({ hold: document.querySelector('#mfd .brand'), parent: $('mfd'), perf: bridge.perf, tick });
 bridge.onKeySent(perf.keySent);
 const prefs = await bridge.getPrefs().catch(() => ({ autostart: false, screen_off: false, backlight: null, version: '' }));

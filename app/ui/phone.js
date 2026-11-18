@@ -56,6 +56,15 @@ function items(plate) {
   return out;
 }
 
+/** The height a screen's content takes at width w, for screens that lay out again when narrow. */
+function narrowHeight(el, w) {
+  const keep = el.style.width;
+  el.style.width = `${w}px`;
+  const h = el.scrollHeight;
+  el.style.width = keep;
+  return h;
+}
+
 const box = list => {
   const x0 = Math.min(...list.map(i => i.x)), y0 = Math.min(...list.map(i => i.y));
   const x1 = Math.max(...list.map(i => i.x + i.w)), y1 = Math.max(...list.map(i => i.y + i.h));
@@ -143,6 +152,12 @@ export function plan(plate, aw, ah) {
     if (it.els.length !== 1 || !FLOWS.test(it.els[0].className) || it.w <= tw) continue;
     const c = it.els[0].className, bar = /\bcm-(head|foot)\b/.test(c);
     it.rh = /\blab\b/.test(c) ? Math.ceil(it.h * 1.4 * Math.ceil(it.w / tw)) : bar ? it.h * 2 : it.h < 200 ? Math.min(th, Math.max(it.h, Math.round(it.h * it.w / tw * 0.7))) : it.h;
+    // A big screen with a narrow layout of its own (prices, hangar) says how tall it gets.
+    if (/\bscreen\b/.test(c) && it.h >= 200) {
+      const nh = narrowHeight(it.els[0], tw);
+      it.els[0].dataset.phnh = `${tw}:${nh}`;
+      it.rh = Math.max(it.rh, nh);
+    }
     // What sat right of it or under it closes up or moves down.
     const dw = it.w - tw, dh = it.rh - it.h, right = it.x + it.w, bottom = it.y + it.h;
     for (const o of list) {
@@ -383,6 +398,18 @@ export function refresh() {
   lastMini = now;
   const i = views.findIndex(v => v.key === cur.plate && views.filter(w => w.key === v.key).indexOf(v) === cur.view);
   showView(Math.max(0, i));
+}
+
+/** A screen's content changed (new prices, a sync): lays out again if its narrow height changed. */
+export function repainted(els) {
+  if (!ctx) return;
+  for (const el of els) {
+    const m = el?.dataset.phnh?.split(':');
+    if (!m) continue;
+    // Folded, the screen already has the narrow width.
+    const nh = el.closest('.ph-folded') ? el.scrollHeight : narrowHeight(el, +m[0]);
+    if (Math.abs(nh - Math.max(+m[1], 0)) > 4) { ctx.fit(); return; }
+  }
 }
 
 /** This phone's plate and mode, as the PC has them. */

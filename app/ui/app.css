@@ -946,3 +946,41 @@ body.phone:not(.ph-whole) #stage { overflow: visible; contain: layout style; }
 /* On a phone the stage is moved and scaled to one plate: the backdrop covers the screen instead. */
 body.phone:not(.ph-whole) { background: var(--noise), linear-gradient(180deg, #0b0d10, #050607); }
 body.phone:not(.ph-whole) #stage { background: none; }
+
+/* Commodities on a narrow device: each row becomes a card, the price columns carry their own labels. */
+body.phone .screen.cm, body.phone .screen.xh { container-type: inline-size; }
+@container (max-width: 640px) {
+  .cm-at { flex-wrap: wrap; white-space: normal; row-gap: 4px; }
+  .cm table, .cm tbody { display: block; }
+  .cm thead { display: none; }
+  .cm tr { display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "n p" "b s"; column-gap: 14px; padding: 8px 0; border-bottom: 1px solid #ffffff14; }
+  .cm td { height: auto; padding: 0; border: 0; min-width: 0; }
+  .cm td.n { grid-area: n; align-self: center; }
+  .cm td:nth-child(2) { grid-area: b; } .cm td:nth-child(3) { grid-area: s; }
+  .cm td.p { grid-area: p; align-self: center; }
+  .cm td[data-l]::before { content: attr(data-l); display: block; margin: 6px 0 3px; font: 700 9px/1.2 var(--hud); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .cm td b { white-space: normal; }
+  .cm td p { white-space: normal; }
+}
+
+/* The exec hangar on a narrow device: its parts stack instead of sitting side by side. */
+@container (max-width: 760px) {
+  .xh > * { position: relative !important; left: auto !important; right: auto !important; top: auto !important; bottom: auto !important; }
+  .xh > small.h { display: block; }
+  .xh .t { display: block; margin-top: 8px; }
+  .xh .lamps { margin-top: 16px; }
+  .xh .state { margin-top: 18px; font-size: 40px; }
+  .xh .xsub { margin-top: 10px; }
+  .xh .cycle { width: auto; margin-top: 22px; }
+  .xh .foot { margin-top: 16px; height: auto; flex-wrap: wrap; row-gap: 12px; }
+  .xh .foot .note { flex: 1 1 100%; order: 1; }
+  .xh .foot .sp { display: none; }
+  .xh .foot .wsync { margin-left: auto; }
+}
+@container (min-width: 761px) and (max-width: 1040px) {
+  .xh .cycle { width: auto; right: 28px; }
+}
+@container (max-width: 1040px) {
+  .xh .ticks { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; height: auto; }
+  .xh .ticks span { position: static; }
+}
