@@ -5,6 +5,7 @@
   "identifier": "com.pcanilho.edgecockpit",
   "build": {
     "frontendDist": "../ui",
+    "beforeDevCommand": { "script": "node scripts/sync.mjs", "wait": true },
     "beforeBuildCommand": "node scripts/sync.mjs"
   },
   "app": {
