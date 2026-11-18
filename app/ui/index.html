@@ -2,9 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#020304">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Edge Cockpit">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
 <title>Edge Cockpit</title>
 <link rel="stylesheet" href="app.css">
+<script src="link.js"></script>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="art-fade" x1="0" y1="0" x2="0" y2="1"><stop offset=".25" stop-color="#05070a" stop-opacity="0"/><stop offset=".5" stop-color="#05070a" stop-opacity=".85"/></linearGradient>
@@ -67,6 +75,7 @@
       <button class="tab" data-sec="general"><svg class="i" viewBox="0 0 24 24"></svg><span>General</span></button>
       <button class="tab" data-sec="screen"><svg class="i" viewBox="0 0 24 24"></svg><span>Screen</span></button>
       <button class="tab" data-sec="feedback"><svg class="i" viewBox="0 0 24 24"></svg><span>Touch feedback</span></button>
+      <button class="tab" data-sec="phones"><svg class="i" viewBox="0 0 24 24"></svg><span>Devices</span><i class="dot" id="phones-dot" hidden></i></button>
       <button class="tab" data-sec="binds"><svg class="i" viewBox="0 0 24 24"></svg><span>Keybinds</span><i class="dot warn" id="binds-dot" hidden></i></button>
       <button class="tab" data-sec="profile"><svg class="i" viewBox="0 0 24 24"></svg><span>Profile</span></button>
       <button class="tab" data-sec="about"><svg class="i" viewBox="0 0 24 24"></svg><span>About</span><i class="dot" id="tab-dot" hidden></i></button>
@@ -105,6 +114,18 @@
         <div class="rows">
           <button class="opt" data-opt="sound"><span class="txt">Click sounds<small>A short tick on every touch, pitched by the kind of control</small></span><span class="knob"></span></button>
           <button class="opt" data-opt="flash"><span class="txt">Press flash<small>Lights a control when its key goes out</small></span><span class="knob"></span></button>
+        </div>
+      </section>
+      <section class="pane" data-sec="phones" hidden>
+        <h3>Devices</h3>
+        <div class="ph-pane">
+          <div class="pair-card">
+            <div class="qr" id="ph-qr"></div><small>Pairing code</small><div class="code" id="ph-code">––– –––</div>
+            <div class="addr" id="ph-addr"></div>
+            <p id="ph-help">Open the address on a phone, tablet or another computer on this network (or scan the code), then enter the pairing code. On a phone, <b>Add to Home Screen</b> opens it full screen. The code changes every 2 minutes. Only paired devices can press keys.</p>
+            <button class="opt" id="ph-enable"><span class="txt">Devices on this network<small>Off stops the link and closes its port</small></span><span class="knob"></span></button>
+          </div>
+          <div class="plist" id="ph-list"></div>
         </div>
       </section>
       <section class="pane" data-sec="binds" hidden>

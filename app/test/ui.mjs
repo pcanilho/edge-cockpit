@@ -398,6 +398,118 @@ for (const mood of ['ship', 'armistice', 'alert', 'downed']) {
   if (idle.animations) problems.push(`demo ${mood}: ${idle.animations} animations running while idle`);
   if (shots) await page.screenshot({ path: join(shots, `demo-${mood}.png`) });
 }
+
+// Phones: every page in portrait and landscape, each view of each plate: on screen, nothing
+// overlapping or cut off, and big enough to press.
+let phoneViews = 0, phoneLow = 9;
+for (const [W, H, tag] of [[393, 852, 'portrait'], [852, 393, 'landscape']]) {
+  const ctx = await browser.newContext({ viewport: { width: W, height: H }, hasTouch: true, isMobile: true });
+  const ph = await ctx.newPage();
+  ph.on('pageerror', e => errors.push(`phone ${tag}: ${e.message}`));
+  await ph.route(/fleetyards|fltyrd/, r => r.abort());
+  await ph.goto(base + '?phone&demo=ship');
+  await ph.waitForSelector('body[data-ready]');
+  await ph.evaluate(() => document.fonts.ready);
+  if (await ph.evaluate(() => document.documentElement.scrollWidth > innerWidth)) problems.push(`phone ${tag}: the page is wider than the screen`);
+  for (const id of ids) {
+    await ph.evaluate(id => window.xfd.show(id), id);
+    const n = await ph.evaluate(() => document.querySelectorAll('#ph-rail button').length);
+    for (let k = 0; k < n; k++) {
+      const r = await ph.evaluate(k => {
+        document.querySelectorAll('#ph-rail button')[k].click();
+        const out = [];
+        const plate = document.querySelector('.ph-on');
+        if (!plate) return { out: ['no plate shows'] };
+        const scale = new DOMMatrix(getComputedStyle(document.getElementById('stage')).transform).a;
+        const pr = plate.getBoundingClientRect();
+        if (pr.left < -1 || pr.top < -1 || pr.right > innerWidth + 1 || pr.bottom > innerHeight + 1) out.push('plate runs off the screen');
+        const name = e => e.textContent.trim().replace(/\s+/g, ' ').slice(0, 24) || e.className.split(' ')[0];
+        const kids = [...plate.children].filter(e => !e.matches('.screw, .title, .rtitle, .pager, .ph-hide, .swipe-hint') && getComputedStyle(e).display !== 'none' && e.offsetWidth);
+        for (const e of kids) {
+          const b = e.getBoundingClientRect();
+          if (b.left < pr.left - 2 || b.right > pr.right + 2 || b.top < pr.top - 2 || b.bottom > pr.bottom + 2) out.push(`"${name(e)}" runs off the plate`);
+        }
+        // Boxes, or circles for dials and round controls (a dial's box has 10 px around its bezel).
+        const shape = e => {
+          const r = e.getBoundingClientRect(), round = e.matches('.dialw, .round, .quantum, .knobw');
+          return { r, round, cx: (r.left + r.right) / 2, cy: (r.top + r.bottom) / 2, rad: Math.min(r.width, r.height) / 2 - (e.matches('.dialw') ? 10 * scale : 0) };
+        };
+        const hit = (a, b) => {
+          if (a.round && b.round) return Math.hypot(a.cx - b.cx, a.cy - b.cy) < a.rad + b.rad - 2;
+          if (a.round || b.round) {
+            const [c, x] = a.round ? [a, b] : [b, a];
+            const dx = Math.max(x.r.left - c.cx, 0, c.cx - x.r.right), dy = Math.max(x.r.top - c.cy, 0, c.cy - x.r.bottom);
+            return Math.hypot(dx, dy) < c.rad - 2;
+          }
+          return Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left) > 2 && Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top) > 2;
+        };
+        const shapes = kids.map(shape);
+        kids.forEach((a, i) => kids.slice(i + 1).forEach((b, j) => { if (hit(shapes[i], shapes[i + 1 + j])) out.push(`"${name(a)}" and "${name(b)}" overlap`); }));
+        for (const t of plate.querySelectorAll('*')) {
+          if (t.closest('.ph-hide') || !t.offsetWidth || t.children.length || !t.textContent.trim()) continue;
+          if (t.scrollWidth > t.clientWidth + 1 && getComputedStyle(t).overflow !== 'visible') out.push(`"${name(t)}" is cut off`);
+        }
+        for (const b of document.querySelectorAll('#ph-rail button')) if (b.scrollWidth > b.clientWidth + 1) out.push(`rail label "${b.textContent}" is cut off`);
+        return { out, scale, view: document.body.dataset.phView };
+      }, k);
+      phoneViews++;
+      phoneLow = Math.min(phoneLow, r.scale ?? 9);
+      for (const o of r.out) problems.push(`phone ${tag} ${id} ${r.view || k}: ${o}`);
+      if (r.scale < 0.45) problems.push(`phone ${tag} ${id} ${r.view}: shown at ${Math.round(r.scale * 100)} %`);
+    }
+  }
+  if (shots) { await ph.evaluate(() => window.xfd.show('light-fighter')); await ph.screenshot({ path: join(shots, `phone-${tag}.png`) }); }
+  await ctx.close();
+}
+report.push(`phone views checked: ${phoneViews}, smallest ${Math.round(phoneLow * 100)} %`);
+// Another computer or a tablet across: the whole console, not one plate at a time.
+for (const [W, H] of [[1920, 1080], [1180, 820]]) {
+  const ctx = await browser.newContext({ viewport: { width: W, height: H } });
+  const big = await ctx.newPage();
+  big.on('pageerror', e => errors.push(`device ${W}x${H}: ${e.message}`));
+  await big.route(/fleetyards|fltyrd/, r => r.abort());
+  await big.goto(base + '?phone&demo=ship');
+  await big.waitForSelector('body[data-ready]');
+  const r = await big.evaluate(() => {
+    const plates = [document.getElementById('status'), ...document.querySelectorAll('#console > .plate')];
+    return { whole: document.body.classList.contains('ph-whole'), shown: plates.filter(p => getComputedStyle(p).visibility === 'visible').length, all: plates.length,
+      inside: plates.every(p => { const b = p.getBoundingClientRect(); return b.left >= -1 && b.top >= -1 && b.right <= innerWidth + 1 && b.bottom <= innerHeight + 1; }) };
+  });
+  if (!r.whole || r.shown !== r.all || !r.inside) problems.push(`device ${W}x${H}: whole console not shown (${JSON.stringify(r)})`);
+  await ctx.close();
+}
+
+// The PC with a plate moved to a phone: the rest close up, the settings list shows the phones.
+{
+  const ctx = await browser.newContext({ viewport: { width: 2560, height: 720 } });
+  const pc = await ctx.newPage();
+  pc.on('pageerror', e => errors.push(`phones on the PC: ${e.message}`));
+  await pc.route(/fleetyards|fltyrd/, r => r.abort());
+  await pc.addInitScript(() => {
+    const now = Date.now() / 1000;
+    window.xfdTestPhones = { enabled: true, url: 'http://192.168.1.20:47823', code: '482913', ttl: 96, qr: '<svg viewBox="0 0 1 1"></svg>', moved: ['role'],
+      list: [{ id: 'a', name: 'iPhone', plate: 'role', mode: 'move', online: true, seen: now }, { id: 'b', name: 'Pixel', plate: 'swipe', mode: 'copy', online: false, seen: now - 7200 }] };
+  });
+  await pc.goto(base + '?demo=ship');
+  await pc.waitForSelector('body[data-ready]');
+  await pc.evaluate(() => document.fonts.ready);
+  const m = await pc.evaluate(() => {
+    const role = document.querySelector('#console > .plate[data-slot=role]');
+    const rest = [...document.querySelectorAll('#console > .plate:not(.moved)')].map(p => p.getBoundingClientRect());
+    return { hidden: !!role && getComputedStyle(role).display === 'none', right: Math.max(...rest.map(r => r.right)), fits: rest.every(r => r.right <= innerWidth + 1) };
+  });
+  if (!m.hidden) problems.push('a plate moved to a phone still shows on the PC');
+  if (!m.fits) problems.push('with a plate moved, the rest run off the PC screen');
+  await pc.evaluate(() => { document.getElementById('sheet').hidden = false; window.xfd.showSection('phones'); });
+  await pc.waitForTimeout(200);
+  const rows = await pc.evaluate(() => document.querySelectorAll('#ph-list .opt[data-id]').length);
+  if (rows !== 2) problems.push(`Settings › Phones lists ${rows} phones, not 2`);
+  const cut = await pc.evaluate(() => [...document.querySelectorAll('#ph-list button, #ph-list .txt')].filter(b => b.scrollWidth > b.clientWidth + 1 || b.getBoundingClientRect().right > innerWidth).map(b => b.textContent.trim()));
+  for (const c of cut) problems.push(`Settings › Phones: "${c}" is cut off`);
+  if (shots) await pc.screenshot({ path: join(shots, 'settings-phones.png') });
+  await ctx.close();
+}
+
 const heap = await page.evaluate(() => performance.memory?.usedJSHeapSize || 0);
 
 report.push(`pages checked: ${ids.length}`, `slowest first build: ${worstBuild.toFixed(1)} ms (budget ${BUDGET.firstBuildMs})`,
