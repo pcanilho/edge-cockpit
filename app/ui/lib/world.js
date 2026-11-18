@@ -179,7 +179,7 @@ const LEVEL = ['', 'empty', 'very low', 'low', 'medium', 'high', 'very high', 'f
 /** What the terminal had when the price was reported: SCU for sale when you buy; its own stock when you sell. */
 export function stockText(x) {
   if (x.scu > 0) return { text: `${x.scu.toLocaleString('en-US')} SCU in stock`, low: x.scu < 10 };
-  if (x.status) return { text: `Their stock ${LEVEL[x.status] || ''}`, low: x.status >= 6 };
+  if (x.status) return { text: `Stock ${LEVEL[x.status] || ''}`, low: x.status >= 6 };
   return null;
 }
 

@@ -466,8 +466,8 @@ test('place unknown: best trades in the system; stock as reported', () => {
   assert.deepEqual(rows.map(r => r.profit), rows.map(r => r.profit).sort((a, b) => b - a));
   assert.deepEqual(W.stockText({ scu: 1200 }), { text: '1,200 SCU in stock', low: false });
   assert.deepEqual(W.stockText({ scu: 6 }), { text: '6 SCU in stock', low: true });
-  assert.deepEqual(W.stockText({ status: 1 }), { text: 'Their stock empty', low: false });
-  assert.deepEqual(W.stockText({ status: 7 }), { text: 'Their stock full', low: true });
+  assert.deepEqual(W.stockText({ status: 1 }), { text: 'Stock empty', low: false });
+  assert.deepEqual(W.stockText({ status: 7 }), { text: 'Stock full', low: true });
   assert.equal(W.stockText({ scu: 0, status: 0 }), null);
 });
 

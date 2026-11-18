@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- World: the sell side's stock reads "Stock full" instead of "Their stock full".
+
 ## 0.7.0
 
 - World page (new page key; the page keys are now four over three):
