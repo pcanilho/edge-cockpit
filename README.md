@@ -20,7 +20,7 @@ Unofficial fan project, not affiliated with Cloud Imperium Games.
 ## Install
 
 1. Run `Edge-Cockpit-<version>-setup.exe` from the [latest release](../../releases/latest). SmartScreen warns because the exe isn't code signed: **More info** > **Run anyway**. [How to verify a download](SECURITY.md#verifying-a-download).
-2. In game: **Options > Keybindings > Advanced Controls Customization > Control Profiles**, pick **edge-cockpit**, tick only **Keyboard**. This adds keys for actions that have none. Your own binds stay.
+2. In game: **Options > Keybindings > Advanced Controls Customization > Control Profiles**, pick **edge-cockpit**, tick only **Keyboard**. This adds keys for actions that have none. Your own binds stay. On first start a setup check shows what's ready and has a **Test a key** button.
 
 It starts with Windows, wakes when Star Citizen starts and goes dark when you quit. Updates are offered only while you're not playing.
 
@@ -50,16 +50,19 @@ It starts with Windows, wakes when Star Citizen starts and goes dark when you qu
 
 ## It follows the game
 
-From `Game.log` it opens the right page and shows your ship, mission, location, quantum target and alerts. Behind the status screen sits a render of your ship from [FleetYards.net](https://fleetyards.net), fetched once and kept. Drake, Aegis, Origin, MISC and Anvil ships get their maker's theme (**Settings > Screen**). The frame goes red only for a CrimeStat or a disabled ship.
+From `Game.log` it opens the right page and shows your ship, mission, location, quantum target and alerts. Behind the status screen sits a render of your ship from [FleetYards.net](https://fleetyards.net), fetched once and kept. Ships from Drake, Aegis, Origin, MISC, Anvil, RSI, Crusader, Argo and Consolidated Outland get their maker's theme (**Settings > Screen**), where **Large labels** also lives. The frame goes red only for a CrimeStat or a disabled ship.
 
 It reads your `actionmaps.xml`, so rebound keys just work. **Settings > Keybinds** lists any it can't press.
 
 The game doesn't report most switch states, so nothing is guessed: ON/OFF switches stay unlit until you set them, and **All systems on** syncs them. Everything else is a push-button.
 
+If a patch changes the log lines it reads, an amber **Log lines missing** chip says so, with a button to report it.
+
 No telemetry. Network calls: FleetYards for ship images, GitHub for updates.
 
 ## If keys do nothing
 
+- **Settings > General > Setup check** shows what's off.
 - Keys only reach the game while it's in front. **Test mode** sends them anywhere.
 - Game running as administrator? So must the console: **Run as administrator** in settings or the tray.
 - Touches land on the wrong screen? Windows **Calibrate the pen and touch input** > **Setup**.
