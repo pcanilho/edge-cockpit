@@ -1189,6 +1189,13 @@ if (fresh?.fresh && fresh.version === prefs.version) {
 paintUpdate();
 paintDisplays();
 setTimeout(() => { checkUpdate(); setInterval(checkUpdate, 6 * 3600_000); }, 20_000);
+// The tray menu: Settings, Setup check, Check for updates and the Start with Windows tick.
+bridge.onTray?.(what => {
+  if (what === 'settings') { $('setup').hidden = true; setupOpen = false; openSheet(true, 'general'); }
+  else if (what === 'setup') { openSheet(false); showSetup(); }
+  else if (what === 'update') bridge.checkUpdate().then(u => { update = u; paintUpdate(); toast(u ? `Version ${u.version} is ready to install` : `Edge Cockpit ${prefs.version} is up to date`); }, e => toast(`Could not check for updates: ${e?.message || e}`));
+});
+bridge.onAutostart?.(on => { opts.autostart = on; document.querySelectorAll('.opt[data-opt="autostart"]').forEach(o => o.classList.toggle('on', on)); });
 setOpt('night', opts.night);
 render();
 await reloadBinds();

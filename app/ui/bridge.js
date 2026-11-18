@@ -48,6 +48,10 @@ export const setDisplay = id => tauri ? tauri.core.invoke('set_display', { id })
 export const fixTouch = () => tauri ? tauri.core.invoke('fix_touch') : onlyInApp();
 /** f() when displays are added, removed or change resolution. */
 export const onDisplays = f => tauri?.event.listen('displays', () => f());
+/** onTray('settings' | 'setup' | 'update') when that tray item is picked. */
+export const onTray = f => tauri?.event.listen('tray', e => f(e.payload));
+/** onAutostart(on) when Start with Windows is ticked in the tray. */
+export const onAutostart = f => tauri?.event.listen('autostart', e => f(e.payload));
 /** onScreen(dark) when the screen goes off or wakes. */
 export const onScreen = f => tauri?.event.listen('screen', e => f(e.payload));
 /** Opens a new GitHub issue for the app in the browser, with a title and body filled in. */

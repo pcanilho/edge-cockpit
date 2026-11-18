@@ -10,6 +10,7 @@
 - Patch watch: an amber "Log lines missing" chip when the game log stops showing lines every session has (your character, joining a server), or boarding while you press ship keys. Tap it to report it on GitHub.
 - CI replays a whole 4.10 session log through the app's own Game.log reader and line filter, then through the console's parser, and runs the Rust tests on Linux.
 - Page keys sit in two even rows of three. Burst − and + are one rocker. A key press flashes brighter.
+- Tray menu: the version, Settings, Setup check, Start with Windows and Check for updates, next to Hide the console and Quit.
 
 ## 0.5.0
 

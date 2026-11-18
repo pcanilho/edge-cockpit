@@ -15,7 +15,7 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::Mutex;
 use std::time::Duration;
-use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
+use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, State, WebviewWindow};
 
@@ -417,10 +417,39 @@ fn set_pref(handle: AppHandle, app: State<'_, App>, name: String, value: bool) {
         p.clone()
     };
     save_prefs(&handle, &p);
-    #[cfg(windows)]
     if name == "autostart" {
+        #[cfg(windows)]
         win::set_autostart(value);
+        if let Some(item) = handle.try_state::<TrayAutostart>() {
+            let _ = item.0.set_checked(value);
+        }
     }
+}
+
+/// The tray's Start with Windows tick, kept in step with the setting.
+struct TrayAutostart(CheckMenuItem<tauri::Wry>);
+
+/// Start with Windows, ticked in the tray: saved like the setting, and the console told.
+fn tray_autostart(handle: &AppHandle) {
+    let p = {
+        let app = handle.state::<App>();
+        let mut p = app.prefs.lock().unwrap();
+        p.autostart = !p.autostart;
+        p.clone()
+    };
+    save_prefs(handle, &p);
+    #[cfg(windows)]
+    win::set_autostart(p.autostart);
+    if let Some(item) = handle.try_state::<TrayAutostart>() {
+        let _ = item.0.set_checked(p.autostart);
+    }
+    let _ = handle.emit("autostart", p.autostart);
+}
+
+/// Settings, Setup check and Check for updates in the tray: light the console and let it open them.
+fn tray_open(handle: &AppHandle, what: &str) {
+    wake(handle);
+    let _ = handle.emit("tray", what);
 }
 
 /// A touch on the dark screen, or the tray: light it up, and let it sleep again in two
@@ -804,10 +833,20 @@ fn watch_game(handle: AppHandle) {
 }
 
 fn tray(handle: &AppHandle) -> tauri::Result<()> {
+    let version = MenuItem::with_id(handle, "version", format!("Edge Cockpit {}", handle.package_info().version), false, None::<&str>)?;
     let toggle = MenuItem::with_id(handle, "toggle", "Hide the console", true, None::<&str>)?;
+    let settings = MenuItem::with_id(handle, "settings", "Settings", true, None::<&str>)?;
+    let setup = MenuItem::with_id(handle, "setup", "Setup check", true, None::<&str>)?;
+    let on = handle.state::<App>().prefs.lock().unwrap().autostart;
+    let autostart = CheckMenuItem::with_id(handle, "autostart", "Start with Windows", true, on, None::<&str>)?;
+    let update = MenuItem::with_id(handle, "update", "Check for updates", true, None::<&str>)?;
     let quit_item = MenuItem::with_id(handle, "quit", "Quit", true, None::<&str>)?;
-    let menu = Menu::with_items(handle, &[&toggle, &PredefinedMenuItem::separator(handle)?, &quit_item])?;
+    let sep = || PredefinedMenuItem::separator(handle);
+    let items: [&dyn tauri::menu::IsMenuItem<tauri::Wry>; 10] =
+        [&version, &sep()?, &toggle, &settings, &setup, &sep()?, &autostart, &update, &sep()?, &quit_item];
+    let menu = Menu::with_items(handle, &items)?;
     handle.manage(TrayToggle(toggle));
+    handle.manage(TrayAutostart(autostart));
     TrayIconBuilder::with_id("tray")
         .icon(handle.default_window_icon().cloned().ok_or(tauri::Error::InvalidIcon(std::io::Error::other("no icon")))?)
         .tooltip("Edge Cockpit")
@@ -820,6 +859,8 @@ fn tray(handle: &AppHandle) -> tauri::Result<()> {
         })
         .on_menu_event(move |app, ev| match ev.id().as_ref() {
             "toggle" => toggle_panel(app),
+            "autostart" => tray_autostart(app),
+            id @ ("settings" | "setup" | "update") => tray_open(app, id),
             "quit" => quit(app.clone()),
             _ => {}
         })

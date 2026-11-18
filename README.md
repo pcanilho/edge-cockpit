@@ -64,7 +64,7 @@ No telemetry. Network calls: FleetYards for ship images, GitHub for updates.
 
 - **Settings > General > Setup check** shows what's off.
 - Keys only reach the game while it's in front. **Test mode** sends them anywhere.
-- Game running as administrator? So must the console: **Run as administrator** in settings or the tray.
+- Game running as administrator? So must the console: **Run as administrator** in settings or the setup check.
 - Touches land on the wrong screen? Windows **Calibrate the pen and touch input** > **Setup**.
 
 ## Ships
