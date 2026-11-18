@@ -11,6 +11,7 @@ import { outline, render as shipRender } from './outlines.js';
 import { ART } from './backdrops.js';
 import * as arrange from './arrange.js';
 import * as perf from './perf.js';
+import * as world from './world.js';
 
 const $ = id => document.getElementById(id);
 const stage = $('stage');
@@ -477,6 +478,7 @@ function render() {
   repaint();
   paintQuantum();
   paintLog();
+  world.paint();
   paintSoftkeys();
 }
 
@@ -484,6 +486,7 @@ function show(id) {
   if (!pageById(layout, id) || arrange.isEditing()) return;
   if (moduleOf(id)) lastShip = id;
   const changed = id !== current;
+  if (changed && (current === 'world' || id === 'world')) world.showing(id === 'world');
   current = id;
   if (changed) render(); else paintSoftkeys();
 }
@@ -495,6 +498,7 @@ const SOFT = [
   { label: 'Map', icon: 'map', go: () => 'map', is: id => id === 'map' },
   { label: 'Downed', icon: 'medical', go: () => 'downed', is: id => id === 'downed' },
   { label: 'Log', icon: 'list', go: () => 'log', is: id => id === 'log' },
+  { label: 'World', icon: 'globe', go: () => 'world', is: id => id === 'world' },
   { label: 'Settings', icon: 'cog', go: null },
 ];
 function buildSoftkeys() {
@@ -780,6 +784,8 @@ $('touch-chip').querySelector('span').textContent = 'Touch on another display';
 $('toast-act').addEventListener('pointerdown', e => e.stopPropagation());
 
 // ---------- game state ----------
+// here: when Game.log last named your place, and whether you travelled since.
+let placeSeen = { at: 0, moved: false };
 let game = { ...EMPTY }, ship = null, lastAuto = null, lastSeq = 0;
 const MAKERS = { AEGS: '#ff6b5b', ANVL: '#7fb2ff', DRAK: '#ff9f43', MISC: '#5fe0c8', RSI: '#9fb4ff', ORIG: '#f5f0e6', CRUS: '#6ec1ff', ARGO: '#f0b54a',
   CNOU: '#9be15d', ESPR: '#c49bff', KRIG: '#e0c070', BANU: '#d4a373', MRAI: '#ff7eb6', TMBL: '#f7d154', GRIN: '#b0e0a8', XIAN: '#7ef0ff', CRSD: '#6ec1ff', GAMA: '#c0d0e0' };
@@ -1078,11 +1084,13 @@ controls.pressable($('patch'), { up: () => {
 
 function onLog({ lines, live, reset }) {
   // A new Game.log means a new channel or a restart: its binds may differ too.
-  if (reset) { game = { ...EMPTY }; session = { ...NEW_TALLY }; lastSeq = 0; logRows = []; watch = newWatch(); if (bridge.inApp) { reloadBinds(); loadUserShips(); } }
+  if (reset) { placeSeen = { at: 0, moved: false }; game = { ...EMPTY }; session = { ...NEW_TALLY }; lastSeq = 0; logRows = []; watch = newWatch(); if (bridge.inApp) { reloadBinds(); loadUserShips(); } }
   for (const line of lines) {
     const ev = parseLine(line);
     const was = game;
-    if (ev) { game = reduce(game, ev); watch.kinds.add(ev.type); if (ev.type === 'loaded') watch.loadedAt = (live ? 0 : Date.parse(stamp(line) || '')) || Date.now(); }
+    if (ev && (ev.type === 'qt-arrived' || ev.type === 'jump') && placeSeen.at) placeSeen.moved = true;
+    if (ev) { game = reduce(game, ev);
+      if (ev.type === 'location' && game.location === ev.place && (!game.me || ev.who === game.me.name)) placeSeen = { at: Date.parse(stamp(line) || '') || Date.now(), moved: false }; watch.kinds.add(ev.type); if (ev.type === 'loaded') watch.loadedAt = (live ? 0 : Date.parse(stamp(line) || '')) || Date.now(); }
     session = tally(session, was, game, stamp(line));
     if (ev) for (const e of logFor(was, game)) logRows.unshift({ ...e, ts: stamp(line) });
     if (live && !was.menu && game.menu) showRecap();
@@ -1095,6 +1103,7 @@ function onLog({ lines, live, reset }) {
   follow(!live);
   paintStatus();
   paintChannel();
+  world.onLog();
 }
 bridge.onGameLog(onLog);
 
@@ -1125,6 +1134,7 @@ function clock() {
   $('clock').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
   if (opts.night === 'auto') paintNight();
   paintPatch();
+  world.paint();
 }
 // On a screen that isn't ultra-wide (16:10, 4:3, portrait, a tablet) the console stacks in two
 // rows when that makes the keys bigger: the status display and first plates on top, the rest below.
@@ -1175,6 +1185,7 @@ arrange.init($('console'), {
   store, tick, scale: K.scale, role: () => moduleOf(current), roleName: () => ROLE_NAMES[moduleOf(current)] || 'ship',
   onDone: () => toast('Layout saved for this role'),
 });
+world.init({ game: () => game, location: () => ({ id: game.location, ...placeSeen }), store, bridge, raise, tick, hhmm, current: () => current });
 perf.init({ hold: document.querySelector('#mfd .brand'), parent: $('mfd'), perf: bridge.perf, tick });
 bridge.onKeySent(perf.keySent);
 const prefs = await bridge.getPrefs().catch(() => ({ autostart: false, screen_off: false, backlight: null, version: '' }));

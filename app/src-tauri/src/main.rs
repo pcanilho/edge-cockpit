@@ -6,6 +6,7 @@
 mod family;
 mod game;
 mod keys;
+mod world;
 #[cfg(windows)]
 mod win;
 
@@ -40,6 +41,8 @@ struct App {
     /// Whether the Edge answered DDC/CI, once we have tried.
     ddc: Mutex<Option<bool>>,
     update: Mutex<Option<tauri_plugin_updater::Update>>,
+    /// Prices and server status for the World page.
+    world: world::Cache,
 }
 
 /// Settings that matter before the UI loads, kept in prefs.json in the app's config folder.
@@ -623,6 +626,19 @@ async fn check_update(handle: AppHandle, app: State<'_, App>) -> Result<Option<U
     Ok(info)
 }
 
+/// Commodity prices for the World page: fresh every 30 minutes, else the last ones saved, marked offline.
+#[tauri::command]
+async fn world_prices(handle: AppHandle, app: State<'_, App>) -> Result<world::Market, String> {
+    let file = handle.path().app_local_data_dir().ok().map(|d| d.join("world-prices.json"));
+    world::prices(&app.world, file).await
+}
+
+/// RSI's server status for the World page, at most every 5 minutes.
+#[tauri::command]
+async fn world_status(app: State<'_, App>) -> Result<world::Status, String> {
+    world::status(&app.world).await
+}
+
 /// Downloads and runs the new installer, which closes the app and starts the new one.
 #[tauri::command]
 async fn install_update(handle: AppHandle, app: State<'_, App>) -> Result<(), String> {
@@ -878,7 +894,7 @@ fn main() {
             key, wheel, ui_ready, user_ships, release_keys, game_info, read_binds, install_binds, run_as_admin, quit,
             save_profile, load_profile, save_user_ships, install_profile_binds,
             get_prefs, set_pref, wake_screen, sleep_screen, check_update, install_update, perf,
-            displays, set_display, fix_touch, report_issue
+            displays, set_display, fix_touch, report_issue, world_prices, world_status
         ])
         .setup(|app| {
             let handle = app.handle().clone();

@@ -56,6 +56,9 @@ export const onAutostart = f => tauri?.event.listen('autostart', e => f(e.payloa
 export const onScreen = f => tauri?.event.listen('screen', e => f(e.payload));
 /** Opens a new GitHub issue for the app in the browser, with a title and body filled in. */
 export const reportIssue = (title, body) => tauri ? tauri.core.invoke('report_issue', { title, body }) : Promise.resolve(window.xfdReported = { title, body });
+// The World page's prices and server status. Outside the app (UI tests, previews) a page may supply its own.
+export const worldPrices = () => tauri ? tauri.core.invoke('world_prices') : window.xfdTestWorld?.prices ? Promise.resolve(window.xfdTestWorld.prices) : onlyInApp();
+export const worldStatus = () => tauri ? tauri.core.invoke('world_status') : window.xfdTestWorld?.status ? Promise.resolve(window.xfdTestWorld.status) : onlyInApp();
 export const quit = () => tauri ? tauri.core.invoke('quit') : window.close();
 
 /** onBatch({ lines, live, reset }) for each batch of Game.log lines. */

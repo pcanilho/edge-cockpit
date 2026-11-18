@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- World page (new page key; the page keys are now four over three):
+  - Executive hangars: the five lights, open or charging, when it changes and the next two openings. Tap Sync once at the hangar and pick what the lights show. After a game update the times hide until you sync again.
+  - Your timers: red and blue keycard printers (30 min), the Ruin vault door (20 min closed, 1 min open, ends when you change server) and one of your own. A chime when each is ready.
+  - Servers: RSI's status page and your region and shard.
+  - Commodities where you are: what this place sells with the best place in the system to sell it, what it buys with the cheapest place to buy it, the profit per SCU, and the same for the places around the planet. Find: kind chips and an A–Z strip, then where a commodity is cheapest and pays most. Player reports from UEX, each with its age; older than 2 days in grey, older than a week left out. Offline it shows the saved prices and says so.
+
 ## 0.6.1
 
 - **Reload the edge-cockpit control profile** after updating (Options > Keybindings > Advanced Controls Customization > Control Profiles, Keyboard only). It adds keys for gear down and gear up.

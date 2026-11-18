@@ -244,6 +244,17 @@ function logPage() {
   add(list, screen(24, 46, 1018, 96, stats, 'stats'), screen(24, 154, 1018, 526, '<ol id="lg-list"></ol>', 'list'))];
 }
 
+// ================= world =================
+/** Executive hangars, your timers and servers on one plate; the commodity market where you are on the other. The content is painted by world.js. */
+function worldPage() {
+  const a = plate(382, 1100, 'World', { cls: 'worldp' });
+  const named = (el, id) => { el.id = id; return el; };
+  add(a, named(screen(24, 46, 1052, 334, '', 'card xh'), 'wd-xh'), named(screen(24, 392, 640, 292, '', 'tm-wrap'), 'wd-tm'), named(screen(676, 392, 400, 292, '', 'sv'), 'wd-sv'));
+  const b = plate(1488, 1066, 'Commodities', { cls: 'worldp' });
+  add(b, h('<div class="cm-head" id="wd-cmhead"></div>'), named(screen(24, 118, 1018, 488, '', 'cm'), 'wd-cm'), h('<div class="cm-foot" id="wd-cmfoot"></div>'));
+  return [a, b];
+}
+
 const MODULES = { mfd, fighter, crew, mining, salvage, cargo, medical, ground, systems };
 
 /** Page n of the ship pages, with arrows to step through them as well as swiping. */
@@ -393,6 +404,7 @@ export function scene(page) {
   if (page.id === 'emotes') return emotes();
   if (page.id === 'downed') return downed();
   if (page.id === 'log') return logPage();
+  if (page.id === 'world') return worldPage();
   const plates = { power: powerPlate(), role: rolePlate(page), flight: flightPlate(), gear: gearPlate() };
   for (const [slot, p] of Object.entries(plates)) p.dataset.slot = slot;
   return Object.values(plates);

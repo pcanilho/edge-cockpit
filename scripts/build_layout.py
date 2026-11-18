@@ -349,6 +349,11 @@ EVENT_PAGES = {
         ('Map', ['Local map', 'Go to selection', 'Step back', 'Plan route', 'Clear route', 'Starmap', 'QT actions', 'Advanced HUD']),
         ('Comms & screens', ['Reply 1', 'Reply 2', 'Reply 3', 'Reply 4', 'Scoreboard', 'Scan tab ▶', 'Contact ▼', 'MFD ▶']),
     ]},
+    # The World page shows timers, servers and the market; its keys are the Log page's.
+    'world': {'name': 'World', 'glyph': 'globe', 'tab': 'map', 'rows': [
+        ('Map', ['Local map', 'Go to selection', 'Step back', 'Plan route', 'Clear route', 'Starmap', 'QT actions', 'Advanced HUD']),
+        ('Comms & screens', ['Reply 1', 'Reply 2', 'Reply 3', 'Reply 4', 'Scoreboard', 'Scan tab ▶', 'Contact ▼', 'MFD ▶']),
+    ]},
     'emotes': {'name': 'Emotes', 'tab': 'onfoot', 'rows': [
         ('Signals', ['Signal forward', 'Signal left', 'Signal right', 'Signal stop', 'Signal yes', 'Signal no', 'Wave', 'Salute']),
         ('Emotes', ['Point', 'Come', 'Wait', 'Agree', 'Disagree', 'Cheer', 'Clap', 'Laugh']),
@@ -636,7 +641,8 @@ def main(path):
         pages.append({'id': pid, 'name': NAMES[pid], 'theme': THEMES[pid], 'profile': 'main',
                       'groups': groups_of(content), 'rows': page_rows(content, acts, missing)})
     for pid, ev in EVENT_PAGES.items():
-        pages.append({'id': pid, 'name': ev['name'], 'theme': THEMES[ev['tab']], 'profile': 'main', 'tab': ev['tab'],
+        theme = dict(THEMES[ev['tab']], glyph=ev['glyph']) if 'glyph' in ev else THEMES[ev['tab']]
+        pages.append({'id': pid, 'name': ev['name'], 'theme': theme, 'profile': 'main', 'tab': ev['tab'],
                       'event': True, 'groups': groups_of(ev['rows']), 'rows': page_rows(ev['rows'], acts, missing)})
     for rid, lacks_list in role_variants(ships).items():
         role = ROLES[rid]
