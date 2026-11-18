@@ -31,6 +31,7 @@ It starts with Windows, wakes when Star Citizen starts and goes dark when you qu
 - **Downed**: revive request.
 - **MFD & assists**: MFD screens, light amplification, auto precision, wind compensation, Self repair all.
 - **Log**: this session's stats, who downed you, region and shard, last jump, refinery jobs, a timeline.
+- **World**: executive hangar cycle (synced by you, hidden after a patch until you sync again), keycard and vault door timers, RSI server status, and the commodity market where you are: buy and sell here, nearby, or find any commodity. Prices are player reports from [UEX](https://uexcorp.space), each with its age.
 
 | | |
 | --- | --- |
@@ -59,7 +60,7 @@ The game doesn't report most switch states, so nothing is guessed: ON/OFF switch
 
 If a patch changes the log lines it reads, an amber **Log lines missing** chip says so, with a button to report it.
 
-No telemetry. Network calls: FleetYards for ship images, GitHub for updates.
+No telemetry. Network calls: FleetYards for ship images, GitHub for updates, and while the World page shows, UEX for prices (every 30 min) and RSI's status page (every 5 min).
 
 ## If keys do nothing
 
@@ -114,7 +115,7 @@ Release: add the version to [CHANGELOG.md](CHANGELOG.md) and `tauri.conf.json`, 
 
 ## Credits
 
-Ship roles: [Star Citizen Wiki API](https://api.star-citizen.wiki). Ship outlines and renders: [FleetYards.net](https://fleetyards.net), fetched at runtime, not in this repository. Star Citizen, its ships and logos belong to Cloud Imperium Games.
+Ship roles: [Star Citizen Wiki API](https://api.star-citizen.wiki). Commodity prices: [UEX](https://uexcorp.space), reported by players. Ship outlines and renders: [FleetYards.net](https://fleetyards.net), fetched at runtime, not in this repository. Star Citizen, its ships and logos belong to Cloud Imperium Games.
 
 ## License
 

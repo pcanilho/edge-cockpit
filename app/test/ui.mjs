@@ -46,7 +46,7 @@ if (shots) await mkdir(shots, { recursive: true });
 async function checkLabels(where, sheet = false) {
   const found = await page.evaluate(sheet => {
     const out = [];
-    const FRAMES = '.su-row, .su-foot, .su-card, .cap, .placard, .screen, .rbtn, .qbtn, .corner, .chip, .under, .cover, .chan, .softkeys .well, .opt, .act, .plate, .updates, .tab, .tabs, .pane';
+    const FRAMES = '.su-row, .su-foot, .su-card, .cap, .placard, .screen, .rbtn, .qbtn, .corner, .chip, .under, .cover, .chan, .softkeys .well, .opt, .act, .plate, .updates, .tab, .tabs, .pane, .wd-card';
     const inside = (r, f, m = -1) => r.left >= f.left + m && r.right <= f.right - m && r.top >= f.top + m && r.bottom <= f.bottom - m;
     const visible = el => { for (let e = el; e && e !== document.body; e = e.parentElement) { const s = getComputedStyle(e); if (s.display === 'none' || s.visibility === 'hidden' || e.hidden) return false; } return true; };
     const walker = document.createTreeWalker(document.getElementById('stage'), NodeFilter.SHOW_TEXT);
@@ -84,6 +84,10 @@ async function checkLabels(where, sheet = false) {
   }, sheet);
   for (const f of new Set(found)) problems.push(`${where}: ${f}`);
 }
+
+// The World page's prices and server status, as the app's Rust side hands them over.
+const MARKET = JSON.parse(await readFile(join(UI, '..', 'test', 'fixtures', 'world-market.json'), 'utf8'));
+await page.addInitScript(m => { window.xfdTestWorld = { prices: m, status: { fetched: Date.now(), summary: 'disrupted', services: [{ name: 'Platform', status: 'operational' }, { name: 'Persistent Universe', status: 'disrupted' }, { name: 'Arena Commander', status: 'operational' }] } }; }, MARKET);
 
 // Every page, then each mood of the demo.
 await page.goto(base + '?demo=ship');
@@ -191,6 +195,46 @@ if (gear0) problems.push('the gear lever shows a side before it was moved');
 for (const id of ['mining', 'cargo', 'salvage']) {
   const pct = await page.evaluate(id => { window.xfd.show(id); return /\d+\s*%/.test(document.getElementById('console').textContent); }, id);
   if (pct) problems.push(`${id} shows a percentage the game never reported`);
+}
+
+// World: every view of the market fits; the hangar shows no time until synced, then the right lights;
+// a timer starts with a tap. Nothing animates while it shows.
+{
+  const at = new Date().toISOString();
+  const me = 'pilot'; // the ship demo's character
+  await page.evaluate(([at, me]) => {
+    for (const k of ['xfd-world-hangar', 'xfd-world-timers']) localStorage.removeItem(k);
+    window.xfd.feed([`<${at}> [Notice] <RequestLocationInventory> Player[${me}] requested inventory for Location[Stanton3_Area18] [Team_CoreGameplayFeatures][Inventory]`]);
+    window.xfd.show('flight'); window.xfd.show('world');
+  }, [at, me]);
+  await page.waitForTimeout(200);
+  const txt = sel => page.$eval(sel, e => e.textContent);
+  if (!(await txt('#wd-xh')).includes('Not synced') || /\d\d:\d\d –/.test(await txt('#wd-xh'))) problems.push('world: the hangar shows times before a sync');
+  if (!(await txt('#wd-cm')).includes('Area 18')) problems.push(`world: Here is not Area 18: ${(await txt('#wd-cm')).slice(0, 80)}`);
+  if (!(await txt('#wd-sv')).includes('Disrupted')) problems.push('world: the server status does not show');
+  await checkLabels('world here buy');
+  const views = [['sell', '#wd-cmhead [data-side=sell]'], ['nearby', '#wd-cmhead [data-mode=nearby]'], ['find', '#wd-cmhead [data-mode=find]'], ['find metals', '#wd-cm [data-chip=Metals]'], ['find gold', '#wd-cm [data-c=Gold]']];
+  for (const [name, sel] of views) {
+    await page.click(sel);
+    await checkLabels(`world ${name}`);
+  }
+  if (!(await txt('#wd-cm')).includes('Cheapest to buy')) problems.push('world: Find > Gold shows no places');
+  if (shots) await page.screenshot({ path: join(shots, 'world-find-gold.png') });
+  await page.click('#wd-xh .wsync');
+  await checkLabels('world sync dialog');
+  await page.click('.wdlg [data-s=o3]');
+  const xh = await txt('#wd-xh');
+  if (!xh.includes('Open') || !/Closes at \d\d:\d\d/.test(xh)) problems.push(`world: after syncing on 3 green the hangar reads ${xh.slice(0, 120)}`);
+  const lit = await page.$$eval('#wd-xh > .lamps .lamp.g', l => l.length);
+  if (lit !== 3) problems.push(`world: ${lit} green lights after syncing on 3`);
+  await page.click('#wd-tm .tmr:has-text("Red keycard")');
+  if (!(await txt('#wd-tm')).includes('30 min left')) problems.push('world: the red keycard timer did not start');
+  await checkLabels('world synced');
+  const raf0 = await page.evaluate(() => window.__raf);
+  await page.waitForTimeout(1500);
+  if (await page.evaluate(() => window.__raf) !== raf0) problems.push('world: asks for animation frames while idle');
+  if (shots) await page.screenshot({ path: join(shots, 'world-synced.png') });
+  await page.evaluate(() => { for (const k of ['xfd-world-hangar', 'xfd-world-timers']) localStorage.removeItem(k); window.xfd.show('mining'); });
 }
 
 // A rearranged console: plates in reverse order still fit, labels and all.

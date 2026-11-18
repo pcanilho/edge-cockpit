@@ -366,3 +366,101 @@ test('patch watch: lines every session logs, and boarding once ship keys go out'
   const lines = readFileSync(new URL('./fixtures/game-4.10.filtered.log', import.meta.url), 'utf8').split('\n').map(parseLine).filter(Boolean);
   assert.deepEqual(missingLines(w(lines.map(e => e.type), 1, 50), 1e9), []);
 });
+
+// ---------- World page ----------
+import * as W from '../ui/lib/world.js';
+const MARKET = JSON.parse(readFileSync(new URL('./fixtures/world-market.json', import.meta.url), 'utf8'));
+const MIN = 60_000;
+
+test('executive hangar cycle: phases, lights and windows', () => {
+  const t0 = Date.UTC(2026, 10, 18, 8, 0);
+  assert.equal(W.CYCLE_MIN, 185);
+  let x = W.hangarAt(t0, t0 + 30 * MIN);
+  assert.deepEqual([x.phase, x.lights.join('')], ['charging', 'grrrr']);
+  assert.equal(x.changes, t0 + 48 * MIN);
+  assert.equal(x.ends, t0 + 120 * MIN);
+  assert.deepEqual(x.windows[0], [t0 + 120 * MIN, t0 + 180 * MIN]);
+  x = W.hangarAt(t0, t0 + 157 * MIN);
+  assert.deepEqual([x.phase, x.lights.join('')], ['open', 'gg']);
+  assert.equal(x.ends, t0 + 180 * MIN);
+  // While open, the next opening is the next cycle's.
+  assert.deepEqual(x.windows[0], [t0 + 305 * MIN, t0 + 365 * MIN]);
+  x = W.hangarAt(t0, t0 + 182 * MIN);
+  assert.deepEqual([x.phase, x.lights.join('')], ['reset', '']);
+  assert.equal(W.hangarAt(t0, t0 + 185 * MIN).state, 'c0');
+  // Before the sync too: the cycle runs both ways.
+  assert.equal(W.hangarAt(t0, t0 - 65 * MIN).phase, 'open');
+});
+
+test('executive hangar sync: every light state, and patches undo it', () => {
+  const now = Date.UTC(2026, 10, 18, 10, 0);
+  for (const s of W.LIGHT_STATES) assert.equal(W.hangarAt(W.syncAt(s.id, now).start, now).state, s.id);
+  assert.equal(W.LIGHT_STATES.length, 11);
+  const s = { ...W.syncAt('o3', now), build: 'sc-alpha-4.10.3' };
+  assert.equal(W.syncValid(s, 'sc-alpha-4.10.3'), true);
+  assert.equal(W.syncValid(s, 'sc-alpha-4.11.0'), false);
+  assert.equal(W.syncValid(s, null), true);
+  assert.equal(W.syncValid(null, 'x'), false);
+});
+
+test('own timers and the vault door', () => {
+  const t = 1_000_000_000_000;
+  const red = W.TIMERS.find(d => d.id === 'red'), vault = W.TIMERS.find(d => d.id === 'vault');
+  assert.deepEqual(W.timerAt(red, null, t), { running: false });
+  assert.equal(W.timerAt(red, { started: t, mins: 30 }, t + 12 * MIN).left, 18 * MIN);
+  assert.equal(W.timerAt(red, { started: t, mins: 30 }, t + 30 * MIN).done, true);
+  let v = W.timerAt(vault, { started: t }, t + 14 * MIN);
+  assert.deepEqual([v.open, v.left], [false, 6 * MIN]);
+  v = W.timerAt(vault, { started: t }, t + 20.5 * MIN);
+  assert.deepEqual([v.open, v.next], [true, t + 21 * MIN]);
+  assert.equal(W.timerAt(vault, { started: t }, t + 22 * MIN).open, false);
+  assert.deepEqual([W.inMinutes(30_000), W.inMinutes(60_000), W.inMinutes(6 * MIN - 1), W.inMinutes(72 * MIN), W.inMinutes(120 * MIN)],
+    ['under a minute', '1 min', '6 min', '1 h 12 min', '2 h']);
+});
+
+test('Game.log places find their UEX trade place', () => {
+  const name = (id, sys) => { const i = W.placeFor(MARKET, id, sys); return i < 0 ? null : MARKET.places[i].name; };
+  assert.equal(name('Stanton3_Area18', 'Pyro'), 'Area 18'); // the id's own system wins
+  assert.equal(name('RR_ARC_L1', 'Stanton'), 'ARC-L1 Wide Forest Station');
+  assert.equal(name('RR_HUR_LEO', 'Stanton'), 'Everus Harbor');
+  assert.equal(name('RR_P6_LEO_Ruin_Station', 'Pyro'), 'Ruin Station');
+  assert.equal(name('RR_P5_L4', 'Pyro'), "Rod's Fuel 'N Supplies");
+  assert.equal(name('Stanton2b_GrimHex', 'Stanton'), 'Green Imperial Housing Exchange');
+  assert.equal(name('Nyx_Delamar_Levski', 'Nyx'), 'Levski');
+  assert.equal(name('Stanton1_Lorville', 'Stanton'), null); // not in the fixture: nothing, not a neighbour
+  assert.equal(name(null, 'Stanton'), null);
+  const ruin = W.placeFor(MARKET, 'RR_P6_LEO_Ruin_Station', 'Pyro');
+  assert.deepEqual(W.nearby(MARKET, ruin).map(i => MARKET.places[i].name).sort(), ['Last Landings', 'Megumi Refueling', 'Ruin Station']);
+});
+
+test('trade rows: buy here, sell where it pays most, best profit first', () => {
+  const a18 = W.placeFor(MARKET, 'Stanton3_Area18', 'Stanton');
+  for (const side of ['buy', 'sell']) {
+    const rows = W.tradeRows(MARKET, [a18], side, 'Stanton');
+    assert.ok(rows.length > 3);
+    for (const r of rows) {
+      assert.equal(r.here.place, a18);
+      if (r.other) {
+        assert.notEqual(r.other.place, a18);
+        assert.equal(r.profit, side === 'buy' ? r.other.price - r.here.price : r.here.price - r.other.price);
+      } else assert.equal(r.profit, null);
+    }
+    const p = rows.map(r => r.profit ?? -Infinity);
+    assert.deepEqual(p, [...p].sort((a, b) => b - a));
+  }
+  const gold = W.whereTo(MARKET, 'Gold', 'Stanton');
+  assert.ok(gold.buy.length && gold.sell.length);
+  assert.ok(gold.buy.every((x, i, a) => !i || a[i - 1].price <= x.price));
+  assert.ok(gold.sell.every((x, i, a) => !i || a[i - 1].price >= x.price));
+});
+
+test('find: kind chips and letters', () => {
+  const metals = W.findList(MARKET, 'Stanton', { chip: 'Metals' });
+  assert.ok(metals.includes('Gold') && !metals.includes('Stims'));
+  assert.ok(W.findList(MARKET, 'Stanton', { letter: 'G' }).every(n => n.startsWith('G')));
+  assert.deepEqual(W.letters(MARKET, 'Stanton'), [...new Set(W.findList(MARKET, 'Stanton').map(n => n[0].toUpperCase()))].sort());
+  const now = 1_800_000_000_000;
+  assert.deepEqual(W.age(now / 1000 - 1500, now), { text: '25 min ago', old: false });
+  assert.deepEqual(W.age(now / 1000 - 5 * 3600, now), { text: '5 h ago', old: false });
+  assert.deepEqual(W.age(now / 1000 - 3 * 86400, now), { text: '3 days ago', old: true });
+});
