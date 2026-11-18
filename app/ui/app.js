@@ -1090,7 +1090,8 @@ function onLog({ lines, live, reset }) {
     const was = game;
     if (ev && (ev.type === 'qt-arrived' || ev.type === 'jump') && placeSeen.at) placeSeen.moved = true;
     if (ev) { game = reduce(game, ev);
-      if (ev.type === 'location' && game.location === ev.place && (!game.me || ev.who === game.me.name)) placeSeen = { at: Date.parse(stamp(line) || '') || Date.now(), moved: false }; watch.kinds.add(ev.type); if (ev.type === 'loaded') watch.loadedAt = (live ? 0 : Date.parse(stamp(line) || '')) || Date.now(); }
+      if (ev.type === 'lift' && ev.place) placeSeen = { at: Date.parse(stamp(line) || '') || Date.now(), moved: false, id: ev.place, sys: game.system };
+      if (ev.type === 'location' && game.location === ev.place && (!game.me || ev.who === game.me.name)) placeSeen = { at: Date.parse(stamp(line) || '') || Date.now(), moved: false, id: ev.place, sys: game.system }; watch.kinds.add(ev.type); if (ev.type === 'loaded') watch.loadedAt = (live ? 0 : Date.parse(stamp(line) || '')) || Date.now(); }
     session = tally(session, was, game, stamp(line));
     if (ev) for (const e of logFor(was, game)) logRows.unshift({ ...e, ts: stamp(line) });
     if (live && !was.menu && game.menu) showRecap();
@@ -1185,7 +1186,7 @@ arrange.init($('console'), {
   store, tick, scale: K.scale, role: () => moduleOf(current), roleName: () => ROLE_NAMES[moduleOf(current)] || 'ship',
   onDone: () => toast('Layout saved for this role'),
 });
-world.init({ game: () => game, location: () => ({ id: game.location, ...placeSeen }), store, bridge, raise, tick, hhmm, current: () => current });
+world.init({ fire, keyHint: k => bindOf(k), game: () => game, location: () => ({ id: placeSeen.id || game.location, ...placeSeen }), store, bridge, raise, tick, hhmm, current: () => current });
 perf.init({ hold: document.querySelector('#mfd .brand'), parent: $('mfd'), perf: bridge.perf, tick });
 bridge.onKeySent(perf.keySent);
 const prefs = await bridge.getPrefs().catch(() => ({ autostart: false, screen_off: false, backlight: null, version: '' }));

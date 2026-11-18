@@ -13,6 +13,9 @@ const MIN = 60_000;
 const timers = () => K.store.get('world-timers', {});
 const fmt = n => Math.round(n).toLocaleString('en-US');
 const $ = id => document.getElementById(id);
+// Opening your inventory is what makes Game.log name the place you are at.
+const INVENTORY = { label: 'Inventory', action: 'pc_pit_inventory', actionmap: 'player_choice', defaultKey: 'i', activation: '', press: 'tap', role: 'action', icon: 'crate' };
+const invKey = (label, cls = '', off = false) => `<button class="wbtn inv ${cls}" data-inv="1" ${off ? 'disabled' : ''}><svg class="i" viewBox="0 0 24 24"><path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>${label}<small>${esc((K.keyHint(INVENTORY) || 'I').toUpperCase())}</small></button>`;
 
 export function init(ctx) {
   K = ctx;
@@ -160,7 +163,7 @@ function paintServers(el) {
 // ---------- commodities ----------
 function where() {
   const g = K.game(), loc = K.location();
-  const i = market ? W.placeFor(market, loc.id, g.system) : -1;
+  const i = market ? W.placeFor(market, loc.id, loc.sys || g.system) : -1;
   return { i, loc, sys: i >= 0 ? market.places[i].system : W.SYSTEMS.includes(g.system) ? g.system : null };
 }
 const seg = (items, cur, attr) => `<span class="seg">${items.map(([v, l]) => `<button data-${attr}="${v}" class="${v === cur ? 'cur' : ''}">${l}</button>`).join('')}</span>`;
@@ -177,31 +180,35 @@ function paintMarket(head, body, foot, now) {
   foot.innerHTML = '';
   if (!market) { body.innerHTML = `<div class="cm-off"><b>${marketErr ? 'No prices yet' : 'Loading prices'}</b><p>${marketErr ? 'UEX could not be reached. Prices show once it answers.' : 'From UEX, reported by players'}</p></div>`; return; }
   if (cm.mode === 'find') return paintFind(body, foot, sys, now);
-  if (w.i < 0) {
-    const name = w.loc.id ? placeName(w.loc.id) : null;
-    body.innerHTML = `<div class="cm-off"><b>${name ? `No trade terminal at ${esc(name)}` : 'Where are you?'}</b><p>${name ? 'UEX lists no commodity prices for this place. Find shows any commodity.' : 'Game.log names your place when you open your inventory at a station, city or outpost.'}</p></div>`;
+  const unknown = w.i < 0;
+  if (unknown && w.loc.id) {
+    body.innerHTML = `<div class="cm-off"><b>No trade terminal at ${esc(placeName(w.loc.id))}</b><p>UEX lists no commodity prices for this place. Find shows any commodity.</p></div>`;
     return;
   }
-  const at = cm.mode === 'nearby' ? W.nearby(market, w.i) : [w.i];
-  const p = market.places[w.i];
-  const rows = W.tradeRows(market, at, cm.side, p.system);
+  const sysHere = W.SYSTEMS.includes(K.game().system) ? K.game().system : 'Stanton';
+  const at = unknown ? [] : cm.mode === 'nearby' ? W.nearby(market, w.i) : [w.i];
+  const p = unknown ? { system: sysHere, name: '' } : market.places[w.i];
+  const rows = unknown ? W.routes(market, sysHere) : W.tradeRows(market, at, cm.side, p.system);
   const pages = Math.max(1, Math.ceil(rows.length / W.ROWS));
   cm.page = Math.min(cm.page, pages - 1);
   const shown = rows.slice(cm.page * W.ROWS, (cm.page + 1) * W.ROWS);
   const place = j => esc(market.places[j].name);
   const cell = (x, withPlace) => {
     if (!x) return '<td class="none"><b>—</b><p>No report this week</p></td>';
-    const a = W.age(x.at, now);
-    return `<td class="${a.old ? 'old' : ''}"><b>${fmt(x.price)} <span class="age">· ${a.text}</span></b>${withPlace ? `<p>${place(x.place)}</p>` : ''}</td>`;
+    const a = W.age(x.at, now), stock = W.stockText(x);
+    return `<td class="${a.old ? 'old' : ''}"><b>${fmt(x.price)} <span class="age">· ${a.text}</span></b><p>${[withPlace && place(x.place), stock && `<span class="stk ${stock.low ? 'low' : ''}">${stock.text}</span>`].filter(Boolean).join(' · ')}</p></td>`;
   };
-  const near = cm.mode === 'nearby';
-  const hereLabel = cm.side === 'buy' ? (near ? 'Cheapest nearby' : 'Buy here') : (near ? 'Best nearby' : 'Sell here');
-  const otherLabel = cm.side === 'buy' ? `Best sell in ${p.system}` : `Cheapest buy in ${p.system}`;
+  const near = cm.mode === 'nearby' || unknown;
+  const hereLabel = unknown ? `Cheapest in ${p.system}` : cm.side === 'buy' ? (near ? 'Cheapest nearby' : 'Buy here') : (near ? 'Best nearby' : 'Sell here');
+  const otherLabel = unknown ? `Best sell in ${p.system}` : cm.side === 'buy' ? `Best sell in ${p.system}` : `Cheapest buy in ${p.system}`;
   const body0 = shown.map(r => `<tr data-c="${esc(r.name)}"><td class="n">${esc(r.name)}</td>${cell(r.here, near)}${cell(r.other, true)}<td class="r p ${r.profit < 0 ? 'neg' : ''}">${r.profit === null ? '—' : (r.profit > 0 ? '+' : '') + fmt(r.profit)}</td></tr>`).join('');
   const what = near ? `around ${esc(p.planet || p.name)}` : '';
-  const since = w.loc.at ? ` · from Game.log at ${K.hhmm(w.loc.at)}${w.loc.moved ? ', you have travelled since' : ''}` : '';
-  body.innerHTML = `<div class="cm-at ${w.loc.moved ? 'moved' : ''}"><b>${near ? `${at.length} places ${what}` : esc(p.name)}</b><span>${near ? esc(p.system) : esc([p.moon, p.planet, p.system].filter(Boolean).join(' · '))}${since}</span></div>`
-    + (rows.length ? `<table><thead><tr><th class="c1">Commodity</th><th class="c2">${hereLabel}</th><th class="c3">${otherLabel}</th><th class="r">Profit / SCU</th></tr></thead><tbody>${body0}</tbody></table>`
+  const since = w.loc.at ? (w.loc.moved ? ` · seen at ${K.hhmm(w.loc.at)}` : ` · from Game.log at ${K.hhmm(w.loc.at)}`) : '';
+  const seated = K.game().seated;
+  const strip = unknown ? `<div class="cm-at unknown"><svg class="i pin" viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><b>Location unknown</b><span>${seated ? 'Step out of your seat, then Locate' : 'Locate opens your inventory for a moment so Game.log names the place'}</span>${invKey('Locate', 'small', seated)}</div>`
+    : null;
+  body.innerHTML = (strip ? strip + `<div class="cm-sub">Best trades in ${esc(p.system)} until then</div>` : `<div class="cm-at ${w.loc.moved ? 'moved' : ''}"><b>${near ? `${at.length} places ${what}` : esc(p.name)}</b><span>${near ? esc(p.system) : esc([p.moon, p.planet, p.system].filter(Boolean).join(' · '))}${since}</span>${w.loc.moved ? `<em>You travelled since</em>${invKey('Locate', 'small', K.game().seated)}` : ''}</div>`)
+    + (rows.length ? `<table class="${unknown ? 'short' : ''}"><thead><tr><th class="c1">Commodity</th><th class="c2">${hereLabel}</th><th class="c3">${otherLabel}</th><th class="r">Profit / SCU</th></tr></thead><tbody>${body0}</tbody></table>`
       : `<div class="cm-off in"><b>Nothing to ${cm.side} here</b><p>No price reported this week. Try ${cm.side === 'buy' ? 'Sell here' : 'Buy here'}, Nearby or Find.</p></div>`);
   foot.innerHTML = `<div class="lab">aUEC per SCU, best report per place this week.<br>Older than 2 days in grey. Tap a row to see where else.</div>${pages > 1 ? pager(pages) : ''}`;
 }
@@ -241,9 +248,26 @@ function marketTap(e) {
   else if (d.chip !== undefined) { cm = { ...cm, chip: d.chip || null, letter: null, page: 0 }; }
   else if (d.l) { cm = { ...cm, letter: cm.letter === d.l ? null : d.l, page: 0 }; }
   else if (d.back) { cm.pick = null; }
+  else if (d.inv) { locate(b); return; }
   else if (d.c) { if (cm.mode !== 'find') cm = { ...cm, mode: 'find', sys: where().sys }; cm.pick = d.c; }
   else return;
   paint();
+}
+
+// Locate: open the inventory, and close it again once Game.log has named the place. In a seat the
+// same key toggles thrusters, so it only goes on foot; if no line comes, the second press never goes.
+let locating = null;
+async function locate(node) {
+  const g = K.game();
+  if (g.seated || g.menu || locating) return;
+  const was = K.location().at;
+  if (!(await K.fire(INVENTORY, node))) return;
+  locating = { was, until: setTimeout(() => { locating = null; }, 4000) };
+}
+function located() {
+  if (!locating || K.location().at === locating.was) return;
+  clearTimeout(locating.until); locating = null;
+  setTimeout(() => K.fire(INVENTORY), 400);
 }
 
 // ---------- dialog ----------
@@ -275,4 +299,4 @@ export function paint() {
   paintMarket($('wd-cmhead'), $('wd-cm'), $('wd-cmfoot'), now);
 }
 /** After new Game.log lines: a new server ends the vault timer, a new place changes Here. */
-export function onLog() { if (K) { armTimers(); paint(); } }
+export function onLog() { if (K) { located(); armTimers(); paint(); } }

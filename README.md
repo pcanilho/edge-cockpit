@@ -31,7 +31,7 @@ It starts with Windows, wakes when Star Citizen starts and goes dark when you qu
 - **Downed**: revive request.
 - **MFD & assists**: MFD screens, light amplification, auto precision, wind compensation, Self repair all.
 - **Log**: this session's stats, who downed you, region and shard, last jump, refinery jobs, a timeline.
-- **World**: executive hangar cycle (synced by you, hidden after a patch until you sync again), keycard and vault door timers, RSI server status, and the commodity market where you are: buy and sell here, nearby, or find any commodity. Prices are player reports from [UEX](https://uexcorp.space), each with its age.
+- **World**: executive hangar cycle (synced by you, hidden after a patch until you sync again), keycard and vault door timers, RSI server status, and the commodity market where you are: buy and sell here, nearby, or find any commodity. Prices and stock are player reports from [UEX](https://uexcorp.space), each with its age. If the page does not know where you are, **Locate** opens your inventory for a moment so `Game.log` names the place.
 
 | | |
 | --- | --- |

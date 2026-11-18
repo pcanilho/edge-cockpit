@@ -156,11 +156,11 @@ export function tradeRows(market, at, mode, system) {
     const b = best.get(q.name) || { buy: null, sell: null, here: null };
     if (here.has(q.place)) {
       // The best of the chosen places: lowest buy, or highest sell.
-      if (mode === 'buy' && q.buy > 0 && (!b.here || q.buy < b.here.price)) b.here = { price: q.buy, at: q.buy_at, place: q.place };
-      if (mode === 'sell' && q.sell > 0 && (!b.here || q.sell > b.here.price)) b.here = { price: q.sell, at: q.sell_at, place: q.place };
+      if (mode === 'buy' && q.buy > 0 && (!b.here || q.buy < b.here.price)) b.here = { price: q.buy, at: q.buy_at, place: q.place, scu: q.buy_scu };
+      if (mode === 'sell' && q.sell > 0 && (!b.here || q.sell > b.here.price)) b.here = { price: q.sell, at: q.sell_at, place: q.place, status: q.sell_status };
     }
-    if (q.sell > 0 && !here.has(q.place) && (!b.sell || q.sell > b.sell.price)) b.sell = { price: q.sell, at: q.sell_at, place: q.place };
-    if (q.buy > 0 && !here.has(q.place) && (!b.buy || q.buy < b.buy.price)) b.buy = { price: q.buy, at: q.buy_at, place: q.place };
+    if (q.sell > 0 && !here.has(q.place) && (!b.sell || q.sell > b.sell.price)) b.sell = { price: q.sell, at: q.sell_at, place: q.place, status: q.sell_status };
+    if (q.buy > 0 && !here.has(q.place) && (!b.buy || q.buy < b.buy.price)) b.buy = { price: q.buy, at: q.buy_at, place: q.place, scu: q.buy_scu };
     best.set(q.name, b);
   }
   const rows = [];
@@ -171,6 +171,35 @@ export function tradeRows(market, at, mode, system) {
     rows.push({ name, here: b.here, other, profit });
   }
   return rows.sort((a, b) => (b.profit ?? -Infinity) - (a.profit ?? -Infinity) || a.name.localeCompare(b.name));
+}
+
+// The terminal's own stock level, as the game's terminal shows it (UEX status 1 to 7). When you sell,
+// an empty terminal has room for your cargo and a full one does not.
+const LEVEL = ['', 'empty', 'very low', 'low', 'medium', 'high', 'very high', 'full'];
+/** What the terminal had when the price was reported: SCU for sale when you buy; its own stock when you sell. */
+export function stockText(x) {
+  if (x.scu > 0) return { text: `${x.scu.toLocaleString('en-US')} SCU in stock`, low: x.scu < 10 };
+  if (x.status) return { text: `Their stock ${LEVEL[x.status] || ''}`, low: x.status >= 6 };
+  return null;
+}
+
+/** With your place unknown: each commodity's cheapest buy and best sell anywhere in the system, at two different places. */
+export function routes(market, system) {
+  const by = new Map();
+  for (const q of market.quotes) {
+    if (market.places[q.place].system !== system) continue;
+    const r = by.get(q.name) || { name: q.name, buys: [], sells: [] };
+    if (q.buy > 0) r.buys.push({ price: q.buy, at: q.buy_at, place: q.place, scu: q.buy_scu });
+    if (q.sell > 0) r.sells.push({ price: q.sell, at: q.sell_at, place: q.place, status: q.sell_status });
+    by.set(q.name, r);
+  }
+  const rows = [];
+  for (const r of by.values()) {
+    const buy = r.buys.sort((a, b) => a.price - b.price)[0];
+    const sell = buy && r.sells.filter(s => s.place !== buy.place).sort((a, b) => b.price - a.price)[0];
+    if (buy && sell && sell.price > buy.price) rows.push({ name: r.name, here: buy, other: sell, profit: sell.price - buy.price });
+  }
+  return rows.sort((a, b) => b.profit - a.profit || a.name.localeCompare(b.name));
 }
 
 /** Where one commodity is cheapest to buy and pays most to sell in a system, best first. */
