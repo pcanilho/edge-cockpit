@@ -19,7 +19,7 @@ use std::sync::Mutex;
 use std::time::Duration;
 use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
-use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize, State, WebviewWindow};
+use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, State, WebviewWindow};
 
 #[derive(Default)]
 struct App {
@@ -793,7 +793,7 @@ fn place(w: &WebviewWindow) {
             #[cfg(not(windows))]
             {
                 let _ = w.set_position(PhysicalPosition::new(x, y));
-                let _ = w.set_size(PhysicalSize::new(wd as u32, ht as u32));
+                let _ = w.set_size(tauri::PhysicalSize::new(wd as u32, ht as u32));
             }
         }
         None => {
