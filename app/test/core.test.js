@@ -116,6 +116,7 @@ test('reads the build, kills, a wrecked ship and the location', () => {
   assert.equal(s.wrecked, 1);
   assert.equal(placeName(s.location), 'Lorville');
   assert.deepEqual(place('Stanton1_Lorville'), { name: 'Lorville', kind: '', system: 'Stanton', body: 1 });
+  assert.equal(place('Stanton3_Area18').name, 'Area 18'); // as the game spells it
   assert.deepEqual(place('AsteroidClusterBase_Nyx_Social_Keeger_001'), { name: 'Keeger', kind: 'Asteroid base', system: 'Nyx', body: null });
   assert.deepEqual(place('Stanton2b_RestStop_Daymar'), { name: 'Daymar', kind: 'Rest stop', system: 'Stanton', body: 2 });
   // Being killed counts as going down, not as a kill.
