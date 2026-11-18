@@ -844,7 +844,7 @@ body.phone:not(.ph-whole) #stage::before { position: fixed; }
 .ph-gear svg { width: 22px; height: 22px; }
 .ph-rail { left: max(env(safe-area-inset-left), 6px); right: max(env(safe-area-inset-right), 6px); bottom: max(env(safe-area-inset-bottom), 8px); height: 58px; display: flex; gap: 4px; padding: 5px; border-radius: 12px;
   background: #05060a; box-shadow: inset 0 2px 4px #000, inset 0 0 0 1px #ffffff0d; touch-action: none; }
-.ph-rail button { flex: 1 1 0; min-width: 0; border-radius: 8px; font: 700 10.5px/1.15 var(--hud); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); position: relative; overflow-wrap: normal; padding: 0 3px; }
+.ph-rail button { flex: 1 1 0; min-width: 0; white-space: nowrap; border-radius: 8px; font: 700 10.5px/1.15 var(--hud); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); position: relative; overflow-wrap: normal; padding: 0 3px; }
 .ph-rail[data-n="7"] button, .ph-rail[data-n="8"] button, .ph-rail[data-n="9"] button { font-size: 9.5px; letter-spacing: .04em; }
 .ph-rail button.cur { color: var(--paint); background: linear-gradient(180deg, #2a3038, #1b2026); box-shadow: inset 0 1px 0 #ffffff26, 0 3px 0 #0d1013; }
 .ph-rail button.cur::before { content: ""; position: absolute; left: 30%; right: 30%; top: 5px; height: 3px; border-radius: 2px; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
@@ -933,8 +933,7 @@ body.phone.ph-land > .banner { top: 10px; }
 /* The stage is far wider than a phone: keep it from widening the page, or the phone zooms out. */
 body.phone { position: fixed; inset: 0; overflow: hidden; touch-action: manipulation; }
 /* Text screens narrowed on a phone wrap instead of running off. */
-.ph-folded .cm-head { flex-wrap: wrap; align-content: center; row-gap: 10px; }
-.ph-folded .cm-head .upd { margin-left: 0; text-align: left; }
+body.phone .cm-head, body.phone .cm-foot { flex-wrap: wrap; align-content: center; row-gap: 10px; }
 .ph-folded.logp .stats { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); align-content: center; row-gap: 14px; }
 .ph-folded.logp .stats div { padding-left: 14px; }
 .ph-folded.logp .stats b { white-space: nowrap; }
@@ -972,10 +971,9 @@ body.phone .screen.cm, body.phone .screen.xh { container-type: inline-size; }
   .xh .state { margin-top: 18px; font-size: 40px; }
   .xh .xsub { margin-top: 10px; }
   .xh .cycle { width: auto; margin-top: 22px; }
-  .xh .foot { margin-top: 16px; height: auto; flex-wrap: wrap; row-gap: 12px; }
-  .xh .foot .note { flex: 1 1 100%; order: 1; }
+  .xh .foot { margin-top: 16px; height: auto; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 14px 12px; }
   .xh .foot .sp { display: none; }
-  .xh .foot .wsync { margin-left: auto; }
+  .xh .foot .wsync { grid-column: 1 / -1; width: 100%; }
 }
 @container (min-width: 761px) and (max-width: 1040px) {
   .xh .cycle { width: auto; right: 28px; }
@@ -983,4 +981,14 @@ body.phone .screen.cm, body.phone .screen.xh { container-type: inline-size; }
 @container (max-width: 1040px) {
   .xh .ticks { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; height: auto; }
   .xh .ticks span { position: static; }
+}
+
+/* Prices controls on a narrow device: each switch spans the width, the note sits above the pager. */
+body.phone .cm-head, body.phone .cm-foot { container-type: inline-size; }
+@container (max-width: 640px) {
+  .cm-head .seg { flex: 1 1 100%; display: flex; }
+  .cm-head .seg button { flex: 1; }
+  .cm-head .upd { flex: 1 1 100%; margin-left: 0; text-align: left; }
+  .cm-foot .lab { flex: 1 1 100%; }
+  .cm-foot .wpg { margin-left: auto; }
 }

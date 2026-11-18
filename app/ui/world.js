@@ -297,7 +297,7 @@ export function paint() {
   paintTimers($('wd-tm'), now);
   paintServers($('wd-sv'));
   paintMarket($('wd-cmhead'), $('wd-cm'), $('wd-cmfoot'), now);
-  K.painted?.([$('wd-xh'), $('wd-cm')]);
+  K.painted?.([$('wd-xh'), $('wd-cm'), $('wd-cmhead'), $('wd-cmfoot')]);
 }
 /** After new Game.log lines: a new server ends the vault timer, a new place changes Here. */
 export function onLog() { if (K) { located(); armTimers(); paint(); } }
