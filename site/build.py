@@ -6,6 +6,7 @@ release.json is the GitHub API answer for releases/latest. Without it the
 download links point at the latest release page.
 """
 import argparse
+import hashlib
 import html
 import re
 import json
@@ -63,6 +64,10 @@ def main():
     fields["BASE_URL"] = re.sub(r"^http://", "https://", args.base_url.rstrip("/") + "/")
     fields["STAMP"] = str(int(time.time()))
     page = (SITE / "index.html").read_text(encoding="utf-8")
+    # Images are cached for hours: a hash of each one in its URL makes a retaken screenshot show at once.
+    for name in IMAGES:
+        tag = hashlib.sha256((ROOT / "docs" / f"{name}.png").read_bytes()).hexdigest()[:10]
+        page = page.replace(f'img/{name}.png"', f'img/{name}.png?v={tag}"')
     page = page.replace('<html lang="en">', f'<html lang="en" data-version="{html.escape(fields["VERSION"])}">', 1)
     for k, v in fields.items():
         page = page.replace("{{" + k + "}}", html.escape(v))
