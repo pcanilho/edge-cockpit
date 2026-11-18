@@ -18,6 +18,7 @@
   - Phone: the editor previews a plate as an upright phone folds it.
   - Share saves the page to Documents\Edge Cockpit\Pages; Import (arrange mode) adds a page file from there as a new page. Profiles carry your pages too.
   - Devices show your pages, and a tablet or PC showing the whole console can edit them: the Edge shows each change live, and Done saves on the PC.
+- README and site: pages of your own, with an editor screenshot.
 - CI: every PR pixel-compares all curated pages and phone views against its base.
 
 ## 0.8.0
