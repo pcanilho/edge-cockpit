@@ -54,7 +54,7 @@ function flightPlate() {
     keycap(296, 276, 140, 90, 'Freelook', { fs: 13 }),
     keycap(442, 276, 150, 90, 'Startup', { label: 'Ready & ATC', fs: 13, ...cut }),
     keycap(150, 374, 150, 78, 'Decoy', { fs: 13 }),
-    keycap(306, 374, 68, 78, 'Decoy burst −', { label: 'Burst −', fs: 11, icon: false }), keycap(380, 374, 68, 78, 'Decoy burst +', { label: 'Burst +', fs: 11, icon: false }),
+    rocker(306, 374, 142, 78, 'Decoy burst −', 'Decoy burst +', { vertical: false, ia: false, ib: false, la: 'Burst −', lb: 'Burst +' }),
     keycap(454, 374, 138, 78, 'Noise', { fs: 13 }),
   );
   const brake = h('<div class="hz" style="left:150px;top:460px;width:442px;height:110px"></div>');
