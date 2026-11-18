@@ -349,11 +349,11 @@ pub fn merge(into: &mut serde_json::Map<String, Value>, s: &serde_json::Map<Stri
     }
 }
 
-/// The QR code for an address, as an SVG in the console's colours.
+/// The QR code for an address, as an SVG: black on white, as phone cameras expect.
 pub fn qr_svg(url: &str) -> String {
     use qrcode::render::svg;
     qrcode::QrCode::new(url.as_bytes())
-        .map(|c| c.render::<svg::Color>().min_dimensions(160, 160).quiet_zone(true).dark_color(svg::Color("#e4ebf1")).light_color(svg::Color("#05060a")).build())
+        .map(|c| c.render::<svg::Color>().min_dimensions(160, 160).quiet_zone(true).dark_color(svg::Color("#000000")).light_color(svg::Color("#ffffff")).build())
         .unwrap_or_default()
 }
 
