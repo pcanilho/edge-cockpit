@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.6.0
 
 - Ship backdrop: when a ship's angled render on FleetYards is broken, the store image shows instead. Ships whose FleetYards id carries a suffix (Constellation Andromeda) are found.
 - Long ship and maker names shrink to fit one line (Constellation Andromeda, CRUSADER, ROBERTS SPACE INDUSTRIES).
