@@ -59,6 +59,19 @@ export const reportIssue = (title, body) => tauri ? tauri.core.invoke('report_is
 // The World page's prices and server status. Outside the app (UI tests, previews) a page may supply its own.
 export const worldPrices = () => tauri ? tauri.core.invoke('world_prices') : window.xfdTestWorld?.prices ? Promise.resolve(window.xfdTestWorld.prices) : onlyInApp();
 export const worldStatus = () => tauri ? tauri.core.invoke('world_status') : window.xfdTestWorld?.status ? Promise.resolve(window.xfdTestWorld.status) : onlyInApp();
+// Phones as extra screens. Console state one screen changes (switches set, the page) goes to the others.
+export const share = s => tauri?.core.invoke('share', { s }).catch(() => {});
+/** f(s) with state another screen changed. */
+export const onShared = f => tauri?.event.listen('shared', e => f(e.payload || {}));
+export const phonesView = () => tauri ? tauri.core.invoke('phones_view') : Promise.resolve(window.xfdTestPhones ?? null);
+export const phonesEnable = on => tauri ? tauri.core.invoke('phones_enable', { on }) : Promise.resolve(window.xfdTestPhones && (window.xfdTestPhones.enabled = on));
+export const phonesSet = (id, plate, mode) => tauri ? tauri.core.invoke('phones_set', { id, plate, mode }) : Promise.resolve();
+export const phonesForget = id => tauri ? tauri.core.invoke('phones_forget', { id }) : Promise.resolve();
+/** f() when phones pair, connect, drop or change plate. */
+export const onPhones = f => tauri?.event.listen('phones', () => f());
+/** On a phone: this phone's own plate and mode changed. */
+export const phoneSet = (plate, mode) => tauri ? tauri.core.invoke('phone_set', { plate, mode }) : Promise.resolve();
+export const onPhoneConfig = f => tauri?.event.listen('phone-config', e => f(e.payload));
 export const quit = () => tauri ? tauri.core.invoke('quit') : window.close();
 
 /** onBatch({ lines, live, reset }) for each batch of Game.log lines. */

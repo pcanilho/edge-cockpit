@@ -6,6 +6,7 @@
 mod family;
 mod game;
 mod keys;
+mod phone;
 mod world;
 #[cfg(windows)]
 mod win;
@@ -43,6 +44,8 @@ struct App {
     update: Mutex<Option<tauri_plugin_updater::Update>>,
     /// Prices and server status for the World page.
     world: world::Cache,
+    /// Phones paired as extra screens, and their links.
+    phones: phone::Phones,
 }
 
 /// Settings that matter before the UI loads, kept in prefs.json in the app's config folder.
@@ -57,11 +60,13 @@ struct Prefs {
     saved_backlight: Option<u32>,
     /// The display picked in Settings (its monitor name or GDI name), or None for automatic.
     display: Option<String>,
+    /// Serve the console to phones on the home network.
+    phones: bool,
 }
 
 impl Default for Prefs {
     fn default() -> Self {
-        Prefs { autostart: true, screen_off: true, saved_backlight: None, display: None }
+        Prefs { autostart: true, screen_off: true, saved_backlight: None, display: None, phones: false }
     }
 }
 
@@ -120,6 +125,10 @@ fn game_focused() -> bool {
 /// anywhere: also when the game isn't in front (for trying keys in Notepad).
 #[tauri::command]
 async fn key(app: State<'_, App>, spec: String, mode: String, ms: Option<u64>, anywhere: bool) -> Result<(), String> {
+    send_key(&app, spec, mode, ms, anywhere).await
+}
+
+async fn send_key(app: &App, spec: String, mode: String, ms: Option<u64>, anywhere: bool) -> Result<(), String> {
     let chord = keys::chord(&spec)?;
     #[cfg(windows)]
     win::restore_game_focus();
@@ -545,6 +554,7 @@ fn set_dark(handle: &AppHandle, dark: bool) {
     }
     release_all(&app);
     let _ = handle.emit("screen", dark);
+    app.phones.broadcast("screen", serde_json::Value::Bool(dark));
     // DDC/CI takes tens of milliseconds a call, so it runs off the UI thread.
     let h = handle.clone();
     std::thread::spawn(move || {
@@ -794,6 +804,12 @@ fn place(w: &WebviewWindow) {
     }
 }
 
+/// Game.log lines for the console, and for phones (who also get them later, on connecting).
+fn emit_log(handle: &AppHandle, batch: LogBatch) {
+    handle.state::<App>().phones.log_batch(&batch.lines, batch.live, batch.reset);
+    let _ = handle.emit("game-log", batch);
+}
+
 /// Follows the newest Game.log and sends its lines to the UI.
 fn watch_game(handle: AppHandle) {
     std::thread::spawn(move || {
@@ -819,7 +835,7 @@ fn watch_game(handle: AppHandle) {
                     let _ = game::install_binds(&c);
                     let mut t = game::Tail::new(c.join("Game.log"));
                     let lines = t.poll();
-                    let _ = handle.emit("game-log", LogBatch { lines, live: false, reset: true });
+                    emit_log(&handle, LogBatch { lines, live: false, reset: true });
                     tail = Some(t);
                     *ch = Some(c);
                 }
@@ -829,12 +845,12 @@ fn watch_game(handle: AppHandle) {
                 if std::mem::take(&mut t.restarted) {
                     // The game started over: the console starts over too, as on first load.
                     quiet = Duration::ZERO;
-                    let _ = handle.emit("game-log", LogBatch { lines, live: false, reset: true });
+                    emit_log(&handle, LogBatch { lines, live: false, reset: true });
                 } else if lines.is_empty() {
                     quiet = quiet.saturating_add(game::POLL);
                 } else {
                     quiet = Duration::ZERO;
-                    let _ = handle.emit("game-log", LogBatch { lines, live: true, reset: false });
+                    emit_log(&handle, LogBatch { lines, live: true, reset: false });
                 }
             }
             // Quick while the log is busy, and slower once nothing has happened for a while.
@@ -846,6 +862,123 @@ fn watch_game(handle: AppHandle) {
             }
         }
     });
+}
+
+// ---------- phones ----------
+
+/// Settings > Phones: the address, code and QR to pair, and the paired phones.
+#[tauri::command]
+fn phones_view(app: State<'_, App>) -> phone::View {
+    app.phones.view()
+}
+
+/// Phones on this network, on or off. Windows asks once to let the app through its firewall.
+#[tauri::command]
+fn phones_enable(handle: AppHandle, app: State<'_, App>, on: bool) {
+    let p = {
+        let mut p = app.prefs.lock().unwrap();
+        p.phones = on;
+        p.clone()
+    };
+    save_prefs(&handle, &p);
+    app.phones.set_enabled(on);
+    if on {
+        phone::start(std::sync::Arc::new(PhoneHost(handle.clone())));
+    }
+    let _ = handle.emit("phones", ());
+}
+
+/// A phone's plate (swipe, status, power, role, flight or gear) and mode (copy or move).
+#[tauri::command]
+fn phones_set(handle: AppHandle, app: State<'_, App>, id: String, plate: Option<String>, mode: Option<String>) {
+    app.phones.configure(&id, plate.as_deref(), mode.as_deref());
+    let _ = handle.emit("phones", ());
+}
+
+#[tauri::command]
+fn phones_forget(handle: AppHandle, app: State<'_, App>, id: String) {
+    app.phones.forget(&id);
+    let _ = handle.emit("phones", ());
+}
+
+/// Console state this screen changed (a switch set, the page), for every phone.
+#[tauri::command]
+fn share(app: State<'_, App>, s: serde_json::Map<String, serde_json::Value>) {
+    app.phones.share(&s, None);
+}
+
+/// The app as phones see it: its files, and the commands a phone may run.
+struct PhoneHost(AppHandle);
+
+impl phone::Host for PhoneHost {
+    fn phones(&self) -> &phone::Phones {
+        &self.0.state::<App>().inner().phones
+    }
+
+    fn asset(&self, path: &str) -> Option<(Vec<u8>, String)> {
+        let a = self.0.asset_resolver().get(path.to_string())?;
+        Some((a.bytes().to_vec(), a.mime_type().to_string()))
+    }
+
+    fn call(&self, cmd: &str, args: &serde_json::Value, held: &mut HashSet<String>) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<serde_json::Value, String>> + Send + '_>> {
+        use serde_json::{to_value, Value};
+        let cmd = cmd.to_string();
+        let args = args.clone();
+        let spec = args["spec"].as_str().map(str::to_string);
+        let mode = args["mode"].as_str().unwrap_or("tap").to_string();
+        // Hold keys this phone has down, so they can be let go if it drops.
+        match (spec.as_deref(), mode.as_str()) {
+            (Some(s), "down") if cmd == "key" => { held.insert(s.to_string()); }
+            (Some(s), "up") if cmd == "key" => { held.remove(s); }
+            _ => {}
+        }
+        let mine: Vec<String> = if cmd == "release_keys" { held.drain().collect() } else { Vec::new() };
+        Box::pin(async move {
+            let h = &self.0;
+            let app = h.state::<App>();
+            let anywhere = args["anywhere"].as_bool().unwrap_or(false);
+            match cmd.as_str() {
+                "key" => send_key(&app, spec.ok_or("no key")?, mode, args["ms"].as_u64(), anywhere).await.map(|_| Value::Null),
+                "wheel" => wheel(args["clicks"].as_i64().unwrap_or(0).clamp(-50, 50) as i32, anywhere).map(|_| Value::Null),
+                "release_keys" => {
+                    self.release(mine.into_iter().collect());
+                    Ok(Value::Null)
+                }
+                "game_info" => to_value(game_info(app)).map_err(|e| e.to_string()),
+                "read_binds" => to_value(read_binds(app)).map_err(|e| e.to_string()),
+                "user_ships" => to_value(user_ships(h.clone())).map_err(|e| e.to_string()),
+                "get_prefs" => to_value(get_prefs(h.clone(), app)).map_err(|e| e.to_string()),
+                "world_prices" => to_value(world_prices(h.clone(), app).await?).map_err(|e| e.to_string()),
+                "world_status" => to_value(world_status(app).await?).map_err(|e| e.to_string()),
+                "wake_screen" => {
+                    let h2 = h.clone();
+                    let _ = h.run_on_main_thread(move || wake(&h2));
+                    Ok(Value::Null)
+                }
+                // This PC's console hears what a phone changed.
+                "share_local" => {
+                    let _ = h.emit("shared", &args["s"]);
+                    Ok(Value::Null)
+                }
+                "check_update" | "load_profile" | "displays" | "perf" => Ok(Value::Null),
+                _ => Err("Only on the PC".into()),
+            }
+        })
+    }
+
+    fn changed(&self) {
+        let _ = self.0.emit("phones", ());
+    }
+
+    fn release(&self, held: HashSet<String>) {
+        for spec in held {
+            if let Ok(_c) = keys::chord(&spec) {
+                self.0.state::<App>().held.lock().unwrap().remove(&spec);
+                #[cfg(windows)]
+                let _ = win::send(&_c, true);
+            }
+        }
+    }
 }
 
 fn tray(handle: &AppHandle) -> tauri::Result<()> {
@@ -894,7 +1027,8 @@ fn main() {
             key, wheel, ui_ready, user_ships, release_keys, game_info, read_binds, install_binds, run_as_admin, quit,
             save_profile, load_profile, save_user_ships, install_profile_binds,
             get_prefs, set_pref, wake_screen, sleep_screen, check_update, install_update, perf,
-            displays, set_display, fix_touch, report_issue, world_prices, world_status
+            displays, set_display, fix_touch, report_issue, world_prices, world_status,
+            phones_view, phones_enable, phones_set, phones_forget, share
         ])
         .setup(|app| {
             let handle = app.handle().clone();
@@ -907,7 +1041,14 @@ fn main() {
             if first_run {
                 save_prefs(&handle, &prefs);
             }
+            let phones_on = prefs.phones;
             *app.state::<App>().prefs.lock().unwrap() = prefs;
+            if let Ok(dir) = handle.path().app_config_dir() {
+                app.state::<App>().phones.load(dir.join("phones.json"), phones_on);
+            }
+            if phones_on {
+                phone::start(std::sync::Arc::new(PhoneHost(handle.clone())));
+            }
             let w = app.get_webview_window("main").expect("main window");
             #[cfg(windows)]
             {

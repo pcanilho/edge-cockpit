@@ -23,7 +23,8 @@ export function place(root, order) {
   let x = LEFT;
   for (const slot of order) {
     const p = by[slot];
-    if (!p) continue;
+    // A plate moved to a phone leaves no gap.
+    if (!p || p.classList.contains('moved')) continue;
     p.style.left = `${x}px`;
     x += p.offsetWidth + GAP;
   }

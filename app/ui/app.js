@@ -12,8 +12,13 @@ import { ART } from './backdrops.js';
 import * as arrange from './arrange.js';
 import * as perf from './perf.js';
 import * as world from './world.js';
+import * as phone from './phone.js';
 
 const $ = id => document.getElementById(id);
+// On a phone (link.js set this up), the console shows one plate at a time.
+const onPhone = !!window.__EC_PHONE__;
+// Pairing comes first: the console below waits for the PC to answer.
+if (onPhone) window.__EC_PHONE__.onState(st => phone.linkScreen(st, window.__EC_PHONE__.error));
 const stage = $('stage');
 const load = async f => (await fetch('vendor/' + f)).json();
 const [layout, shipsDb, bundledOverrides, consoleXml] = await Promise.all([
@@ -338,14 +343,23 @@ const tracked = st => st.kind === 'set';
 const isOn = st => st.kind === 'set' && states[st.key] === st.value;
 const known = key => key in states;
 function flip(st) {
-  if (tracked(st)) { states[st.key] = st.value; repaint(); return; }
+  if (tracked(st)) { states[st.key] = st.value; repaint(); bridge.share({ st: { [st.key]: st.value } }); return; }
   // A toggle flips whatever the game had, so the matching switch no longer knows.
-  if (st.key in states) { delete states[st.key]; repaint(); }
+  if (st.key in states) { delete states[st.key]; repaint(); bridge.share({ st: { [st.key]: null } }); }
   for (const node of document.querySelectorAll(`#console [data-state]`)) {
     if (JSON.parse(node.dataset.state).key !== st.key) continue;
     node.classList.add('on');
     setTimeout(() => node.classList.remove('on'), 350);
   }
+}
+/** State another screen (the PC or a phone) changed. */
+function shared(s) {
+  if ('st' in s) {
+    if (s.st === null) for (const key of Object.keys(states)) delete states[key];
+    else for (const [k, v] of Object.entries(s.st)) { if (v === null) delete states[k]; else states[k] = v; }
+    repaint();
+  }
+  if (s.page && s.page !== current) show(s.page, true);
 }
 function repaint() {
   for (const node of document.querySelectorAll('#console [data-state]')) {
@@ -385,7 +399,7 @@ const K = {
   family,
   bind, fire, wheel, flip, isOn, known, local, tick, toast, theme,
   fired: node => { if (opts.flash) flash(node, 'fired'); },
-  scale: () => (stacked ? twoRows() : oneRow()),
+  scale: () => (onPhone ? phone.phoneScale() : stacked ? twoRows() : oneRow()),
   swipe: dir => {
     const i = SWIPE.findIndex(s => current.startsWith(s));
     const base = SWIPE[(i + dir + SWIPE.length) % SWIPE.length];
@@ -471,19 +485,24 @@ function render() {
   pageAccent = theme(page).accent;
   applyAccent();
   if (!cache.has(current)) { slotN = 0; cache.set(current, scene(page)); }
+  for (const p of cache.get(current)) { phone.unfold(p); p.classList.toggle('moved', !onPhone && moved.has(p.dataset.slot)); }
   $('console').replaceChildren(...cache.get(current));
   const role = moduleOf(current);
   if (role) arrange.place($('console'), arrange.orderFor(role));
   stack();
+  if (!onPhone) fit();
   repaint();
   paintQuantum();
   paintLog();
   world.paint();
   paintSoftkeys();
+  // A phone folds the plates as painted.
+  if (onPhone) fit();
 }
 
-function show(id) {
+function show(id, remote) {
   if (!pageById(layout, id) || arrange.isEditing()) return;
+  if (!remote && id !== current) bridge.share({ page: id });
   if (moduleOf(id)) lastShip = id;
   const changed = id !== current;
   if (changed && (current === 'world' || id === 'world')) world.showing(id === 'world');
@@ -556,13 +575,17 @@ async function paintDisplays() {
   $('touch-chip').hidden = d.touch_ok;
 }
 bridge.onDisplays(() => { paintDisplays(); paintSetup(); });
-const TAB_ICONS = { general: 'cog', screen: 'bulb', feedback: 'pulse', binds: 'list', profile: 'person', about: 'download' };
+const TAB_ICONS = { general: 'cog', screen: 'bulb', feedback: 'pulse', phones: 'phone', binds: 'list', profile: 'person', about: 'download' };
 function showSection(sec) {
   document.querySelectorAll('.tab[data-sec]').forEach(t => t.classList.toggle('cur', t.dataset.sec === sec));
   document.querySelectorAll('.pane').forEach(p => { p.hidden = p.dataset.sec !== sec; });
   if (sec === 'screen') paintDisplays();
+  if (sec === 'phones') paintPhones();
 }
-function openSheet(open, sec) { if (sec) showSection(sec); $('sheet').hidden = !open; paintSoftkeys(); }
+function openSheet(open, sec) {
+  if (onPhone) { if (open) phone.openSettings({ set: (plate, mode) => bridge.phoneSet(plate, mode), opts, setOpt }); return; }
+  if (sec) showSection(sec); $('sheet').hidden = !open; paintSoftkeys();
+}
 document.querySelectorAll('.tab[data-sec]').forEach(t => {
   t.querySelector('svg').innerHTML = GLYPHS[TAB_ICONS[t.dataset.sec]] || '';
   controls.pressable(t, { up: () => { tick('page'); showSection(t.dataset.sec); } });
@@ -700,7 +723,7 @@ function paintUpdate() {
 let session = { ...NEW_TALLY };
 function showRecap() {
   const t = session, mins = minutes(t);
-  if (!opts.recap || !t.start || mins < 1) return;
+  if (!opts.recap || onPhone || !t.start || mins < 1) return;
   const ships = t.ships.map(m => lookup(shipsDb.ships, overrides.ships, m)?.name || shipName(m));
   const stat = (n, label) => `<div class="rc-stat"><b>${n}</b><span>${label}</span></div>`;
   $('rc-time').textContent = mins >= 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${mins} min`;
@@ -1055,6 +1078,7 @@ function forgetStates() {
   stateShip = ship;
   for (const key of Object.keys(states)) delete states[key];
   repaint();
+  bridge.share({ st: null });
 }
 function follow(force) {
   forgetStates();
@@ -1130,6 +1154,72 @@ async function poll() {
   paintSetup();
 }
 
+// ---------- phones: Settings > Phones on the PC ----------
+const PLATES = [['swipe', 'Swipe'], ['status', 'Status'], ['power', 'Power'], ['role', 'Role'], ['flight', 'Flight'], ['gear', 'Gear']];
+let phonesState = null;
+async function paintPhones() {
+  const v = phonesState = await bridge.phonesView().catch(() => null);
+  if (!v) return;
+  $('ph-enable').classList.toggle('on', v.enabled);
+  $('phones-dot').hidden = !v.list.some(p => p.online);
+  const qr = $('ph-qr');
+  qr.classList.toggle('off', !v.qr);
+  if (v.qr) qr.innerHTML = v.qr; else qr.textContent = v.enabled ? 'No home network' : 'Phones off';
+  $('ph-code').textContent = v.code ? `${v.code.slice(0, 3)} ${v.code.slice(3)}` : '––– –––';
+  $('ph-addr').textContent = v.url || '';
+  const esc = controls.esc;
+  const seg = (cls, list, val, na) => `<span class="seg ${cls}${na ? ' na' : ''}">${list.map(([k, l]) => `<button data-v="${k}" class="${k === val ? 'cur' : ''}">${l}</button>`).join('')}</span>`;
+  const ago = s => { const m = Math.round((Date.now() / 1000 - s) / 60); return m < 2 ? 'just now' : m < 120 ? `${m} min ago` : m < 2880 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} days ago`; };
+  const here = ['status', 'power', 'role', 'flight', 'gear'];
+  const gone = new Set(v.moved);
+  const rows = v.list.map(p => `<div class="opt choice${p.online ? '' : ' off'}" data-id="${esc(p.id)}">${controls.icon('phone', 34).replace('class="i"', 'class="i ico"')}
+    <span class="txt">${esc(p.name)}<small><i class="live"></i>${p.online ? 'Connected' : `Seen ${ago(p.seen)}`}</small></span>
+    ${seg('which', PLATES, p.plate)}${seg('mode', [['copy', 'Copy'], ['move', 'Move']], p.mode, p.plate === 'swipe' || p.plate === 'status')}
+    <button class="forget">Forget</button></div>`).join('');
+  $('ph-list').innerHTML = (v.list.length ? `<div class="here"><small>This screen shows</small>${here.map(k => `<span class="${gone.has(k) ? 'gone' : ''}">${k}</span>`).join('')}${gone.size ? '<em>Moved plates come back when their phone disconnects.</em>' : ''}</div>` : '')
+    + rows + `<p class="hint">${v.list.length ? 'Copy shows the plate on the phone and here. Move takes it off this screen. Swipe steps through every plate with the phone\'s rail and always copies. Each phone can change this in its own settings too.' : 'No phones yet. Turn Phones on, then scan the code with a phone on the same Wi-Fi.'}</p>`;
+  $('ph-list').querySelectorAll('.opt[data-id]').forEach(row => {
+    const id = row.dataset.id;
+    row.querySelectorAll('.seg.which button').forEach(b => controls.pressable(b, { up: () => { tick('toggle'); bridge.phonesSet(id, b.dataset.v, null).then(paintPhones); } }));
+    row.querySelectorAll('.seg.mode button').forEach(b => controls.pressable(b, { up: () => { tick('toggle'); bridge.phonesSet(id, null, b.dataset.v).then(paintPhones); } }));
+    controls.pressable(row.querySelector('.forget'), { up: () => { tick('tap'); bridge.phonesForget(id).then(paintPhones); } });
+  });
+  const m = new Set(v.moved);
+  if ([...m].join() !== [...moved].join()) { moved = m; render(); }
+}
+function startPhones() {
+  controls.pressable($('ph-enable'), { up: () => { tick('toggle'); bridge.phonesEnable(!phonesState?.enabled).then(paintPhones); } });
+  bridge.onPhones?.(paintPhones);
+  paintPhones();
+  // The pairing code changes every two minutes: keep it current while it shows.
+  setInterval(() => { if (!$('sheet').hidden && !document.querySelector('.pane[data-sec=phones]').hidden) paintPhones(); }, 5000);
+}
+
+// ---------- on a phone ----------
+function startPhone() {
+  const link = window.__EC_PHONE__;
+  phone.init({ stage, tick, onSettings: () => openSheet(true) });
+  // Toasts and alerts sit over the phone's screen, not on the stage.
+  document.body.append($('toast'), $('banner'));
+  opts.recap = false;
+  link.onState(st => phone.paintTop({ state: st, rtt: link.rtt }));
+  bridge.onPhoneConfig?.(c => phone.configure(c));
+  if (link.me) phone.configure(link.me);
+  setInterval(() => phone.paintTop({ state: link.state, rtt: link.rtt }), 5000);
+  // Keep the screen on where the browser allows it (a secure page only; plain Wi-Fi pages can't).
+  let lock = null;
+  const awake = () => { if (navigator.wakeLock && !lock && !document.hidden) navigator.wakeLock.request('screen').then(l => { lock = l; l.addEventListener('release', () => { lock = null; }); }).catch(() => {}); };
+  addEventListener('pointerdown', awake, { passive: true });
+  document.addEventListener('visibilitychange', awake);
+  // The ship's name in the top bar, and where you are under a short plate, follow the status display.
+  let pending = false;
+  new MutationObserver(() => {
+    if (pending) return;
+    pending = true;
+    requestAnimationFrame(() => { pending = false; phone.paintTop({ state: link.state, rtt: link.rtt, ship: $('ship-name').textContent }); phone.refresh(); });
+  }).observe($('status'), { subtree: true, childList: true, characterData: true });
+}
+
 // ---------- clock and scale ----------
 function clock() {
   $('clock').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -1141,11 +1231,12 @@ function clock() {
 // rows when that makes the keys bigger: the status display and first plates on top, the rest below.
 const ROW_W = 1662;
 let stacked = false;
-const oneRow = () => Math.min(innerWidth / 2560, innerHeight / 720);
+let fitScale = null;
+const oneRow = () => fitScale ?? Math.min(innerWidth / 2560, innerHeight / 720);
 const twoRows = () => Math.min(innerWidth / ROW_W, innerHeight / 1440);
 function stack() {
   const status = $('status');
-  const plates = [...$('console').querySelectorAll(':scope > .plate')].sort((a, b) => a.offsetLeft - b.offsetLeft);
+  const plates = [...$('console').querySelectorAll(':scope > .plate:not(.moved)')].sort((a, b) => a.offsetLeft - b.offsetLeft);
   for (const p of [status, ...plates]) p.style.translate = '';
   if (!stacked || !plates.length) return;
   // Split where the longer row is shortest, then centre both rows.
@@ -1161,15 +1252,27 @@ function stack() {
   [status, ...plates.slice(0, best.i)].forEach(p => { if (top) p.style.translate = `${top}px 0`; });
   plates.slice(best.i).forEach(p => { p.style.translate = `${bottom}px 720px`; });
 }
+// Plates moved to a phone leave the PC's console; the rest close up and grow to fill the screen.
+let moved = new Set();
+function contentWidth() {
+  if (!moved.size || stacked) return 2560;
+  const plates = [...$('console').querySelectorAll(':scope > .plate:not(.moved)')];
+  return Math.max(382, ...plates.map(p => p.offsetLeft + p.offsetWidth)) + 6;
+}
 function fit() {
+  if (onPhone) { phone.layout(); return; }
   const was = stacked;
-  stacked = opts.stack && twoRows() > oneRow() * 1.08;
+  stacked = opts.stack && twoRows() > Math.min(innerWidth / 2560, innerHeight / 720) * 1.08;
   stage.classList.toggle('stacked', stacked);
   stage.style.width = stacked ? `${ROW_W}px` : '';
   stage.style.height = stacked ? '1440px' : '';
   if (stacked !== was || stacked) stack();
-  const s = K.scale();
-  stage.style.transform = `translate(${Math.max(0, (innerWidth - (stacked ? ROW_W : 2560) * s) / 2)}px, ${Math.max(0, (innerHeight - (stacked ? 1440 : 720) * s) / 2)}px) scale(${s})`;
+  const cw = contentWidth();
+  // The stage closes up with the moved plates, so the settings sheet and banners stay on screen.
+  if (!stacked) stage.style.width = cw < 2560 ? `${cw}px` : '';
+  const s = stacked ? K.scale() : Math.min(innerWidth / cw, innerHeight / 720);
+  fitScale = s;
+  stage.style.transform = `translate(${Math.max(0, (innerWidth - (stacked ? ROW_W : cw) * s) / 2)}px, ${Math.max(0, (innerHeight - (stacked ? 1440 : 720) * s) / 2)}px) scale(${s})`;
 }
 addEventListener('resize', fit);
 // Lifting a finger outside the panel, or the panel hiding, must never leave a key down.
@@ -1209,13 +1312,15 @@ bridge.onTray?.(what => {
 });
 bridge.onAutostart?.(on => { opts.autostart = on; document.querySelectorAll('.opt[data-opt="autostart"]').forEach(o => o.classList.toggle('on', on)); });
 setOpt('night', opts.night);
+bridge.onShared?.(shared);
+if (onPhone) startPhone(); else startPhones();
 render();
 await reloadBinds();
 poll(); setInterval(poll, 2000);
 paintStatus();
 if (demo) { opts.auto = false; show(demo); }
 // The setup check shows once, on the first start (in the browser preview only with ?setup).
-if (bridge.inApp ? !store.get('setup-done', false) : new URLSearchParams(location.search).has('setup')) showSetup();
+if (!onPhone && (bridge.inApp ? !store.get('setup-done', false) : new URLSearchParams(location.search).has('setup'))) showSetup();
 stage.classList.remove('booting');
 window.xfd = { show, raise, setup: showSetup, feed: (lines, live = true) => onLog({ lines, live }), recap: t => { session = { ...NEW_TALLY, ...t }; showRecap(); }, perf: perf.toggle, showSection, bindHealth, bindsProfile, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
 document.body.dataset.ready = '1';
