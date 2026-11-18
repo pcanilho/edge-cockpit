@@ -59,13 +59,15 @@
 
   <div class="sheet picker" id="picker" hidden>
     <nav class="tabs" id="pick-tabs">
-      <h2>Add a key</h2>
+      <h2 id="pick-title">Add a key</h2>
       <p class="pick-now" id="pick-now"></p>
       <button class="tab quit" id="pick-clear"><span>Clear slot</span></button>
     </nav>
     <div class="panes">
       <button class="close" id="pick-close" aria-label="Close"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <div class="pick-search empty" id="pick-search" role="button"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span id="pick-q">Search all keys</span><i></i><small id="pick-count"></small></div>
       <div class="pick-grid" id="pick-grid"></div>
+      <div class="pick-kb" id="pick-kb" hidden></div>
     </div>
   </div>
 
@@ -97,12 +99,14 @@
       </section>
       <section class="pane" data-sec="screen" hidden>
         <h3>Screen</h3>
-        <div class="rows">
+        <div class="rows r3">
           <button class="opt" data-opt="screen_off" data-app><span class="txt">Screen off when not playing<small id="screen-note">Wakes when Star Citizen starts, or on a touch</small></span><span class="knob"></span></button>
           <div class="opt choice" id="night-row"><span class="txt">Night mode<small id="night-note">Dims the console for dark rooms</small></span><span class="seg" id="night-seg"><button data-v="off">Off</button><button data-v="auto">Auto</button><button data-v="on">On</button></span></div>
-          <div class="opt choice theme-row" id="theme-row"><span class="txt">Maker theme<small id="theme-note">Plates and trim follow the maker of the ship you fly</small></span><span class="seg" id="theme-seg"><button data-v="auto">Auto</button><button data-v="off">Off</button><button data-v="DRAK">Drake</button><button data-v="AEGS">Aegis</button><button data-v="ORIG">Origin</button><button data-v="MISC">MISC</button><button data-v="ANVL">Anvil</button><button data-v="RSI">RSI</button><button data-v="CRUS">Crusader</button><button data-v="ARGO">Argo</button><button data-v="CNOU">C.O.</button></span></div>
           <button class="opt" data-opt="large"><span class="txt">Large labels<small>Bigger key text, for glare or a screen further away</small></span><span class="knob"></span></button>
+          <div class="opt choice theme-row" id="theme-row"><span class="txt">Maker theme<small id="theme-note">Plates and trim follow the maker of the ship you fly</small></span><span class="seg" id="theme-seg"><button data-v="auto">Auto</button><button data-v="off">Off</button><button data-v="DRAK">Drake</button><button data-v="AEGS">Aegis</button><button data-v="ORIG">Origin</button><button data-v="MISC">MISC</button><button data-v="ANVL">Anvil</button><button data-v="RSI">RSI</button><button data-v="CRUS">Crusader</button><button data-v="ARGO">Argo</button><button data-v="CNOU">C.O.</button></span></div>
           <button class="act" id="act-sleep"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Screen off now<small>Touch the screen to wake it</small></span></button>
+          <div class="opt choice" id="plates-row"><span class="txt">Ship plates here<small id="plates-note">The rest grow to fill</small></span><span class="seg" id="plates-seg"><button data-v="power">Power</button><button data-v="role">Role</button><button data-v="flight">Flight</button><button data-v="gear">Gear</button></span></div>
+          <div class="opt choice" id="size-row"><span class="txt">Size<small id="size-note">Fit grows the console to fill the screen</small></span><span class="seg" id="size-seg"><button data-v="fit">Fit</button><button data-v="actual">Actual size</button></span></div>
         </div>
         <h4 class="sub">Show the console on</h4>
         <div class="displays" id="displays"></div>

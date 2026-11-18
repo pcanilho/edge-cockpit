@@ -1,11 +1,13 @@
 // Reordering the ship plates. Long-press a plate's title strip to start; drag plates
 // sideways; Done saves the order for that role (fighter, mining, ...), Reset restores it.
-// Plates keep their widths, so any order fills the console exactly.
+// Plates keep their widths, so any order fills the console exactly. The role plate also
+// offers the other role modules, so a ship page can carry, say, the mining module.
 
 export const DEFAULT = ['power', 'role', 'flight', 'gear'];
 const LEFT = 382, GAP = 6, HOLD_MS = 550;
 
-let ctx = null; // { store, tick, role(), onDone() }
+let ctx = null; // { store, tick, role(), roleName(), modules, module(), stockModule(), onDone(role, module) }
+let picked = null; // the role module chosen in this session
 let editing = false;
 let bar = null;
 
@@ -58,16 +60,49 @@ function start(root) {
     grab.innerHTML = `<span>${p.dataset.slot === 'role' ? 'Role module' : p.querySelector('.title')?.textContent || ''}</span><small>Drag to move</small>`;
     p.appendChild(grab);
     drag(root, p, grab);
+    if (p.dataset.slot === 'role' && ctx.modules) modules(grab);
   }
   bar = document.createElement('div');
   bar.className = 'arrange-bar';
   bar.innerHTML = `<span>Arrange the ${ctx.roleName()} console</span><button data-a="reset">Reset</button><button data-a="done" class="primary">Done</button>`;
   bar.addEventListener('pointerup', e => {
     const a = e.target.closest('button')?.dataset.a;
-    if (a === 'reset') { ctx.tick('tap'); place(root, DEFAULT); }
+    if (a === 'reset') { ctx.tick('tap'); place(root, DEFAULT); picked = ctx.stockModule(); paintModules(root); }
     if (a === 'done') finish(root);
   });
   root.parentElement.appendChild(bar);
+}
+
+/** Chips for the role modules; the pick applies on Done. */
+function modules(grab) {
+  picked = ctx.module();
+  const row = document.createElement('div');
+  row.className = 'mods';
+  for (const [id, name] of Object.entries(ctx.modules)) {
+    const b = document.createElement('button');
+    b.dataset.m = id;
+    b.textContent = name;
+    row.appendChild(b);
+  }
+  const note = document.createElement('small');
+  note.className = 'mods-note';
+  grab.append(row, note);
+  // A chip is a tap, not the start of a drag.
+  row.addEventListener('pointerdown', e => e.stopPropagation());
+  row.addEventListener('pointerup', e => {
+    const m = e.target.closest('button')?.dataset.m;
+    if (!m) return;
+    ctx.tick('detent');
+    picked = m;
+    paintModules(grab.closest('#console') || document);
+  });
+  paintModules(grab);
+}
+function paintModules(root) {
+  const stock = ctx.stockModule();
+  root.querySelectorAll('.mods button').forEach(b => b.classList.toggle('cur', b.dataset.m === picked));
+  const note = root.querySelector('.mods-note');
+  if (note) note.textContent = picked === stock ? `${ctx.modules[stock]} is stock for this ship` : `${ctx.modules[picked]} module on this ship page. ${ctx.modules[stock]} is stock`;
 }
 
 function current(root) {
@@ -114,5 +149,6 @@ function finish(root) {
   bar?.remove(); bar = null;
   editing = false;
   ctx.tick('tap');
-  ctx.onDone(role);
+  ctx.onDone(role, picked);
+  picked = null;
 }

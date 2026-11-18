@@ -556,6 +556,59 @@ for (const [W, H] of [[1920, 1080], [1180, 820]]) {
   await ctx.close();
 }
 
+// Your keys and plates: a key you swap in, a role module on another ship page, plates left out.
+{
+  const ctx = await browser.newContext({ viewport: { width: 2560, height: 720 } });
+  const pg = await ctx.newPage();
+  pg.on('pageerror', e => errors.push(`custom: ${e.message}`));
+  await pg.route(/fleetyards|fltyrd/, r => r.abort());
+  await pg.addInitScript(() => {
+    if (sessionStorage.getItem('seeded')) return;
+    sessionStorage.setItem('seeded', '1');
+    localStorage.setItem('xfd-map:light-fighter:Noise', '"Scan mode"');
+    localStorage.setItem('xfd-module:fighter', '"mining"');
+  });
+  await pg.goto(base + '?demo=ship');
+  await pg.waitForSelector('body[data-ready]');
+  await pg.evaluate(() => document.fonts.ready);
+  await pg.evaluate(() => window.xfd.show('light-fighter'));
+  const r = await pg.evaluate(() => ({
+    mine: [...document.querySelectorAll('#console .well.key')].filter(e => e.querySelector('.mine')).map(e => e.querySelector('.lg').textContent),
+    noise: [...document.querySelectorAll('#console .lg')].some(e => e.textContent === 'Noise'),
+    module: document.querySelector('#console .plate[data-slot="role"] .rtitle small')?.textContent,
+  }));
+  if (r.mine.join() !== 'Scan mode' || r.noise) problems.push(`a swapped key shows ${JSON.stringify(r)}`);
+  if (r.module !== 'Mining module') problems.push(`the role plate shows "${r.module}", not the mining module`);
+  await checkLabels('your keys');
+  if (shots) await pg.screenshot({ path: join(shots, 'custom-keys.png') });
+  // Long-press the swapped key: the picker says what's stock and offers it back.
+  const key = await pg.evaluateHandle(() => [...document.querySelectorAll('#console .well.key')].find(e => e.querySelector('.mine')));
+  const b = await key.boundingBox();
+  await pg.mouse.move(b.x + b.width / 2, b.y + b.height / 2); await pg.mouse.down(); await pg.waitForTimeout(800); await pg.mouse.up();
+  const pick = await pg.evaluate(() => ({ open: !document.getElementById('picker').hidden, now: document.getElementById('pick-now').textContent, back: !document.getElementById('pick-clear').hidden }));
+  if (!pick.open || !pick.now.includes('Stock: Noise') || !pick.back) problems.push(`the key picker shows ${JSON.stringify(pick)}`);
+  await checkLabels('key picker', true);
+  await pg.evaluate(() => document.getElementById('pick-search').dispatchEvent(new PointerEvent('pointerup')));
+  for (const c of 'SCAN') await pg.evaluate(c => [...document.querySelectorAll('#pick-kb button')].find(b => b.textContent === c).dispatchEvent(new PointerEvent('pointerup')), c);
+  const hits = await pg.evaluate(() => [...document.querySelectorAll('#pick-grid .pick')].map(e => e.textContent.trim().toLowerCase()));
+  if (!hits.includes('scan mode')) problems.push(`search for "scan" found ${hits.join(', ') || 'nothing'}`);
+  if (shots) await pg.screenshot({ path: join(shots, 'picker-search.png') });
+  // Two plates on a 4:3 screen: the rest leave and those two fill it.
+  await pg.evaluate(() => { localStorage.setItem('xfd-plates', '["role","flight"]'); });
+  await pg.setViewportSize({ width: 1280, height: 960 });
+  await pg.reload(); await pg.waitForSelector('body[data-ready]');
+  await pg.evaluate(() => window.xfd.show('light-fighter'));
+  const f = await pg.evaluate(() => {
+    const vis = [...document.querySelectorAll('#console > .plate')].filter(p => getComputedStyle(p).display !== 'none').map(p => p.dataset.slot);
+    const r = [...document.querySelectorAll('#console > .plate:not(.moved), #status')].map(p => p.getBoundingClientRect());
+    return { vis, inside: r.every(b => b.left >= -1 && b.right <= innerWidth + 1 && b.top >= -1 && b.bottom <= innerHeight + 1), width: Math.max(...r.map(b => b.right)) - Math.min(...r.map(b => b.left)) };
+  });
+  if (f.vis.join() !== 'role,flight') problems.push(`with two plates chosen, the screen shows ${f.vis.join(', ')}`);
+  if (!f.inside || f.width < 1200) problems.push(`two chosen plates don't fill the screen (${JSON.stringify(f)})`);
+  if (shots) await pg.screenshot({ path: join(shots, 'plates-two.png') });
+  await ctx.close();
+}
+
 const heap = await page.evaluate(() => performance.memory?.usedJSHeapSize || 0);
 
 report.push(`pages checked: ${ids.length}`, `slowest first build: ${worstBuild.toFixed(1)} ms (budget ${BUDGET.firstBuildMs})`,
