@@ -134,6 +134,8 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: ro
 .rocker.v > .a { left: 5px; right: 5px; top: 5px; bottom: calc(50% + 2px); border-radius: 9px 9px 2px 2px; }
 .rocker.v > .b { left: 5px; right: 5px; bottom: 9px; top: calc(50% + 1px); border-radius: 2px 2px 9px 9px; }
 .rocker .lg { --fs: 12px; white-space: nowrap; }
+.rocker.h > .cap { padding-left: 4px; padding-right: 4px; }
+.rocker.h .lg { letter-spacing: .04em; }
 
 /* ---------- bat toggle ---------- */
 .tgl { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
