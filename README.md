@@ -26,7 +26,7 @@ It starts with Windows, wakes when Star Citizen starts and goes dark when you qu
 
 ## Pages
 
-- **Ship**: power plate with **Flight Ready**, a role module (target dial, mining laser, salvage beam, tractor beam...), flight and gear plates. Long-press a plate's title to rearrange; saved per role.
+- **Ship**: power plate with **Flight Ready**, a role module (target dial, mining laser, salvage beam, tractor beam...), flight and gear plates. Long-press a plate's title to rearrange or swap the role module, long-press a key to swap it; both saved. On another screen, pick which plates it shows.
 - **On foot**: weapon wheel, suit, comms, emotes.
 - **Downed**: revive request.
 - **MFD & assists**: MFD screens, light amplification, auto precision, wind compensation, Self repair all.

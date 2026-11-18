@@ -74,8 +74,12 @@ const spare = (x, y, w, ht, r) => (K.spare ? K.spare(x, y, w, ht, r) : blank(x, 
  * lit (legend always lit), cut (chamfered macro plate), noLed, sub, kb (false hides the keybind).
  */
 export function keycap(x, y, w, ht, l, o = {}) {
-  const k = keyOf(l);
-  if (!k || (o.fitted !== undefined ? !o.fitted : !K.fitted(k))) return spare(x, y, w, ht, o.r);
+  const stock = keyOf(l);
+  if (!stock || (o.fitted !== undefined ? !o.fitted : !K.fitted(stock))) return spare(x, y, w, ht, o.r);
+  // A key you swapped in keeps the cap's size and shape, with its own label, icon and colour.
+  const map = o.fitted === undefined ? K.mapped?.(stock) : null;
+  if (map?.key) o = { r: o.r, kb: o.kb, fs: Math.min(o.fs || 13, 13), is: Math.min(o.is || 22, 28), mine: true };
+  const k = map?.key || stock;
   const tog = k.role === 'toggle' || k.role === 'select';
   const tag = k.role === 'critical' ? 'GUARD' : k.more?.hold ? 'LONG' : k.more?.double ? '2×' : '';
   // Shape says the type: a ring that fills for hold, a notched corner for a macro.
@@ -89,11 +93,12 @@ export function keycap(x, y, w, ht, l, o = {}) {
       ${o.icon === false ? '' : icon(o.icon || k.icon, o.is || 22)}
       <span class="lg" style="${o.fs ? `--fs:${o.fs}px` : ''}">${lbl(k, o.label)}</span>
       ${(k.state?.kind === 'set' && k.state.labels) || o.sub ? `<span class="st">${esc(o.sub || '')}</span>` : ''}
-      ${bind ? `<span class="kb">${esc(bind)}</span>` : ''}${tag ? `<span class="tg">${tag}</span>` : ''}${mark}
+      ${bind ? `<span class="kb">${esc(bind)}</span>` : ''}${tag ? `<span class="tg">${tag}</span>` : ''}${mark}${o.mine ? '<span class="mine" title="Your key"></span>' : ''}
       <span class="bar"><i></i></span>
     </div></div>`);
   if (k.state) el.dataset.state = JSON.stringify(k.state);
   K.bind(el, k);
+  if (map) K.remappable(el, map.id, stock, map.key);
   return el;
 }
 

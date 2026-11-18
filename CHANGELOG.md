@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Your keys: long-press any tap key to swap it for another. A cyan dot marks keys you changed; Back to stock undoes it. Kept per page and in saved profiles.
+- Key picker: Suggested first (keys like the one you replace, then your recent picks), sub-groups in each tab, toggle / on / off as one tile, and search on its own keyboard.
+- Arrange mode (long-press a plate title) also picks the role module, so a ship page can carry another module. Saved per role.
+- Settings > Screen: choose which ship plates this screen shows; the rest leave and the others grow to fill it. Size: Fit, or Actual size (never larger than designed).
+
 ## 0.8.0
 
 - Devices: phones, tablets and other PCs on your network join as extra screens. No app to install.

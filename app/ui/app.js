@@ -6,7 +6,7 @@ import { pageFor, pageById } from './lib/pages.js';
 import { lookup } from './lib/ships.js';
 import * as bridge from './bridge.js';
 import * as controls from './controls.js';
-import { scene, init as initScenes, SWIPE, moduleOf } from './scenes.js';
+import { scene, init as initScenes, SWIPE, moduleOf, MODULE_NAMES } from './scenes.js';
 import { outline, render as shipRender } from './outlines.js';
 import { ART } from './backdrops.js';
 import * as arrange from './arrange.js';
@@ -67,8 +67,11 @@ const NIGHT_FROM = 20, NIGHT_TO = 7;
 // Maker theme: auto (the ship's maker), off, or one maker's theme always. Older builds stored a boolean.
 const THEMED = new Set(['DRAK', 'AEGS', 'ORIG', 'MISC', 'ANVL', 'RSI', 'CRUS', 'ARGO', 'CNOU']);
 const themeMode = v => (v === false ? 'off' : v === 'off' || THEMED.has(v) ? v : 'auto');
+// Ship plates shown on this screen: all four unless you left some out (at least one stays).
+const SHIP_PLATES = ['power', 'role', 'flight', 'gear'];
+const platesMode = v => (Array.isArray(v) && v.some(x => SHIP_PLATES.includes(x)) ? SHIP_PLATES.filter(x => v.includes(x)) : SHIP_PLATES);
 const nightMode = v => (v === true ? 'on' : ['on', 'auto'].includes(v) ? v : 'off');
-const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), anywhere: store.get('anywhere', false), stack: store.get('stack', true), large: store.get('large', false), makerTheme: themeMode(store.get('makerTheme', 'auto')) };
+const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), anywhere: store.get('anywhere', false), stack: store.get('stack', true), large: store.get('large', false), plates: platesMode(store.get('plates', null)), size: store.get('size', 'fit') === 'actual' ? 'actual' : 'fit', makerTheme: themeMode(store.get('makerTheme', 'auto')) };
 stage.classList.toggle('large', opts.large);
 
 // ---------- binds: the player's actionmaps.xml, then our Xeneon profile, then the defaults ----------
@@ -404,7 +407,7 @@ const K = {
   family,
   bind, fire, wheel, flip, isOn, known, local, tick, toast, theme,
   fired: node => { if (opts.flash) flash(node, 'fired'); },
-  scale: () => (onPhone && !whole ? phone.phoneScale() : stacked ? twoRows() : oneRow()),
+  scale: () => (onPhone && !whole ? phone.phoneScale() : stacked ? sized(twoRows()) : oneRow()),
   swipe: dir => {
     const i = SWIPE.findIndex(s => current.startsWith(s));
     const base = SWIPE[(i + dir + SWIPE.length) % SWIPE.length];
@@ -412,15 +415,19 @@ const K = {
     show(rolePage?.startsWith(base) ? rolePage : base);
   },
   go: id => { tick('page'); show(id); },
+  /** The role module you put on this ship page in arrange mode, if not its own. */
+  moduleFor: id => { const role = moduleOf(id), m = role && store.get(`module:${role}`, null); return m && MODULE_NAMES[m] && m !== role ? m : null; },
 };
-// ---------- spare slots ----------
-// Where the ship lacks the kit (no missiles, no EMP), the slot can take any tap key you pick:
-// long-press it to choose, long-press again to change or clear. Kept per page and slot.
+// ---------- your keys ----------
+// A spare slot ("Not fitted", where the ship lacks the kit) takes any tap key you pick, and any
+// tap key on a page can be swapped for another: long-press it to choose, long-press again to
+// change it or go back to stock. Kept per page and slot; a cyan dot marks a key you changed.
 let slotN = 0;
+const mapN = new Map();
 const pickable = k => !k.more && k.role !== 'hold' && k.role !== 'critical';
 function longPress(node, fn) {
   let t = null, done = false, at = null;
-  const stop = e => { clearTimeout(t); t = null; if (done) { e.stopImmediatePropagation(); node.classList.remove('pressed', 'lit'); } };
+  const stop = e => { clearTimeout(t); t = null; if (done) { e.stopImmediatePropagation(); node.classList.remove('pressed', 'lit', 'held'); } };
   node.addEventListener('pointerdown', e => {
     done = false; at = e;
     if (!node.hasPointerCapture?.(e.pointerId)) node.setPointerCapture?.(e.pointerId);
@@ -438,6 +445,16 @@ K.spare = (x, y, w, ht, r) => {
   longPress(el, () => openPicker(id, k));
   return el;
 };
+/** The key you put in place of a stock key here, if any: { id, key }. Ids follow the stock label, so they survive layout changes. */
+K.mapped = stock => {
+  if (!stock || !pickable(stock)) return null;
+  const n = mapN.get(stock.label) || 0;
+  mapN.set(stock.label, n + 1);
+  const id = `map:${current}:${stock.label}${n ? `#${n}` : ''}`;
+  const k = KEYS.get(store.get(id, null));
+  return { id, key: k && pickable(k) && k !== stock ? k : null };
+};
+K.remappable = (el, id, stock, now) => longPress(el, () => openPicker(id, now || stock, stock));
 
 const PICK_GROUPS = [
   ['flight', 'Flight', /^spaceship_(movement|quantum|docking|view)$/],
@@ -446,38 +463,152 @@ const PICK_GROUPS = [
   ['work', 'Mining & salvage', /^(spaceship_(mining|salvage)|tractor_beam)$/],
   ['foot', 'On foot', /^(player|player_emotes|incapacitated|mapui|player_input_optical_tracking)$/],
 ];
+// Sub-groups inside a tab, by the game's actionmap.
+const SUBGROUPS = {
+  spaceship_movement: 'Flight & assists', spaceship_quantum: 'Quantum', spaceship_docking: 'Docking', spaceship_view: 'View',
+  spaceship_weapons: 'Guns', spaceship_missiles: 'Missiles', spaceship_defensive: 'Countermeasures & shields', spaceship_targeting: 'Targeting',
+  spaceship_targeting_advanced: 'Targeting', spaceship_target_hailing: 'Targeting', spaceship_power: 'Power', spaceship_hud: 'HUD',
+  spaceship_general: 'Ship', spaceship_radar: 'Radar & scanning', spaceship_scanning: 'Radar & scanning', lights_controller: 'Lights',
+  seat_general: 'Seat', vehicle_mfd: 'MFDs', vehicle_general: 'Ship', ui_notification: 'Other', default: 'Other',
+  spaceship_mining: 'Mining', spaceship_salvage: 'Salvage', tractor_beam: 'Tractor beam',
+  player: 'On foot', player_emotes: 'Emotes', incapacitated: 'Downed', mapui: 'Map', player_input_optical_tracking: 'Other',
+};
+const subOf = k => SUBGROUPS[k.actionmap] || 'Other';
 const groupOf = k => PICK_GROUPS.find(g => g[2].test(k.actionmap || ''))?.[0] || 'systems';
-let picking = null;
-function openPicker(id, k) {
-  picking = id;
-  $('pick-clear').hidden = !k;
-  $('pick-now').textContent = k ? `Now: ${k.label}` : 'Empty';
-  showPickGroup(k ? groupOf(k) : 'flight');
+const RECENT = 'pick-recent';
+let picking = null, pickStock = null, pickNow = null, query = '', typing = false, pickTab = 'flight';
+function openPicker(id, k, stock = null) {
+  picking = id; pickStock = stock; pickNow = k;
+  query = ''; typing = false;
+  const changed = stock ? k && k !== stock : !!k;
+  $('pick-title').textContent = stock ? 'Change key' : 'Add a key';
+  $('pick-clear').hidden = !changed;
+  $('pick-clear').querySelector('span').textContent = stock ? 'Back to stock' : 'Clear slot';
+  $('pick-now').innerHTML = stock
+    ? `Stock: <b>${controls.esc(stock.label)}</b>${changed ? `<br>Now: <b class="mine">${controls.esc(k.label)}</b>` : ''}`
+    : k ? `Now: <b>${controls.esc(k.label)}</b>` : 'Empty';
+  showPickGroup(suggested().length ? 'sug' : k ? groupOf(k) : 'flight');
   $('picker').hidden = false;
 }
+const pickKeys = () => [...KEYS.values()].filter(pickable);
+/** Keys like the one in the slot, and the ones you picked lately. */
+function suggested() {
+  const out = [];
+  const ref = pickStock || pickNow;
+  if (ref) {
+    const all = pickKeys();
+    const same = all.filter(k => k !== ref && k.actionmap === ref.actionmap);
+    const near = all.filter(k => k !== ref && k.actionmap !== ref.actionmap && subOf(k) === subOf(ref));
+    const list = [ref, ...same, ...near].slice(0, 18);
+    out.push([`Like ${ref.label}`, list]);
+  }
+  const recent = store.get(RECENT, []).map(l => KEYS.get(l)).filter(k => k && pickable(k));
+  if (recent.length) out.push(['Picked lately', recent]);
+  return out;
+}
+/** Folds "X", "X on" and "X off" into one tile with Toggle / On / Off. */
+function fold(keys) {
+  const by = new Map(keys.map(k => [k.label, k]));
+  const seen = new Set(), tiles = [];
+  for (const k of keys) {
+    if (seen.has(k)) continue;
+    const base = k.label.replace(/ (on|off)$/i, '');
+    const t = by.get(base), on = by.get(`${base} on`) || by.get(`${base} On`), off = by.get(`${base} off`) || by.get(`${base} Off`);
+    const parts = [[t, 'Toggle'], [on, 'On'], [off, 'Off']].filter(([v]) => v);
+    if (parts.length > 1) { parts.forEach(([v]) => seen.add(v)); tiles.push({ label: base, keys: parts }); }
+    else { seen.add(k); tiles.push({ label: k.label, keys: [[k, '']] }); }
+  }
+  return tiles;
+}
+function tileEl({ label, keys }, hit = '') {
+  const k0 = keys[0][0];
+  const isNow = keys.some(([k]) => k === pickNow);
+  const name = hit ? controls.esc(label).replace(new RegExp(`(${hit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'i'), '<em>$1</em>') : controls.esc(label);
+  const b = controls.h(`<div class="pick fam-${family(k0)} ${isNow ? 'cur' : ''} ${keys.length > 1 ? 'fold' : ''}" role="button">${controls.icon(k0.icon, 22)}<span class="pn">${name}</span>${keys.length > 1
+    ? `<span class="pseg">${keys.map(([k, t]) => `<button data-l="${controls.esc(k.label)}" class="${k === pickNow ? 'on' : ''}">${t}</button>`).join('')}</span>` : ''}</div>`);
+  // Pointer capture retargets the lift to the tile, so the segment is read where the touch began.
+  let seg = null;
+  controls.pressable(b, { down: e => { seg = e.target.closest?.('button[data-l]'); }, up: () => setSlot(seg ? seg.dataset.l : k0.label) });
+  return b;
+}
+function section(title, keys, hit) {
+  const tiles = fold(keys);
+  if (!tiles.length) return [];
+  return [controls.h(`<div class="pk-h">${controls.esc(title)}</div>`), Object.assign(document.createElement('div'), { className: 'pk-row' })].map((el, i) => {
+    if (i) el.append(...tiles.map(t => tileEl(t, hit)));
+    return el;
+  });
+}
 function showPickGroup(g) {
-  document.querySelectorAll('#pick-tabs .tab[data-g]').forEach(t => t.classList.toggle('cur', t.dataset.g === g));
-  const keys = [...KEYS.values()].filter(k => pickable(k) && groupOf(k) === g).sort((a, b) => a.label.localeCompare(b.label));
-  $('pick-grid').replaceChildren(...keys.map(k => {
-    const b = controls.h(`<button class="pick fam-${family(k)}">${controls.icon(k.icon, 22)}<span>${controls.esc(k.label)}</span></button>`);
-    controls.pressable(b, { up: () => setSlot(k.label) });
-    return b;
-  }));
+  pickTab = g;
+  document.querySelectorAll('#pick-tabs .tab[data-g]').forEach(t => t.classList.toggle('cur', t.dataset.g === g && !query));
+  paintPick();
+}
+function paintPick() {
+  const out = [];
+  const q = query.trim().toLowerCase();
+  if (q) {
+    const words = q.split(/\s+/);
+    const hits = pickKeys().filter(k => words.every(w => k.label.toLowerCase().includes(w))).sort((a, b) => a.label.localeCompare(b.label));
+    $('pick-count').textContent = `${hits.length} key${hits.length === 1 ? '' : 's'}`;
+    out.push(...section('Results', hits, words[0]));
+    if (!hits.length) out.push(controls.h('<p class="pk-none">No key matches</p>'));
+  } else {
+    $('pick-count').textContent = '';
+    if (pickTab === 'sug') for (const [t, keys] of suggested()) out.push(...section(t, keys));
+    else {
+      const keys = pickKeys().filter(k => groupOf(k) === pickTab).sort((a, b) => a.label.localeCompare(b.label));
+      const subs = [...new Set(keys.map(subOf))];
+      for (const s of subs) out.push(...section(s, keys.filter(k => subOf(k) === s)));
+    }
+  }
+  $('pick-grid').replaceChildren(...out);
   $('pick-grid').scrollTop = 0;
+  $('pick-q').textContent = query || 'Search all keys';
+  $('pick-search').classList.toggle('typing', typing);
+  $('pick-search').classList.toggle('empty', !query);
+  $('pick-kb').hidden = !typing;
+  $('picker').classList.toggle('typing', typing);
 }
 function setSlot(label) {
   tick('toggle');
-  if (label) store.set(picking, label); else { try { localStorage.removeItem('xfd-' + picking); } catch { /* private mode */ } }
+  const stockPick = pickStock && label === pickStock.label;
+  if (label && !stockPick) {
+    store.set(picking, label);
+    store.set(RECENT, [label, ...store.get(RECENT, []).filter(l => l !== label)].slice(0, 9));
+  } else { try { localStorage.removeItem('xfd-' + picking); } catch { /* private mode */ } }
   $('picker').hidden = true;
   cache.delete(picking.split(':')[1]);
-  picking = null;
+  picking = null; pickStock = null; pickNow = null;
   render();
 }
-$('pick-tabs').append(...PICK_GROUPS.map(([g, name]) => {
+// The panel never takes focus from the game, so search types on its own keyboard.
+function buildPickKeyboard() {
+  const rows = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
+  const kb = $('pick-kb');
+  const key = (t, v, cls = '') => {
+    const b = controls.h(`<button class="${cls}">${t}</button>`);
+    controls.pressable(b, { up: () => {
+      tick('tap');
+      if (v === 'back') query = query.slice(0, -1);
+      else if (v === 'clear') query = '';
+      else if (v === 'done') typing = false;
+      else query = (query + v).replace(/^\s+/, '').replace(/\s{2,}/g, ' ');
+      paintPick();
+    } });
+    return b;
+  };
+  kb.append(...rows[0].split('').map(c => key(c, c.toLowerCase())), key('⌫', 'back', 'w'), key('+', '+'),
+    ...rows[1].split('').map(c => key(c, c.toLowerCase())), key('Clear', 'clear', 'w'), key('Done', 'done', 'w primary'),
+    ...rows[2].split('').map(c => key(c, c.toLowerCase())), key('Space', ' ', 'space'));
+}
+$('pick-tabs').append(...[['sug', 'Suggested'], ...PICK_GROUPS].map(([g, name]) => {
   const t = controls.h(`<button class="tab" data-g="${g}"><span>${name}</span></button>`);
-  controls.pressable(t, { up: () => { tick('page'); showPickGroup(g); } });
+  controls.pressable(t, { up: () => { tick('page'); query = ''; typing = false; showPickGroup(g); } });
   return t;
 }), $('pick-clear'));
+buildPickKeyboard();
+controls.pressable($('pick-search'), { up: () => { tick('tap'); typing = true; paintPick(); } });
 controls.pressable($('pick-clear'), { up: () => setSlot(null) });
 controls.pressable($('pick-close'), { up: () => { $('picker').hidden = true; picking = null; } });
 
@@ -489,8 +620,8 @@ function render() {
   const page = pageById(layout, current);
   pageAccent = theme(page).accent;
   applyAccent();
-  if (!cache.has(current)) { slotN = 0; cache.set(current, scene(page)); }
-  for (const p of cache.get(current)) { phone.unfold(p); p.classList.toggle('moved', !onPhone && moved.has(p.dataset.slot)); }
+  if (!cache.has(current)) { slotN = 0; mapN.clear(); cache.set(current, scene(page)); }
+  for (const p of cache.get(current)) { phone.unfold(p); p.classList.toggle('moved', !onPhone && !!p.dataset.slot && (moved.has(p.dataset.slot) || !opts.plates.includes(p.dataset.slot))); }
   $('console').replaceChildren(...cache.get(current));
   const role = moduleOf(current);
   if (role) arrange.place($('console'), arrange.orderFor(role));
@@ -546,7 +677,9 @@ const APP_OPTS = ['autostart', 'screen_off'];
 function setOpt(name, v) {
   opts[name] = v;
   if (APP_OPTS.includes(name)) bridge.setPref(name, v); else store.set(name, v);
-  if (name === 'stack') fit();
+  if (name === 'stack' || name === 'size') fit();
+  if (name === 'plates') render();
+  if (name === 'plates' || name === 'size') paintScreenOpts();
   if (name === 'makerTheme') paintStatus();
   paintNight();
   stage.classList.toggle('large', !!opts.large);
@@ -599,6 +732,20 @@ showSection('general');
 document.querySelectorAll('.opt[data-opt]').forEach(o => controls.pressable(o, { up: () => { tick('toggle'); setOpt(o.dataset.opt, !opts[o.dataset.opt]); } }));
 document.querySelectorAll('#night-seg button').forEach(b => controls.pressable(b, { up: () => { tick('toggle'); setOpt('night', b.dataset.v); } }));
 document.querySelectorAll('#theme-seg button').forEach(b => controls.pressable(b, { up: () => { tick('toggle'); setOpt('makerTheme', b.dataset.v); } }));
+document.querySelectorAll('#plates-seg button').forEach(b => controls.pressable(b, { up: () => {
+  const v = b.dataset.v, on = opts.plates.includes(v);
+  if (on && opts.plates.length === 1) { tick('arm'); toast('Keep at least one plate on this screen'); return; }
+  tick('toggle');
+  setOpt('plates', on ? opts.plates.filter(x => x !== v) : SHIP_PLATES.filter(x => x === v || opts.plates.includes(x)));
+} }));
+document.querySelectorAll('#size-seg button').forEach(b => controls.pressable(b, { up: () => { tick('toggle'); setOpt('size', b.dataset.v); } }));
+function paintScreenOpts() {
+  document.querySelectorAll('#plates-seg button').forEach(b => b.classList.toggle('cur', opts.plates.includes(b.dataset.v)));
+  document.querySelectorAll('#size-seg button').forEach(b => b.classList.toggle('cur', b.dataset.v === opts.size));
+  $('plates-note').textContent = opts.plates.length === SHIP_PLATES.length ? 'The rest grow to fill' : `${SHIP_PLATES.length - opts.plates.length} left out. The rest grow`;
+  $('size-note').textContent = opts.size === 'actual' ? 'Designed size, never larger' : 'Grows the console to fill the screen';
+}
+paintScreenOpts();
 controls.pressable($('sheet-close'), { up: () => openSheet(false) });
 controls.pressable($('auto'), { up: () => { tick('toggle'); setOpt('auto', !opts.auto); } });
 async function installBinds() {
@@ -616,7 +763,8 @@ $('qt').querySelector('svg').innerHTML = GLYPHS.quantum;
 
 // ---------- profile: settings, plate order, ship roles and keyboard binds in one file ----------
 // Saved as Documents\Edge Cockpit\profile.json, to copy to another PC or keep as a backup.
-const PROFILE_OPTS = ['night', 'sound', 'flash', 'auto', 'recap', 'alertSound', 'anywhere', 'stack', 'large', 'makerTheme', 'autostart', 'screen_off'];
+const PROFILE_OPTS = ['night', 'sound', 'flash', 'auto', 'recap', 'alertSound', 'anywhere', 'stack', 'large', 'makerTheme', 'plates', 'size', 'autostart', 'screen_off'];
+const KEPT_AS_IS = new Set(['night', 'makerTheme', 'plates', 'size']);
 /** The keyboard binds in an actionmaps.xml, as a Control Profile the game can load. */
 function bindsProfile(text) {
   const doc = new DOMParser().parseFromString(text, 'application/xml');
@@ -643,19 +791,23 @@ ${maps.join('\n')}
 `;
 }
 async function saveProfile() {
-  const plates = {}, slots = {};
+  const plates = {}, slots = {}, keys = {}, modules = {};
   for (let i = 0; i < localStorage.length; i++) {
     const k = localStorage.key(i);
     if (k?.startsWith('xfd-order:')) plates[k.slice(10)] = store.get(k.slice(4), null);
     if (k?.startsWith('xfd-slot:')) slots[k.slice(9)] = store.get(k.slice(4), null);
+    if (k?.startsWith('xfd-map:')) keys[k.slice(8)] = store.get(k.slice(4), null);
+    if (k?.startsWith('xfd-module:')) modules[k.slice(11)] = store.get(k.slice(4), null);
   }
   const ships = await bridge.userShips().catch(() => null);
   const binds = await bridge.readBinds().catch(() => null);
   const profile = {
     app: 'edge-cockpit', format: 1, version: prefs.version, saved: new Date().toISOString(),
-    settings: Object.fromEntries(PROFILE_OPTS.map(k => [k, k === 'night' || k === 'makerTheme' ? opts[k] : !!opts[k]])),
+    settings: Object.fromEntries(PROFILE_OPTS.map(k => [k, KEPT_AS_IS.has(k) ? opts[k] : !!opts[k]])),
     plates,
     slots,
+    keys,
+    modules,
     ships: (() => { try { return ships ? JSON.parse(ships) : null; } catch { return null; } })(),
     binds: binds ? bindsProfile(binds) : null,
   };
@@ -670,10 +822,14 @@ async function loadProfile() {
     const v = p.settings?.[k];
     if (k === 'night' && v !== undefined) setOpt(k, nightMode(v));
     else if (k === 'makerTheme' && v !== undefined) setOpt(k, themeMode(v));
+    else if (k === 'plates' && v !== undefined) setOpt(k, platesMode(v));
+    else if (k === 'size' && (v === 'fit' || v === 'actual')) setOpt(k, v);
     else if (typeof v === 'boolean') setOpt(k, v);
   }
   for (const [role, order] of Object.entries(p.plates || {})) if (Array.isArray(order)) store.set(`order:${role}`, order);
   for (const [slot, label] of Object.entries(p.slots || {})) if (typeof label === 'string' && KEYS.has(label)) store.set(`slot:${slot}`, label);
+  for (const [id, label] of Object.entries(p.keys || {})) if (typeof label === 'string' && KEYS.has(label)) store.set(`map:${id}`, label);
+  for (const [role, m] of Object.entries(p.modules || {})) if (typeof m === 'string' && MODULE_NAMES[m]) store.set(`module:${role}`, m);
   if (p.ships && typeof p.ships === 'object') await bridge.saveUserShips(JSON.stringify(p.ships, null, 2)).catch(() => {});
   let note = 'Profile loaded.';
   if (typeof p.binds === 'string') {
@@ -1251,6 +1407,8 @@ const ROW_W = 1662;
 let stacked = false;
 let fitScale = null;
 const oneRow = () => fitScale ?? Math.min(innerWidth / 2560, innerHeight / 720);
+// Actual size: never larger than designed (1 stage pixel to 1 CSS pixel), centred on a bigger screen.
+const sized = s => (opts.size === 'actual' && !onPhone ? Math.min(s, 1) : s);
 const twoRows = () => Math.min(innerWidth / ROW_W, innerHeight / 1440);
 function stack() {
   const status = $('status');
@@ -1273,7 +1431,7 @@ function stack() {
 // Plates moved to a phone leave the PC's console; the rest close up and grow to fill the screen.
 let moved = new Set();
 function contentWidth() {
-  if (!moved.size || stacked) return 2560;
+  if (!$('console').querySelector(':scope > .plate.moved')) return 2560;
   const plates = [...$('console').querySelectorAll(':scope > .plate:not(.moved)')];
   return Math.max(382, ...plates.map(p => p.offsetLeft + p.offsetWidth)) + 6;
 }
@@ -1290,15 +1448,16 @@ function fit() {
     phone.clear();
   }
   const was = stacked;
-  stacked = (opts.stack || onPhone) && twoRows() > Math.min(innerWidth / 2560, innerHeight / 720) * 1.08;
+  const cw = contentWidth();
+  const rows2 = $('console').querySelectorAll(':scope > .plate:not(.moved)').length > 1;
+  stacked = (opts.stack || onPhone) && rows2 && twoRows() > Math.min(innerWidth / cw, innerHeight / 720) * 1.08;
   stage.classList.toggle('stacked', stacked);
   stage.style.width = stacked ? `${ROW_W}px` : '';
   stage.style.height = stacked ? '1440px' : '';
   if (stacked !== was || stacked) stack();
-  const cw = contentWidth();
   // The stage closes up with the moved plates, so the settings sheet and banners stay on screen.
   if (!stacked) stage.style.width = cw < 2560 ? `${cw}px` : '';
-  const s = stacked ? K.scale() : Math.min(innerWidth / cw, innerHeight / 720);
+  const s = stacked ? K.scale() : sized(Math.min(innerWidth / cw, innerHeight / 720));
   fitScale = s;
   stage.style.transform = `translate(${Math.max(0, (innerWidth - (stacked ? ROW_W : cw) * s) / 2)}px, ${Math.max(0, (innerHeight - (stacked ? 1440 : 720) * s) / 2)}px) scale(${s})`;
 }
@@ -1315,7 +1474,16 @@ buildSoftkeys();
 const ROLE_NAMES = { fighter: 'fighter', crew: 'multi-crew', mining: 'mining', salvage: 'salvage', cargo: 'cargo', medical: 'medical', ground: 'ground vehicle', systems: 'ship systems' };
 arrange.init($('console'), {
   store, tick, scale: K.scale, role: () => moduleOf(current), roleName: () => ROLE_NAMES[moduleOf(current)] || 'ship',
-  onDone: () => toast('Layout saved for this role'),
+  modules: MODULE_NAMES, module: () => K.moduleFor(current) || moduleOf(current), stockModule: () => moduleOf(current),
+  onDone: (role, mod) => {
+    const was = K.moduleFor(current) || role;
+    if (mod && mod !== was) {
+      store.set(`module:${role}`, mod === role ? null : mod);
+      for (const id of cache.keys()) if (moduleOf(id) === role) cache.delete(id);
+      render();
+    }
+    toast('Layout saved for this role');
+  },
 });
 world.init({ fire, keyHint: k => bindOf(k), game: () => game, location: () => ({ id: placeSeen.id || game.location, ...placeSeen }), store, bridge, raise, tick, hhmm, current: () => current, painted: els => { if (onPhone) phone.repainted(els); } });
 perf.init({ hold: document.querySelector('#mfd .brand'), parent: $('mfd'), perf: bridge.perf, tick });

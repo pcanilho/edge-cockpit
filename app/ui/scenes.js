@@ -256,6 +256,8 @@ function worldPage() {
 }
 
 const MODULES = { mfd, fighter, crew, mining, salvage, cargo, medical, ground, systems };
+/** The role modules you can put on a ship page, in the order arrange mode offers them. */
+export const MODULE_NAMES = { fighter: 'Fighter', crew: 'Crew', mining: 'Mining', salvage: 'Salvage', cargo: 'Cargo', medical: 'Medical', ground: 'Ground', systems: 'Systems', mfd: 'MFD' };
 
 /** Page n of the ship pages, with arrows to step through them as well as swiping. */
 function pager(i) {
@@ -274,10 +276,13 @@ function rolePlate(page) {
   const p = plate(X.role, W.role, '', { cls: 'rolemod' });
   const id = page.id;
   const i = SWIPE.findIndex(s => id.startsWith(s));
-  add(p, h(`<div class="rtitle">${icon(K.theme(page).glyph, 18)}<span>${esc(page.name)}</span></div>`),
+  // You can put another role module on a ship page (arrange mode); the title says so.
+  const stock = moduleOf(id), mod = K.moduleFor?.(id) || stock;
+  const swapped = mod !== stock && MODULES[mod];
+  add(p, h(`<div class="rtitle">${icon(K.theme(page).glyph, 18)}<span>${esc(page.name)}</span>${swapped ? `<small>${esc(MODULE_NAMES[mod])} module</small>` : ''}</div>`),
     pager(i),
     h('<div class="swipe-hint lab">‹ swipe or tap the arrows for other ships ›</div>'));
-  add(p, MODULES[moduleOf(id)]());
+  add(p, MODULES[swapped ? mod : stock]());
   // Swipe sideways anywhere on the plate between controls to step through the role modules.
   let x0 = null;
   p.addEventListener('pointerdown', e => { x0 = e.clientX; });
