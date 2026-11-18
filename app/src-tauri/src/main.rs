@@ -797,8 +797,9 @@ fn place(w: &WebviewWindow) {
             }
         }
         None => {
-            // Only one display: a 2560 x 720 window on it, scaled down to fit.
-            let _ = w.set_size(PhysicalSize::new(1600u32, 450u32));
+            // Only one display: a 2560 x 720 window on it, at half size in points, so a Retina
+            // screen shows it at full resolution and labels stay readable.
+            let _ = w.set_size(tauri::LogicalSize::new(1280.0, 360.0));
             let _ = w.set_position(PhysicalPosition::new(40, 40));
         }
     }

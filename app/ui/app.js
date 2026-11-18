@@ -1206,7 +1206,13 @@ function startPhones() {
   bridge.onPhones?.(paintPhones);
   paintPhones();
   // The pairing code changes every two minutes: keep it current while it shows.
-  setInterval(() => { if (!$('sheet').hidden && !document.querySelector('.pane[data-sec=phones]').hidden) paintPhones(); }, 5000);
+  // While pairing, the console stays up without a game (it would hide after two minutes).
+  let ticks = 0;
+  setInterval(() => {
+    if ($('sheet').hidden || document.querySelector('.pane[data-sec=phones]').hidden) return;
+    paintPhones();
+    if (++ticks % 12 === 0) bridge.wakeScreen();
+  }, 5000);
 }
 
 // ---------- on a phone ----------
