@@ -844,7 +844,7 @@ body.phone:not(.ph-whole) #stage::before { position: fixed; }
 .ph-gear svg { width: 22px; height: 22px; }
 .ph-rail { left: max(env(safe-area-inset-left), 6px); right: max(env(safe-area-inset-right), 6px); bottom: max(env(safe-area-inset-bottom), 8px); height: 58px; display: flex; gap: 4px; padding: 5px; border-radius: 12px;
   background: #05060a; box-shadow: inset 0 2px 4px #000, inset 0 0 0 1px #ffffff0d; touch-action: none; }
-.ph-rail button { flex: 1 1 0; min-width: 0; border-radius: 8px; font: 700 10.5px/1.15 var(--hud); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); position: relative; overflow-wrap: normal; padding: 0 3px; }
+.ph-rail button { flex: 1 1 0; min-width: 0; white-space: nowrap; border-radius: 8px; font: 700 10.5px/1.15 var(--hud); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); position: relative; overflow-wrap: normal; padding: 0 3px; }
 .ph-rail[data-n="7"] button, .ph-rail[data-n="8"] button, .ph-rail[data-n="9"] button { font-size: 9.5px; letter-spacing: .04em; }
 .ph-rail button.cur { color: var(--paint); background: linear-gradient(180deg, #2a3038, #1b2026); box-shadow: inset 0 1px 0 #ffffff26, 0 3px 0 #0d1013; }
 .ph-rail button.cur::before { content: ""; position: absolute; left: 30%; right: 30%; top: 5px; height: 3px; border-radius: 2px; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
@@ -897,8 +897,8 @@ body.ph-land .ph-rail button.cur::before { left: 5px; right: auto; top: 30%; bot
 #console > .plate.moved { display: none; }
 /* Settings > Phones */
 .ph-pane { display: grid; grid-template-columns: 430px 1fr; gap: 26px; flex: 1; min-height: 0; }
-.pair-card { border-radius: 12px; padding: 22px 26px; background: linear-gradient(180deg, #20262d, #171b20); box-shadow: inset 0 1px 0 #ffffff1c, 0 4px 0 #0d1013; display: grid; grid-template-columns: 150px 1fr; gap: 8px 22px; align-content: start; }
-.pair-card .qr { grid-row: span 2; width: 150px; height: 150px; padding: 8px; border-radius: 8px; background: #05060a; box-shadow: inset 0 2px 4px #000; }
+.pair-card { border-radius: 12px; padding: 22px 26px; background: linear-gradient(180deg, #20262d, #171b20); box-shadow: inset 0 1px 0 #ffffff1c, 0 4px 0 #0d1013; display: grid; grid-template-columns: 190px 1fr; gap: 8px 22px; align-content: start; }
+.pair-card .qr { grid-row: span 2; width: 190px; height: 190px; padding: 6px; border-radius: 8px; background: #fff; }
 .pair-card .qr svg { width: 100%; height: 100%; display: block; }
 .pair-card .qr.off { display: grid; place-items: center; color: var(--dim); font: 700 11px/1.4 var(--hud); letter-spacing: .14em; text-transform: uppercase; text-align: center; }
 .pair-card > small { font: 700 12px/1.4 var(--hud); letter-spacing: .2em; text-transform: uppercase; color: var(--muted); align-self: end; }
@@ -933,10 +933,62 @@ body.phone.ph-land > .banner { top: 10px; }
 /* The stage is far wider than a phone: keep it from widening the page, or the phone zooms out. */
 body.phone { position: fixed; inset: 0; overflow: hidden; touch-action: manipulation; }
 /* Text screens narrowed on a phone wrap instead of running off. */
-.ph-folded .cm-head { flex-wrap: wrap; align-content: center; row-gap: 10px; }
-.ph-folded .cm-head .upd { margin-left: 0; text-align: left; }
+body.phone .cm-head, body.phone .cm-foot { flex-wrap: wrap; align-content: center; row-gap: 10px; }
 .ph-folded.logp .stats { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); align-content: center; row-gap: 14px; }
 .ph-folded.logp .stats div { padding-left: 14px; }
 .ph-folded.logp .stats b { white-space: nowrap; }
 /* A folded plate can reach past the 2560 x 720 stage. */
 body.phone:not(.ph-whole) #stage { overflow: visible; contain: layout style; }
+.pair-card .qr:not(.off) { cursor: zoom-in; }
+.qr-big { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; background: #000d; cursor: zoom-out; }
+.qr-big svg { width: min(86vh, 86vw); height: min(86vh, 86vw); padding: 2vmin; background: #fff; border-radius: 1.5vmin; }
+/* On a phone the stage is moved and scaled to one plate: the backdrop covers the screen instead. */
+body.phone:not(.ph-whole) { background: var(--noise), linear-gradient(180deg, #0b0d10, #050607); }
+body.phone:not(.ph-whole) #stage { background: none; }
+
+/* Commodities on a narrow device: each row becomes a card, the price columns carry their own labels. */
+body.phone .screen.cm, body.phone .screen.xh { container-type: inline-size; }
+@container (max-width: 640px) {
+  .cm-at { flex-wrap: wrap; white-space: normal; row-gap: 4px; }
+  .cm table, .cm tbody { display: block; }
+  .cm thead { display: none; }
+  .cm tr { display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "n p" "b s"; column-gap: 14px; padding: 8px 0; border-bottom: 1px solid #ffffff14; }
+  .cm td { height: auto; padding: 0; border: 0; min-width: 0; }
+  .cm td.n { grid-area: n; align-self: center; }
+  .cm td:nth-child(2) { grid-area: b; } .cm td:nth-child(3) { grid-area: s; }
+  .cm td.p { grid-area: p; align-self: center; }
+  .cm td[data-l]::before { content: attr(data-l); display: block; margin: 6px 0 3px; font: 700 9px/1.2 var(--hud); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .cm td b { white-space: normal; }
+  .cm td p { white-space: normal; }
+}
+
+/* The exec hangar on a narrow device: its parts stack instead of sitting side by side. */
+@container (max-width: 760px) {
+  .xh > * { position: relative !important; left: auto !important; right: auto !important; top: auto !important; bottom: auto !important; }
+  .xh > small.h { display: block; }
+  .xh .t { display: block; margin-top: 8px; }
+  .xh .lamps { margin-top: 16px; }
+  .xh .state { margin-top: 18px; font-size: 40px; }
+  .xh .xsub { margin-top: 10px; }
+  .xh .cycle { width: auto; margin-top: 22px; }
+  .xh .foot { margin-top: 16px; height: auto; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 14px 12px; }
+  .xh .foot .sp { display: none; }
+  .xh .foot .wsync { grid-column: 1 / -1; width: 100%; }
+}
+@container (min-width: 761px) and (max-width: 1040px) {
+  .xh .cycle { width: auto; right: 28px; }
+}
+@container (max-width: 1040px) {
+  .xh .ticks { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; height: auto; }
+  .xh .ticks span { position: static; }
+}
+
+/* Prices controls on a narrow device: each switch spans the width, the note sits above the pager. */
+body.phone .cm-head, body.phone .cm-foot { container-type: inline-size; }
+@container (max-width: 640px) {
+  .cm-head .seg { flex: 1 1 100%; display: flex; }
+  .cm-head .seg button { flex: 1; }
+  .cm-head .upd { flex: 1 1 100%; margin-left: 0; text-align: left; }
+  .cm-foot .lab { flex: 1 1 100%; }
+  .cm-foot .wpg { margin-left: auto; }
+}

@@ -31,7 +31,8 @@ function items(plate) {
   for (const el of plate.children) {
     if (SKIP.test(el.className) || el.classList.contains('ph-mini')) continue;
     // An empty text strip would make a view of its own.
-    if (FLOWS.test(el.className) && !el.children.length && !el.textContent.trim()) continue;
+    if (FLOWS.test(el.className) && !el.children.length && !el.textContent.trim()) { el.dataset.phempty = ''; continue; }
+    delete el.dataset.phempty;
     let x = el.offsetLeft, y = el.offsetTop, w = el.offsetWidth, h = el.offsetHeight;
     // A hidden twin (self repair in place of flight ready) still has its place.
     if (!w && !h) {
@@ -54,6 +55,23 @@ function items(plate) {
     out.splice(out.indexOf(p), 1);
   }
   return out;
+}
+
+/** The height a bar (buttons that wrap) takes at width w. */
+function autoHeight(el, w) {
+  const kw = el.style.width, kh = el.style.height, kr = el.style.right;
+  el.style.width = `${w}px`; el.style.height = 'auto'; el.style.right = 'auto';
+  const h = el.offsetHeight;
+  el.style.width = kw; el.style.height = kh; el.style.right = kr;
+  return h;
+}
+/** The height a screen's content takes at width w, for screens that lay out again when narrow. */
+function narrowHeight(el, w) {
+  const keep = el.style.width;
+  el.style.width = `${w}px`;
+  const h = el.scrollHeight;
+  el.style.width = keep;
+  return h;
 }
 
 const box = list => {
@@ -142,7 +160,13 @@ export function plan(plate, aw, ah) {
   for (const it of list) {
     if (it.els.length !== 1 || !FLOWS.test(it.els[0].className) || it.w <= tw) continue;
     const c = it.els[0].className, bar = /\bcm-(head|foot)\b/.test(c);
-    it.rh = /\blab\b/.test(c) ? Math.ceil(it.h * 1.4 * Math.ceil(it.w / tw)) : bar ? it.h * 2 : it.h < 200 ? Math.min(th, Math.max(it.h, Math.round(it.h * it.w / tw * 0.7))) : it.h;
+    it.rh = /\blab\b/.test(c) ? Math.ceil(it.h * 1.4 * Math.ceil(it.w / tw)) : bar ? Math.max(it.h, autoHeight(it.els[0], tw)) : it.h < 200 ? Math.min(th, Math.max(it.h, Math.round(it.h * it.w / tw * 0.7))) : it.h;
+    // A big screen with a narrow layout of its own (prices, hangar) says how tall it gets.
+    if (/\bscreen\b/.test(c) && it.h >= 200) {
+      const nh = narrowHeight(it.els[0], tw);
+      it.els[0].dataset.phnh = `${tw}:${nh}`;
+      it.rh = Math.max(it.rh, nh);
+    }
     // What sat right of it or under it closes up or moves down.
     const dw = it.w - tw, dh = it.rh - it.h, right = it.x + it.w, bottom = it.y + it.h;
     for (const o of list) {
@@ -237,7 +261,8 @@ function fold(plate, view) {
 
 // ---------- the phone screen ----------
 
-const NAMES = { status: 'Status', power: 'Power', role: 'Role', flight: 'Flight', gear: 'Gear' };
+// Short names, so a rail label stays on one line with its view number.
+const NAMES = { status: 'Status', power: 'Power', role: 'Role', flight: 'Flight', gear: 'Gear', commodities: 'Prices', 'comms and map': 'Comms' };
 const keyOf = el => el.id === 'status' ? 'status' : el.dataset.slot || el.querySelector(':scope > .title')?.textContent.trim().toLowerCase() || 'plate';
 const nameOf = el => NAMES[keyOf(el)] || el.querySelector(':scope > .title')?.textContent.trim() || 'Plate';
 
@@ -383,6 +408,20 @@ export function refresh() {
   lastMini = now;
   const i = views.findIndex(v => v.key === cur.plate && views.filter(w => w.key === v.key).indexOf(v) === cur.view);
   showView(Math.max(0, i));
+}
+
+/** A screen's content changed (new prices, a sync): lays out again if its narrow height changed or an empty strip filled. */
+export function repainted(els) {
+  if (!ctx) return;
+  for (const el of els) {
+    // A strip that was empty when the plate was laid out has content now.
+    if (el && el.dataset.phempty !== undefined && el.textContent.trim()) { ctx.fit(); return; }
+    const m = el?.dataset.phnh?.split(':');
+    if (!m) continue;
+    // Folded, the screen already has the narrow width.
+    const nh = el.closest('.ph-folded') ? el.scrollHeight : narrowHeight(el, +m[0]);
+    if (Math.abs(nh - Math.max(+m[1], 0)) > 4) { ctx.fit(); return; }
+  }
 }
 
 /** This phone's plate and mode, as the PC has them. */

@@ -6,6 +6,7 @@
   "scripts": {
     "sync": "node scripts/sync.mjs",
     "tauri": "tauri",
+    "dev": "node scripts/sync.mjs && tauri dev",
     "build": "tauri build",
     "test": "node --test test/*.test.js",
     "test:ui": "node scripts/sync.mjs && node test/ui.mjs"

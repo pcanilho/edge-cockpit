@@ -193,15 +193,15 @@ function paintMarket(head, body, foot, now) {
   cm.page = Math.min(cm.page, pages - 1);
   const shown = rows.slice(cm.page * W.ROWS, (cm.page + 1) * W.ROWS);
   const place = j => esc(market.places[j].name);
-  const cell = (x, withPlace) => {
-    if (!x) return '<td class="none"><b>—</b><p>No report this week</p></td>';
+  const cell = (x, withPlace, l) => {
+    if (!x) return `<td class="none" data-l="${esc(l)}"><b>—</b><p>No report this week</p></td>`;
     const a = W.age(x.at, now), stock = W.stockText(x);
-    return `<td class="${a.old ? 'old' : ''}"><b>${fmt(x.price)} <span class="age">· ${a.text}</span></b><p>${[withPlace && place(x.place), stock && `<span class="stk ${stock.low ? 'low' : ''}">${stock.text}</span>`].filter(Boolean).join(' · ')}</p></td>`;
+    return `<td class="${a.old ? 'old' : ''}" data-l="${esc(l)}"><b>${fmt(x.price)} <span class="age">· ${a.text}</span></b><p>${[withPlace && place(x.place), stock && `<span class="stk ${stock.low ? 'low' : ''}">${stock.text}</span>`].filter(Boolean).join(' · ')}</p></td>`;
   };
   const near = cm.mode === 'nearby' || unknown;
   const hereLabel = unknown ? `Cheapest in ${p.system}` : cm.side === 'buy' ? (near ? 'Cheapest nearby' : 'Buy here') : (near ? 'Best nearby' : 'Sell here');
   const otherLabel = unknown ? `Best sell in ${p.system}` : cm.side === 'buy' ? `Best sell in ${p.system}` : `Cheapest buy in ${p.system}`;
-  const body0 = shown.map(r => `<tr data-c="${esc(r.name)}"><td class="n">${esc(r.name)}</td>${cell(r.here, near)}${cell(r.other, true)}<td class="r p ${r.profit < 0 ? 'neg' : ''}">${r.profit === null ? '—' : (r.profit > 0 ? '+' : '') + fmt(r.profit)}</td></tr>`).join('');
+  const body0 = shown.map(r => `<tr data-c="${esc(r.name)}"><td class="n">${esc(r.name)}</td>${cell(r.here, near, hereLabel)}${cell(r.other, true, otherLabel)}<td class="r p ${r.profit < 0 ? 'neg' : ''}">${r.profit === null ? '—' : (r.profit > 0 ? '+' : '') + fmt(r.profit)}</td></tr>`).join('');
   const what = near ? `around ${esc(p.planet || p.name)}` : '';
   const since = w.loc.at ? (w.loc.moved ? ` · seen at ${K.hhmm(w.loc.at)}` : ` · from Game.log at ${K.hhmm(w.loc.at)}`) : '';
   const seated = K.game().seated;
@@ -231,7 +231,7 @@ function paintFind(body, foot, sys, now) {
   const per = 20, pages = Math.max(1, Math.ceil(names.length / per));
   cm.page = Math.min(cm.page, pages - 1);
   body.innerHTML = `<div class="chips">${[['', 'All'], ...W.KIND_CHIPS.map(([c]) => [c, c])].map(([v, l]) => `<button data-chip="${v}" class="${(cm.chip || '') === v ? 'cur' : ''}">${l}</button>`).join('')}</div>
-    <div class="az">${'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(l => `<button data-l="${l}" class="${cm.letter === l ? 'cur' : ''}" ${have.has(l) ? '' : 'disabled'}>${l}</button>`).join('')}</div>
+    <div class="az">${'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(l => `<button data-l="${esc(l)}" class="${cm.letter === l ? 'cur' : ''}" ${have.has(l) ? '' : 'disabled'}>${l}</button>`).join('')}</div>
     <div class="names">${names.slice(cm.page * per, (cm.page + 1) * per).map(n => `<button data-c="${esc(n)}">${esc(n)}</button>`).join('') || '<p class="empty">Nothing with a price in this system</p>'}</div>`;
   foot.innerHTML = `<div class="lab">${names.length} commodities with a price in ${esc(sys)} this week.<br>Pick a kind or a letter, then a commodity.</div>${pages > 1 ? pager(pages) : ''}`;
 }
@@ -297,6 +297,7 @@ export function paint() {
   paintTimers($('wd-tm'), now);
   paintServers($('wd-sv'));
   paintMarket($('wd-cmhead'), $('wd-cm'), $('wd-cmfoot'), now);
+  K.painted?.([$('wd-xh'), $('wd-cm'), $('wd-cmhead'), $('wd-cmfoot')]);
 }
 /** After new Game.log lines: a new server ends the vault timer, a new place changes Here. */
 export function onLog() { if (K) { located(); armTimers(); paint(); } }
