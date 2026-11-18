@@ -1,9 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.7.1
 
 - World: the sell side's stock reads "Stock full" instead of "Their stock full".
 - Place names keep the game's spacing: Area 18, not Area18.
+- Site and README checked against the app and trimmed. The World and Settings screenshots are retaken.
 
 ## 0.7.0
 
