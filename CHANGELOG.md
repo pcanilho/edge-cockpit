@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.10.1
 
 - How the keys work: a card that shows each kind of key as it looks on the console (hold ring, LONG and 2×, macro corner, ON/OFF, GUARD, cover, your swapped keys, colours, empty slots) and what it does. It follows the setup check on the first start, then opens from the ? next to the clock or Settings > General.
 
