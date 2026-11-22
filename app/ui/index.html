@@ -145,8 +145,11 @@
       </section>
       <section class="pane" data-sec="binds" hidden>
         <h3>Keybinds</h3>
+        <div class="health warn" id="binds-lost" hidden><i></i><div class="txt"><b></b><p></p></div></div>
         <div class="health" id="bind-health"><i></i><div class="txt"><b></b><p></p></div></div>
         <div class="rows">
+          <button class="act" id="act-restore" hidden><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Restore my binds<small id="restore-note"></small></span></button>
+          <button class="act" id="act-keep" hidden><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Keep them as they are<small>I changed them myself</small></span></button>
           <button class="act" id="act-binds"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Reload my binds<small id="binds-note">Default binds</small></span></button>
           <button class="act" id="act-install"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Add the console's binds to the game<small>Then pick "edge-cockpit" in Control Profiles</small></span></button>
           <button class="act" id="act-admin"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Run as administrator<small>Only if the game runs as administrator</small></span></button>

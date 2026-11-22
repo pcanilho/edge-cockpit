@@ -56,7 +56,7 @@ It starts with Windows, wakes when Star Citizen starts and goes dark when you qu
 
 From `Game.log` it opens the right page and shows your ship, mission, location, quantum target and alerts. Behind the status display sits a render of your ship from [FleetYards.net](https://fleetyards.net), fetched once and kept. Ships from Drake, Aegis, Origin, MISC, Anvil, RSI, Crusader, Argo and Consolidated Outland get their maker's theme (**Settings > Screen**), where **Large labels** also lives. The frame goes red only for a CrimeStat or a disabled ship.
 
-It reads your `actionmaps.xml`, so rebound keys just work. **Settings > Keybinds** lists any it can't press.
+It reads your `actionmaps.xml`, so rebound keys just work. **Settings > Keybinds** lists any it can't press. It keeps the last 5 versions in `Documents\Edge Cockpit\Binds`: when a game update wipes your binds, **Restore** puts them back as a Control Profile.
 
 The game doesn't report most switch states, so nothing is guessed: ON/OFF switches stay unlit and the gear lever stays centred until you set them. **All systems on** sets them all. Toggle-only actions are push-buttons.
 

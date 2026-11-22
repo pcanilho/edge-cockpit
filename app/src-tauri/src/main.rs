@@ -3,6 +3,7 @@
 // itself is the web UI in ../ui.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod backup;
 mod family;
 #[cfg_attr(not(windows), allow(dead_code))]
 mod fit;
@@ -441,11 +442,44 @@ fn save_user_ships(handle: AppHandle, json: String) -> Result<(), String> {
     std::fs::write(dir.join("ships.json"), json).map_err(|e| e.to_string())
 }
 
-/// Puts a profile's keyboard binds in the game's Control Profiles list.
+/// Puts a profile's keyboard binds (or, with `backup`, a copy of the player's own binds)
+/// in the game's Control Profiles list.
 #[tauri::command]
-fn install_profile_binds(app: State<'_, App>, xml: String) -> Result<String, String> {
+fn install_profile_binds(app: State<'_, App>, xml: String, backup: Option<bool>) -> Result<String, String> {
     let channel = app.channel.lock().unwrap().clone().ok_or("Star Citizen not found")?;
-    game::install_profile_binds(&channel, &xml).map(|p| p.to_string_lossy().into_owned()).map_err(|e| e.to_string())
+    let name = if backup == Some(true) { game::BACKUP_BINDS_NAME } else { game::PROFILE_BINDS_NAME };
+    game::install_profile_binds(&channel, &xml, name).map(|p| p.to_string_lossy().into_owned()).map_err(|e| e.to_string())
+}
+
+/// Documents\Edge Cockpit\Binds\<channel>, where copies of the player's binds are kept.
+fn backup_dir(handle: &AppHandle, channel: &std::path::Path) -> Option<PathBuf> {
+    let name = channel.file_name()?.to_string_lossy().into_owned();
+    Some(user_dir(handle)?.join("Binds").join(name))
+}
+
+/// The kept copies of the player's binds, and whether actionmaps.xml looks wiped.
+#[tauri::command]
+fn binds_backups(handle: AppHandle, app: State<'_, App>) -> Option<backup::State> {
+    let channel = app.channel.lock().unwrap().clone()?;
+    let dir = backup_dir(&handle, &channel)?;
+    let now = std::fs::read_to_string(game::actionmaps(&channel)).ok();
+    Some(backup::state(&dir, now.as_deref()))
+}
+
+/// One kept copy of the player's binds, by file name.
+#[tauri::command]
+fn read_binds_backup(handle: AppHandle, app: State<'_, App>, file: String) -> Result<String, String> {
+    let channel = app.channel.lock().unwrap().clone().ok_or("Star Citizen not found")?;
+    let dir = backup_dir(&handle, &channel).ok_or("No Documents folder")?;
+    backup::read(&dir, &file).map_err(|e| e.to_string())
+}
+
+/// The player keeps their binds as they are now: no more warning for the newest copy.
+#[tauri::command]
+fn dismiss_binds_loss(handle: AppHandle, app: State<'_, App>) -> Result<(), String> {
+    let channel = app.channel.lock().unwrap().clone().ok_or("Star Citizen not found")?;
+    let dir = backup_dir(&handle, &channel).ok_or("No Documents folder")?;
+    backup::dismiss(&dir).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -1033,6 +1067,7 @@ fn watch_game(handle: AppHandle) {
         let mut quiet = Duration::ZERO;
         // actionmaps.xml: the game rewrites it when you change a bind or pick a control profile.
         let mut binds_seen: Option<std::time::SystemTime> = None;
+        let mut backup_seen: Option<std::time::SystemTime> = None;
         let mut since_binds = Duration::ZERO;
         loop {
             // Look for the channel every few seconds (less often once found), preferring the
@@ -1075,7 +1110,16 @@ fn watch_game(handle: AppHandle) {
             if since_binds >= Duration::from_secs(2) {
                 since_binds = Duration::ZERO;
                 let path = handle.state::<App>().channel.lock().unwrap().as_ref().map(|c| game::actionmaps(c));
-                let now = path.and_then(|p| std::fs::metadata(p).and_then(|m| m.modified()).ok());
+                let now = path.as_ref().and_then(|p| std::fs::metadata(p).and_then(|m| m.modified()).ok());
+                // A copy of the binds on every change, the first sighting included, before the UI hears of it.
+                if now.is_some() && now != backup_seen {
+                    backup_seen = now;
+                    let channel = handle.state::<App>().channel.lock().unwrap().clone();
+                    let dir = channel.as_deref().and_then(|c| backup_dir(&handle, c));
+                    if let (Some(dir), Some(xml)) = (dir, path.as_ref().and_then(|p| std::fs::read_to_string(p).ok())) {
+                        let _ = backup::keep(&dir, &xml, std::time::SystemTime::now());
+                    }
+                }
                 if binds_changed(&mut binds_seen, now) {
                     let _ = handle.emit("binds", ());
                 }
@@ -1252,7 +1296,7 @@ fn main() {
         .manage(App::default())
         .invoke_handler(tauri::generate_handler![
             key, wheel, ui_ready, user_ships, past_logs, release_keys, game_info, read_binds, install_binds, run_as_admin, quit,
-            save_profile, load_profile, save_user_ships, install_profile_binds, save_page, page_files,
+            save_profile, load_profile, save_user_ships, install_profile_binds, binds_backups, read_binds_backup, dismiss_binds_loss, save_page, page_files,
             get_prefs, set_pref, wake_screen, sleep_screen, check_update, install_update, perf,
             displays, set_display, fix_touch, refit, identify_screens, night_backlight, report_issue, world_prices, world_status,
             phones_view, phones_enable, phones_set, phones_forget, share

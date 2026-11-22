@@ -154,6 +154,67 @@ async function reloadBinds() {
   render();
   paintBindHealth();
   paintSetup();
+  paintBackups();
+}
+
+// ---------- binds copies: the app keeps the last few versions of actionmaps.xml ----------
+// When a game update (or a deleted USER folder) wipes the player's binds, Keybinds says so
+// and Restore puts the newest copy back in the game's Control Profiles.
+let backups = null;
+const when = s => new Date(s * 1000).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+async function paintBackups() {
+  backups = await bridge.bindsBackups().catch(() => null);
+  const newest = backups?.copies?.[0];
+  const lost = !!(backups?.lost && newest);
+  $('act-restore').hidden = !newest;
+  $('act-keep').hidden = !lost;
+  if (newest) $('restore-note').textContent = `From ${when(newest.at)} · ${newest.binds} binds · ${backups.copies.length} kept in Documents\\Edge Cockpit\\Binds`;
+  const card = $('binds-lost');
+  card.hidden = !lost;
+  if (lost) {
+    card.querySelector('b').textContent = 'Your binds look reset';
+    card.querySelector('p').textContent = `${backups.now == null ? 'The game has no actionmaps.xml now' : `actionmaps.xml holds ${backups.now} ${backups.now === 1 ? 'bind' : 'binds'} now`}. On ${when(newest.at)} it held ${newest.binds}, joysticks included.\nRestore adds them to the game's Control Profiles as "edge-cockpit-backup": pick it there and tick each device.`;
+  }
+  paintBindHealth();
+}
+/** Every bind and device option in an actionmaps.xml, as a Control Profile the game can load. */
+function backupProfile(text, at) {
+  const doc = new DOMParser().parseFromString(text, 'application/xml');
+  if (doc.querySelector('parsererror')) return null;
+  const prof = doc.querySelector('ActionProfiles[profileName="default"]') || doc.querySelector('ActionProfiles');
+  if (!prof) return null;
+  const e = controls.esc, ser = new XMLSerializer();
+  const devices = [...prof.querySelectorAll(':scope > options')]
+    .map(o => [o.getAttribute('type'), o.getAttribute('instance')])
+    .filter(([t, i]) => /^(keyboard|mouse|joystick|gamepad)$/.test(t || '') && /^\d+$/.test(i || ''))
+    .map(([t, i]) => `   <${t} instance="${i}"/>`);
+  if (!devices.length) devices.push('   <keyboard instance="1"/>');
+  const body = [...prof.children].filter(c => ['deviceoptions', 'options', 'modifiers', 'actionmap'].includes(c.tagName)).map(c => ' ' + ser.serializeToString(c).replace(/ xmlns="[^"]*"/g, ''));
+  if (!body.some(b => b.startsWith(' <actionmap'))) return null;
+  return `<ActionMaps version="1" optionsVersion="2" rebindVersion="2" profileName="edge-cockpit-backup">
+ <CustomisationUIHeader label="edge-cockpit-backup" description="${e(`Your binds as Edge Cockpit kept them on ${when(at)}`)}" image="">
+  <devices>
+${devices.join('\n')}
+  </devices>
+ </CustomisationUIHeader>
+${body.join('\n')}
+</ActionMaps>
+`;
+}
+async function restoreBinds() {
+  const newest = backups?.copies?.[0];
+  if (!newest) return;
+  try {
+    const xml = backupProfile(await bridge.readBindsBackup(newest.file), newest.at);
+    if (!xml) { toast('That copy has no binds the game can load'); return; }
+    await bridge.installProfileBinds(xml, true);
+    toast('Added. In game: Options, Keybindings, Control Profiles, pick "edge-cockpit-backup" and tick each device.');
+  } catch (err) { toast(String(err?.message || err)); }
+}
+async function keepBinds() {
+  await bridge.dismissBindsLoss().catch(() => {});
+  await paintBackups();
+  toast('Kept. The next change to your binds is copied as usual.');
 }
 
 /**
@@ -193,10 +254,10 @@ function paintBindHealth() {
   if (h.shared.length) lines.push(`Sharing a key: ${listOf(h.shared, 2)}.`);
   if (bad) lines.push('Add the console\'s binds, then pick "edge-cockpit" in the game\'s Control Profiles.');
   row.querySelector('p').textContent = lines.join('\n') || 'Checked when the console starts and whenever your binds change.';
-  const chip = $('binds-chip');
-  chip.hidden = !bad;
-  chip.querySelector('span').textContent = `${bad} ${bad === 1 ? 'key' : 'keys'} unbound`;
-  $('binds-dot').hidden = !bad;
+  const chip = $('binds-chip'), lost = !!backups?.lost;
+  chip.hidden = !bad && !lost;
+  chip.querySelector('span').textContent = lost ? 'Binds reset' : `${bad} ${bad === 1 ? 'key' : 'keys'} unbound`;
+  $('binds-dot').hidden = !bad && !lost;
   return h;
 }
 const keyText = spec => (spec || '').split('+').map(p => ({ ralt: 'RAlt', lalt: 'LAlt', rctrl: 'RCtrl', lctrl: 'LCtrl', rshift: 'RShift', lshift: 'LShift', backspace: 'Bksp' }[p] || p.toUpperCase())).join(' ');
@@ -971,6 +1032,7 @@ bridge.onBinds(async () => {
   toast(lost > 0 ? `Binds changed in game: ${lost} console ${lost === 1 ? 'key has' : 'keys have'} no keyboard bind now` : lost < 0 ? `Binds changed in game: ${-lost} more console ${lost === -1 ? 'key works' : 'keys work'}` : 'Binds changed in game');
 });
 const acts = { 'act-binds': [() => reloadBinds().then(() => toast('Binds reloaded')), 'reload'], 'act-install': [installBinds, 'layers'],
+  'act-restore': [restoreBinds, 'back'], 'act-keep': [keepBinds, 'x'],
   'act-admin': [bridge.runAsAdmin, 'shield'], 'act-sleep': [() => { openSheet(false); bridge.sleepScreen(); }, 'moon'],
   'act-refit': [refit, 'reload'], 'act-update': [installUpdate, 'download'], 'act-touch': [() => bridge.fixTouch().then(ok => ok || toast('Windows did not open its touchscreen setup. Open Tablet PC Settings, then Setup.')), 'hand'], 'act-save': [saveProfile, 'download'], 'act-load': [loadProfile, 'reload'], 'act-quit': [bridge.quit, 'power'], 'act-setup': [() => { openSheet(false); showSetup(); }, 'hand'], 'act-wipe': [() => { openSheet(false); wipe(true); }, 'wiper'] };
 for (const [id, [run, icon]] of Object.entries(acts)) {
@@ -1909,5 +1971,5 @@ window.xfd = {
     return CUSTOM.get(spec.id) || null;
   },
   deletePage: id => { putPage(id, null); pageGone(id); },
-  show, raise, setup: showSetup, feed: (lines, live = true) => onLog({ lines, live }), recap: t => { session = { ...NEW_TALLY, ...t }; showRecap(); }, perf: perf.toggle, showSection, bindHealth, bindsProfile, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
+  show, raise, setup: showSetup, feed: (lines, live = true) => onLog({ lines, live }), recap: t => { session = { ...NEW_TALLY, ...t }; showRecap(); }, perf: perf.toggle, showSection, bindHealth, bindsProfile, backupProfile, paintBackups, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
 document.body.dataset.ready = '1';

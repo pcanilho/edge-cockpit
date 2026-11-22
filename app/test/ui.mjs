@@ -367,7 +367,22 @@ const profileXml = await page.evaluate(() => window.xfd.bindsProfile(`<ActionMap
 if (!/<actionmap name="spaceship_movement">\s*<action name="v_vtol_toggle">\s*<rebind input="kb1_n"\/>/.test(profileXml || '') || /js1_|v_autoland/.test(profileXml))
   problems.push(`profile binds are wrong:\n${profileXml}`);
 
-// Settings, with release notes showing.
+// A kept copy of the binds goes back as a Control Profile with every device, its options and all binds.
+const backupXml = await page.evaluate(() => window.xfd.backupProfile(`<ActionMaps><ActionProfiles version="1" optionsVersion="2" rebindVersion="2" profileName="default">
+  <deviceoptions name="VKB  {0200231D}"><option input="x" deadzone="0.02"/></deviceoptions>
+  <options type="keyboard" instance="1" Product="Keyboard  {6F1D2B61}"/>
+  <options type="joystick" instance="1" Product="VKB  {0200231D}"><flight_move_pitch invert="1"/></options>
+  <modifiers/>
+  <actionmap name="spaceship_movement"><action name="v_vtol_toggle"><rebind input="js1_button3"/></action>
+  <action name="v_autoland"><rebind input="kb1_ "/></action></actionmap></ActionProfiles></ActionMaps>`, 1763800000));
+for (const want of ['profileName="edge-cockpit-backup"', '<keyboard instance="1"/>', '<joystick instance="1"/>', '<rebind input="js1_button3"/>', '<rebind input="kb1_ "/>', 'invert="1"', 'deadzone="0.02"'])
+  if (!(backupXml || '').includes(want)) problems.push(`binds copy profile lacks ${want}:\n${backupXml}`);
+if (/xmlns|ActionProfiles/.test(backupXml || '')) problems.push(`binds copy profile carries actionmaps.xml wrapping:\n${backupXml}`);
+// Binds that look wiped: Keybinds warns, the chip says so, and the settings below are checked that way.
+await page.evaluate(() => { window.xfdTestBackups = { lost: true, now: 12, copies: [{ file: 'actionmaps-1763800000.xml', at: 1763800000, binds: 214 }, { file: 'actionmaps-1763700000.xml', at: 1763700000, binds: 210 }] }; return window.xfd.paintBackups(); });
+const lostUi = await page.evaluate(() => ({ card: !document.getElementById('binds-lost').hidden, restore: !document.getElementById('act-restore').hidden, keep: !document.getElementById('act-keep').hidden, chip: document.querySelector('#binds-chip span').textContent, chipShown: !document.getElementById('binds-chip').hidden }));
+if (!lostUi.card || !lostUi.restore || !lostUi.keep || !lostUi.chipShown || lostUi.chip !== 'Binds reset') problems.push(`wiped binds not shown: ${JSON.stringify(lostUi)}`);
+
 await page.evaluate(() => {
   document.getElementById('sheet').hidden = false;
   const n = document.getElementById('upd-notes');
@@ -386,6 +401,7 @@ for (const sec of await page.evaluate(() => [...document.querySelectorAll('.tab[
   for (const x of shown) problems.push(`settings: ${sec}: ${x} is hidden but still shows`);
   if (shots) await page.screenshot({ path: join(shots, `settings-${sec}.png`) });
 }
+await page.evaluate(() => { window.xfdTestBackups = null; return window.xfd.paintBackups(); });
 // Displays: Automatic plus each display, and a warning when touch maps to another one.
 await page.evaluate(() => {
   window.xfdTestDisplays = { picked: null, current: '\\\\.\\DISPLAY2', touch_ok: false, list: [

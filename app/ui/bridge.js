@@ -38,7 +38,11 @@ export const loadProfile = () => tauri ? tauri.core.invoke('load_profile') : Pro
 export const savePageFile = (name, json) => tauri ? tauri.core.invoke('save_page', { name, json }) : onlyInApp();
 export const pageFiles = () => tauri ? tauri.core.invoke('page_files') : Promise.resolve(window.xfdTestPageFiles ?? []);
 export const saveUserShips = json => tauri ? tauri.core.invoke('save_user_ships', { json }) : onlyInApp();
-export const installProfileBinds = xml => tauri ? tauri.core.invoke('install_profile_binds', { xml }) : onlyInApp();
+export const installProfileBinds = (xml, backup = false) => tauri ? tauri.core.invoke('install_profile_binds', { xml, backup }) : onlyInApp();
+// Copies of the player's binds, kept by the app. Outside the app a page may supply its own.
+export const bindsBackups = () => tauri ? tauri.core.invoke('binds_backups') : Promise.resolve(window.xfdTestBackups ?? null);
+export const readBindsBackup = file => tauri ? tauri.core.invoke('read_binds_backup', { file }) : Promise.resolve(window.xfdTestBackupXml ?? null);
+export const dismissBindsLoss = () => tauri ? tauri.core.invoke('dismiss_binds_loss') : Promise.resolve(window.xfdTestBackups && (window.xfdTestBackups.lost = false));
 export const runAsAdmin = () => tauri?.core.invoke('run_as_admin');
 export const getPrefs = () => tauri ? tauri.core.invoke('get_prefs') : Promise.resolve({ autostart: true, screen_off: true, backlight: null, version: '0.4.0' });
 export const setPref = (name, value) => tauri?.core.invoke('set_pref', { name, value });
