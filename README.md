@@ -93,7 +93,7 @@ Phones, tablets and other PCs on your network join as extra screens: **Settings 
 
 ## Feedback
 
-[Bug report](../../issues/new?template=bug.yml) · [Feature request](../../issues/new?template=feature.yml) · [Contributing](CONTRIBUTING.md)
+[Bug report](../../issues/new?template=bug.yml) (**Settings > About > Report a problem** fills it in and saves a report file to attach) · [Feature request](../../issues/new?template=feature.yml) · [Contributing](CONTRIBUTING.md)
 
 ## Support
 
@@ -115,7 +115,7 @@ npm run test:ui        # every page: full labels, no idle work, fast touches (ne
 npm run dev            # run it
 ```
 
-Browser preview: run `node scripts/sync.mjs` in `app`, then serve `app/ui` and open `index.html?demo=ship` (also `armistice`, `alert`, `downed`, `disabled`, `log`, `hangar`, or `page=mining`).
+Browser preview (also the site's live demo): run `node scripts/sync.mjs` in `app`, then serve `app/ui` and open `index.html?demo=ship` (also `armistice`, `alert`, `downed`, `disabled`, `log`, `hangar`, or `page=mining`).
 
 After a game patch: run `scripts/check_patch.py`, `build_layout.py` and `build_binds.py` on the new `defaultProfile.xml` (or [Boxxy-Binder's AllBinds.xml](https://github.com/BoxximusPrime/Boxxy-Binder)). The ship list refreshes monthly (`refresh-ships.yml`).
 

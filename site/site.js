@@ -16,6 +16,31 @@
     box.addEventListener('click', () => box.close());
   }
 
+  // Try it live: the hero's screenshot becomes the console itself (demo/, the released version),
+  // scaled to fit, with keys for a few recorded scenes. It loads only when asked.
+  const fig = document.querySelector('.device'), start = fig?.querySelector('[data-demo-start]');
+  if (fig && start) start.addEventListener('click', () => {
+    const bezel = fig.querySelector('.bezel'), scenes = fig.querySelector('.scenes'), cap = fig.querySelector('figcaption');
+    const live = document.createElement('div');
+    live.className = 'live';
+    const frame = document.createElement('iframe');
+    frame.title = 'Edge Cockpit live demo';
+    frame.src = 'demo/index.html?demo=ship';
+    live.append(frame);
+    bezel.replaceChildren(live);
+    const fit = () => { frame.style.transform = `scale(${live.clientWidth / 2560})`; };
+    new ResizeObserver(fit).observe(live);
+    fit();
+    fig.classList.add('is-live');
+    start.hidden = true;
+    scenes.hidden = false;
+    if (cap?.dataset.captionLive) cap.textContent = cap.dataset.captionLive;
+    scenes.querySelectorAll('[data-scene]').forEach(b => b.addEventListener('click', () => {
+      scenes.querySelectorAll('[data-scene]').forEach(o => o.setAttribute('aria-pressed', String(o === b)));
+      frame.src = `demo/index.html?${b.dataset.scene}`;
+    }));
+  });
+
   const built = document.documentElement.dataset.version || '';
   fetch('https://api.github.com/repos/pcanilho/edge-cockpit/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
     .then(r => (r.ok ? r.json() : null))

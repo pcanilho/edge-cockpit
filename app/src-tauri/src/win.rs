@@ -613,3 +613,31 @@ pub fn foreground_elevated() -> bool {
         elevated
     }
 }
+
+/// A string value under HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion.
+fn nt_version_value(name: &str) -> Option<String> {
+    use windows::Win32::System::Registry::{RegGetValueW, HKEY_LOCAL_MACHINE, REG_DWORD, REG_VALUE_TYPE, RRF_RT_REG_DWORD, RRF_RT_REG_SZ};
+    let key = wide(r"SOFTWARE\Microsoft\Windows NT\CurrentVersion");
+    let val = wide(name);
+    let mut buf = [0u16; 128];
+    let mut len = (buf.len() * 2) as u32;
+    let mut kind = REG_VALUE_TYPE::default();
+    unsafe {
+        RegGetValueW(HKEY_LOCAL_MACHINE, PCWSTR(key.as_ptr()), PCWSTR(val.as_ptr()), RRF_RT_REG_SZ | RRF_RT_REG_DWORD, Some(&mut kind as *mut _), Some(buf.as_mut_ptr() as *mut _), Some(&mut len as *mut _)).ok().ok()?;
+    }
+    if kind == REG_DWORD {
+        return Some(u32::from_le_bytes([buf[0] as u8, (buf[0] >> 8) as u8, buf[1] as u8, (buf[1] >> 8) as u8]).to_string());
+    }
+    let n = (len as usize / 2).min(buf.len());
+    Some(String::from_utf16_lossy(&buf[..n]).trim_end_matches('\0').to_string())
+}
+
+/// Windows as a bug report wants it: "Windows 11 24H2 (build 26100.2314)".
+pub fn windows_version() -> String {
+    let build = nt_version_value("CurrentBuildNumber").unwrap_or_default();
+    // ProductName still says Windows 10 on 11; the build tells them apart.
+    let name = if build.parse::<u32>().is_ok_and(|b| b >= 22000) { "Windows 11" } else { "Windows 10" };
+    let release = nt_version_value("DisplayVersion").unwrap_or_default();
+    let ubr = nt_version_value("UBR").map(|u| format!(".{u}")).unwrap_or_default();
+    format!("{name} {release} (build {build}{ubr})").replace("  ", " ")
+}

@@ -167,3 +167,14 @@ section { padding: 80px 0 0; }
   .top { gap: 12px; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .key { transition: none; } }
+
+/* Live demo: the console itself in the hero, scaled to the bezel. */
+.demo-bar { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 16px; }
+.demo-bar .scenes { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.demo-bar .scenes[hidden], .demo-bar [hidden] { display: none; }
+.demo-bar .scenes .key { width: auto; min-height: 40px; padding: 0 16px; font-size: 13px; }
+.demo-bar .scenes .key[aria-pressed="true"] { color: #071016; background: var(--cyan, #5cc8e6); }
+.live { position: relative; width: 100%; aspect-ratio: 2560 / 720; overflow: hidden; border-radius: clamp(4px, .6vw, 8px); background: #07090c; }
+.live iframe { position: absolute; left: 0; top: 0; width: 2560px; height: 720px; border: 0; transform-origin: 0 0; }
+.device.is-live .handset { display: none; }
+.device.is-live figcaption { padding-right: 0; }

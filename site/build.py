@@ -1,9 +1,13 @@
 """Builds the project site into an output folder.
 
-python site/build.py OUT [--release release.json] [--base-url URL]
+python site/build.py OUT [--release release.json] [--base-url URL] [--demo DIR]
 
 release.json is the GitHub API answer for releases/latest. Without it the
 download links point at the latest release page.
+
+--demo is the console's ui folder, synced (node app/scripts/sync.mjs), that the
+hero runs as a live demo; by default app/ui. The site workflow passes the
+released version's, so the demo never runs ahead of the download.
 """
 import argparse
 import hashlib
@@ -48,11 +52,31 @@ def release_fields(path):
     return f
 
 
+# The live demo: the console itself, in a browser, playing its recorded sessions. It may only
+# load its own files, so ship art from FleetYards stays off and nothing else is fetched.
+DEMO_CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; "
+            "font-src 'self'; connect-src 'self'; media-src 'self' data:")
+
+
+def build_demo(ui, out):
+    if not (ui / "vendor" / "star-citizen.json").is_file():
+        raise SystemExit(f"{ui} is not synced: run node app/scripts/sync.mjs first")
+    shutil.copytree(ui, out, ignore=shutil.ignore_patterns("manifest.webmanifest", "icon-*.png"))
+    page = (out / "index.html").read_text(encoding="utf-8")
+    head = (f'<meta http-equiv="Content-Security-Policy" content="{DEMO_CSP}">\n'
+            '<meta name="robots" content="noindex">\n')
+    page = page.replace('<meta charset="utf-8">', '<meta charset="utf-8">\n' + head, 1)
+    page = re.sub(r'<link rel="(manifest|apple-touch-icon)"[^>]*>\n?', "", page)
+    assert "Content-Security-Policy" in page, "demo page has no charset meta to follow"
+    (out / "index.html").write_text(page, encoding="utf-8")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("out")
     ap.add_argument("--release")
     ap.add_argument("--base-url", default="https://edge-cockpit.canilho.net/")
+    ap.add_argument("--demo", default=str(ROOT / "app" / "ui"))
     args = ap.parse_args()
     out = Path(args.out)
     shutil.rmtree(out, ignore_errors=True)
@@ -88,6 +112,7 @@ def main():
     for fam, weights in FONTS.items():
         for w in weights:
             shutil.copy(fontsource / fam / "files" / f"{fam}-latin-{w}-normal.woff2", out / "fonts" / f"{fam}-{w}.woff2")
+    build_demo(Path(args.demo), out / "demo")
     print(f"site built in {out} ({fields['VERSION']})")
 
 
