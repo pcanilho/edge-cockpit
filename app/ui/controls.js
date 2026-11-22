@@ -2,6 +2,7 @@
 // target dial, the power triangle, the gear lever, slide to eject and guarded covers.
 // Everything is CSS and inline SVG, drawn once per page, with no idle animation.
 import { GLYPHS } from './lib/glyphs.js';
+import { host as hapticHost } from './haptics.js';
 
 let K; // the app: key lookup, sending, state (see app.js)
 export const init = ctx => { K = ctx; };
@@ -26,6 +27,7 @@ export function pressable(node, { down, up, cancel } = {}) {
     e.stopPropagation();
     node.setPointerCapture(e.pointerId);
     node.classList.add('pressed');
+    hapticHost(node);
     down?.(e);
   });
   node.addEventListener('pointerup', e => { node.classList.remove('pressed'); up?.(e); });
