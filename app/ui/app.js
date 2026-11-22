@@ -1056,7 +1056,7 @@ async function reportProblem(title = 'Bug: ') {
 const acts = { 'act-binds': [() => reloadBinds().then(() => toast('Binds reloaded')), 'reload'], 'act-install': [installBinds, 'layers'],
   'act-restore': [restoreBinds, 'back'], 'act-keep': [keepBinds, 'x'], 'act-report': [() => reportProblem(), 'chat'],
   'act-admin': [bridge.runAsAdmin, 'shield'], 'act-sleep': [() => { openSheet(false); bridge.sleepScreen(); }, 'moon'],
-  'act-refit': [refit, 'reload'], 'act-update': [installUpdate, 'download'], 'act-touch': [() => bridge.fixTouch().then(ok => ok || toast('Windows did not open its touchscreen setup. Open Tablet PC Settings, then Setup.')), 'hand'], 'act-save': [saveProfile, 'download'], 'act-load': [loadProfile, 'reload'], 'act-quit': [bridge.quit, 'power'], 'act-setup': [() => { openSheet(false); showSetup(); }, 'hand'], 'act-wipe': [() => { openSheet(false); wipe(true); }, 'wiper'] };
+  'act-refit': [refit, 'reload'], 'act-update': [installUpdate, 'download'], 'act-touch': [() => bridge.fixTouch().then(ok => ok || toast('Windows did not open its touchscreen setup. Open Tablet PC Settings, then Setup.')), 'hand'], 'act-save': [saveProfile, 'download'], 'act-load': [loadProfile, 'reload'], 'act-quit': [bridge.quit, 'power'], 'act-setup': [() => { openSheet(false); showSetup(); }, 'hand'], 'act-wipe': [() => { openSheet(false); wipe(true); }, 'wiper'], 'act-legend': [() => { openSheet(false); showLegend(); }, 'help'] };
 for (const [id, [run, icon]] of Object.entries(acts)) {
   $(id).querySelector('svg').innerHTML = GLYPHS[icon] || '';
   controls.pressable($(id), { up: () => { tick('tap'); run(); } });
@@ -1239,7 +1239,33 @@ async function paintSetup() {
   $('su-rows').querySelectorAll('button').forEach(b => controls.pressable(b, { up: () => { tick('tap'); rows[b.dataset.i][4](); } }));
 }
 function showSetup() { setupOpen = true; $('setup').hidden = false; $('su-test').textContent = ''; paintSetup(); }
-controls.pressable($('su-done'), { up: () => { tick('tap'); setupOpen = false; $('setup').hidden = true; store.set('setup-done', true); } });
+controls.pressable($('su-done'), { up: () => {
+  tick('tap'); setupOpen = false; $('setup').hidden = true; store.set('setup-done', true);
+  // The first time, the legend follows the setup check.
+  if (!store.get('legend-seen', false)) showLegend();
+} });
+// ---------- controls legend: once after the first setup check, then from the ? on the status screen ----------
+// Each sample is drawn with the console's own key styles, so it looks like the key it explains.
+const LEGEND = [
+  ['<div class="well key fam-flt"><div class="cap"><span class="lg">Autoland</span><span class="kb">N</span></div></div>', 'Tap', 'Sends the key once. The letters bottom right are its bind in the game.'],
+  ['<div class="well key fam-wpn"><div class="cap"><span class="lg">Fire</span><svg class="ring-h" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><circle class="f" cx="8" cy="8" r="6" pathLength="1"/></svg></div></div>', 'Ring: hold', 'The key stays down while your finger does, like holding it in game. The ring fills while held.'],
+  ['<div class="well key fam-wpn"><div class="cap"><span class="lg">Decoy</span><span class="tg">LONG</span></div></div>', 'LONG or 2×', 'Press and hold, or tap twice, for a second action. Its name shows at the bottom of the screen when it goes.'],
+  ['<div class="well key fam-sys cut"><div class="cap"><span class="lg">Flight ready</span><span class="notch"></span></div></div>', 'Notched corner: macro', 'Several keys in turn, such as power on and Flight Ready.'],
+  ['<div class="well pair fam-flt"><div class="cap half a"><span class="lg">On</span><span class="led"></span></div><div class="cap half b"><span class="lg">Off</span><span class="led"></span></div></div>', 'On and off', 'Sets it on or off in game. Dark until you set it here, as the game never says which it is.'],
+  ['<div class="well key fam-emg"><div class="cap"><span class="lg">Self destruct</span><span class="tg">GUARD</span></div></div>', 'GUARD', 'Tap twice within 3 s. The first tap only arms it.'],
+  ['<div class="guard"><div class="cover"><span class="hinge"></span><span>LIFT COVER</span></div></div>', 'Cover', 'The first tap lifts it, a second within 3 s sends the key.'],
+  ['<div class="well key fam-flt"><div class="cap"><span class="lg">Ping</span><span class="mine"></span></div></div>', 'Cyan dot: your key', 'A key you swapped in. Long press it to change it again or go back to stock.'],
+  ['<div class="lgd-fams"><i class="fam-wpn"></i><i class="fam-flt"></i><i class="fam-sys"></i><i class="fam-emg"></i></div>', 'Colours', 'Weapons amber, flight cyan, systems white, emergency red.'],
+  ['<div class="well blank"><div class="cap"><span class="lg">Not fitted</span></div></div>', 'Not fitted', 'The ship lacks that kit. Hold the slot to put a key of yours there.'],
+];
+function showLegend() {
+  const esc = controls.esc;
+  $('lgd-rows').innerHTML = LEGEND.map(([sample, b, p]) => `<div class="lgd-row"><div class="lgd-s" aria-hidden="true">${sample}</div><div class="txt"><b>${esc(b)}</b><p>${esc(p)}</p></div></div>`).join('');
+  $('legend').hidden = false;
+}
+controls.pressable($('lgd-done'), { up: () => { tick('tap'); $('legend').hidden = true; store.set('legend-seen', true); } });
+controls.pressable($('help'), { up: () => { tick('tap'); showLegend(); } });
+
 // Test a key: mobiGlas, which opens and closes without changing anything in game.
 controls.pressable($('su-key'), { up: async () => {
   const k = KEYS.get('mobiGlas'), out = $('su-test');
@@ -1680,7 +1706,13 @@ function paintChannel() {
   // OFFLINE with no game; the game's channel and version (LIVE 4.10.3, PTU 4.11) while it runs.
   const on = info.running && info.channel;
   const ch = on ? info.channel.split(/[\\/]/).pop().toUpperCase() : 'OFFLINE';
-  $('channel').textContent = on && game.build?.branch ? `${ch} ${version(game.build.branch)}` : ch;
+  const chText = on && game.build?.branch ? `${ch} ${version(game.build.branch)}` : ch;
+  if ($('channel').textContent !== chText) {
+    $('channel').textContent = chText;
+    // A long channel name (TECH-PREVIEW 4.10.3) needs the room: the ? gives way, and the legend stays in Settings > General.
+    $('help').hidden = false;
+    $('help').hidden = $('link').offsetHeight > 26;
+  }
 }
 async function poll() {
   const was = JSON.stringify(info);
@@ -1996,5 +2028,5 @@ window.xfd = {
     return CUSTOM.get(spec.id) || null;
   },
   deletePage: id => { putPage(id, null); pageGone(id); },
-  show, raise, setup: showSetup, feed: (lines, live = true) => onLog({ lines, live }), recap: t => { session = { ...NEW_TALLY, ...t }; showRecap(); }, perf: perf.toggle, showSection, bindHealth, bindsProfile, reportProblem, backupProfile, paintBackups, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
+  show, raise, setup: showSetup, legend: showLegend, feed: (lines, live = true) => onLog({ lines, live }), recap: t => { session = { ...NEW_TALLY, ...t }; showRecap(); }, perf: perf.toggle, showSection, bindHealth, bindsProfile, reportProblem, backupProfile, paintBackups, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
 document.body.dataset.ready = '1';

@@ -52,6 +52,8 @@ It starts with Windows, wakes when Star Citizen starts and goes dark when you qu
 | Slider, knob | Drag or turn. Each step goes to the game, which keeps the value, so no number is shown |
 | Red cover | Tap to lift, tap again within 3 s |
 
+The console has the same legend: tap the ? next to the clock.
+
 ## It follows the game
 
 From `Game.log` it opens the right page and shows your ship, mission, location, quantum target, injuries, hangar queue and alerts (restricted areas, low fuel, party invites, why the game dropped you). Behind the status display sits a render of your ship from [FleetYards.net](https://fleetyards.net), fetched once and kept. Ships from Drake, Aegis, Origin, MISC, Anvil, RSI, Crusader, Argo and Consolidated Outland get their maker's theme (**Settings > Screen**), where **Large labels** also lives. The frame goes red only for a CrimeStat or a disabled ship.
