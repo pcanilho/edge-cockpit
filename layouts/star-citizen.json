@@ -12493,6 +12493,202 @@
      "role": "menu"
     },
     {
+     "label": "Pin target",
+     "action": "v_target_pin_selected",
+     "actionmap": "spaceship_targeting",
+     "defaultKey": null,
+     "activation": "tap",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "pin",
+     "role": "action"
+    },
+    {
+     "label": "Unpin target",
+     "action": "v_target_unpin_selected",
+     "actionmap": "spaceship_targeting",
+     "defaultKey": null,
+     "activation": "tap",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "unpin",
+     "role": "action"
+    },
+    {
+     "label": "Pin 1",
+     "action": "v_target_toggle_pin_index_1",
+     "actionmap": "spaceship_targeting",
+     "defaultKey": "lalt+1",
+     "activation": "tap",
+     "press": "tap",
+     "needsKeyboardBind": false,
+     "icon": "pin",
+     "role": "action"
+    },
+    {
+     "label": "Pin 2",
+     "action": "v_target_toggle_pin_index_2",
+     "actionmap": "spaceship_targeting",
+     "defaultKey": "lalt+2",
+     "activation": "tap",
+     "press": "tap",
+     "needsKeyboardBind": false,
+     "icon": "pin",
+     "role": "action"
+    },
+    {
+     "label": "Pin 3",
+     "action": "v_target_toggle_pin_index_3",
+     "actionmap": "spaceship_targeting",
+     "defaultKey": "lalt+3",
+     "activation": "tap",
+     "press": "tap",
+     "needsKeyboardBind": false,
+     "icon": "pin",
+     "role": "action"
+    },
+    {
+     "label": "Next pinned",
+     "action": "v_target_cycle_pinned_fwd",
+     "actionmap": "spaceship_targeting_advanced",
+     "defaultKey": null,
+     "activation": "tap",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "target",
+     "role": "action"
+    },
+    {
+     "label": "Door locks on",
+     "action": "v_lock_all_doors",
+     "actionmap": "spaceship_general",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "lock",
+     "state": {
+      "key": "doorlocks",
+      "kind": "set",
+      "value": true
+     },
+     "role": "select"
+    },
+    {
+     "label": "Door locks off",
+     "action": "v_unlock_all_doors",
+     "actionmap": "spaceship_general",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "lock",
+     "state": {
+      "key": "doorlocks",
+      "kind": "set",
+      "value": false
+     },
+     "role": "select"
+    },
+    {
+     "label": "Port locks on",
+     "action": "v_lock_all_ports",
+     "actionmap": "spaceship_general",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "lock",
+     "state": {
+      "key": "portlocks",
+      "kind": "set",
+      "value": true
+     },
+     "role": "select"
+    },
+    {
+     "label": "Port locks off",
+     "action": "v_unlock_all_ports",
+     "actionmap": "spaceship_general",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "lock",
+     "state": {
+      "key": "portlocks",
+      "kind": "set",
+      "value": false
+     },
+     "role": "select"
+    },
+    {
+     "label": "Turret 1",
+     "action": "v_enter_remote_turret_1",
+     "actionmap": "seat_general",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "guns",
+     "role": "action"
+    },
+    {
+     "label": "Turret 2",
+     "action": "v_enter_remote_turret_2",
+     "actionmap": "seat_general",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "guns",
+     "role": "action"
+    },
+    {
+     "label": "Turret 3",
+     "action": "v_enter_remote_turret_3",
+     "actionmap": "seat_general",
+     "defaultKey": null,
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": true,
+     "icon": "guns",
+     "role": "action"
+    },
+    {
+     "label": "Next turret",
+     "action": "turret_remote_cycle_next",
+     "actionmap": "turret_movement",
+     "defaultKey": "d",
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": false,
+     "icon": "right",
+     "role": "action"
+    },
+    {
+     "label": "Previous turret",
+     "action": "turret_remote_cycle_prev",
+     "actionmap": "turret_movement",
+     "defaultKey": "a",
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": false,
+     "icon": "left",
+     "role": "action"
+    },
+    {
+     "label": "Exit turret",
+     "action": "turret_remote_exit",
+     "actionmap": "turret_movement",
+     "defaultKey": "y",
+     "activation": "",
+     "press": "tap",
+     "needsKeyboardBind": false,
+     "icon": "eject",
+     "role": "action"
+    },
+    {
      "label": "Dance",
      "action": "emote_dance",
      "actionmap": "player_emotes",

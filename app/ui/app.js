@@ -1,7 +1,7 @@
 // Edge Cockpit: builds the cockpit console, turns touches into key presses and
 // follows Game.log for the status display, the moods and the pages.
 import { GLYPHS } from './lib/glyphs.js';
-import { parseLine, reduce, lawless, EMPTY, version, sessionsOf, missingLines, untested, place, tally, stamp, NEW_TALLY, minutes, shipName, alertsFor, hangarText, culprit, logFor, shardName, weaponName, placeName } from './lib/gamelog.js';
+import { parseLine, reduce, lawless, EMPTY, version, sessionsOf, missingLines, untested, place, tally, stamp, NEW_TALLY, minutes, shipName, alertsFor, hangarText, culprit, logFor, shardName, weaponName, placeName, worstInjury, droppedText } from './lib/gamelog.js';
 import { pageFor, pageById } from './lib/pages.js';
 import { lookup } from './lib/ships.js';
 import * as bridge from './bridge.js';
@@ -111,10 +111,12 @@ const platesMode = v => (Array.isArray(v) && v.some(x => SHIP_PLATES.includes(x)
 // Night backlight in percent; 0 leaves the backlight alone.
 const nightLevel = v => [0, 10, 30, 50].includes(+v) ? +v : 30;
 const nightMode = v => (v === true ? 'on' : ['on', 'auto'].includes(v) ? v : 'off');
-const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), anywhere: store.get('anywhere', false), stack: store.get('stack', true), large: store.get('large', false), plates: platesMode(store.get('plates', null)), size: store.get('size', 'fit') === 'actual' ? 'actual' : 'fit', makerTheme: themeMode(store.get('makerTheme', 'auto')), vibrate: store.get('vibrate', true), nightLight: nightLevel(store.get('nightLight', 30)) };
+const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), anywhere: store.get('anywhere', false), stack: store.get('stack', true), large: store.get('large', false), shapes: store.get('shapes', false), calm: store.get('calm', false), plates: platesMode(store.get('plates', null)), size: store.get('size', 'fit') === 'actual' ? 'actual' : 'fit', makerTheme: themeMode(store.get('makerTheme', 'auto')), vibrate: store.get('vibrate', true), nightLight: nightLevel(store.get('nightLight', 30)) };
 // Vibration is for paired phones and tablets only; the Edge has no motor.
 if (onPhone) haptics.enable(opts.vibrate);
 stage.classList.toggle('large', opts.large);
+document.body.classList.toggle('shapes', opts.shapes);
+document.body.classList.toggle('calm', opts.calm);
 
 // ---------- binds: the player's actionmaps.xml, then our Xeneon profile, then the defaults ----------
 function parseActionmaps(text) {
@@ -556,8 +558,10 @@ const SUBGROUPS = {
   spaceship_mining: 'Mining', spaceship_salvage: 'Salvage', tractor_beam: 'Tractor beam',
   player: 'On foot', player_emotes: 'Emotes', incapacitated: 'Downed', mapui: 'Map', player_input_optical_tracking: 'Other',
 };
-const subOf = k => SUBGROUPS[k.actionmap] || 'Other';
-const groupOf = k => PICK_GROUPS.find(g => g[2].test(k.actionmap || ''))?.[0] || 'systems';
+// Remote turrets: entering one is a seat action, the rest the turret's own.
+const turret = k => k.actionmap === 'turret_movement' || /^v_enter_remote_turret_/.test(k.action || '');
+const subOf = k => (turret(k) ? 'Remote turrets' : SUBGROUPS[k.actionmap] || 'Other');
+const groupOf = k => (turret(k) ? 'weapons' : PICK_GROUPS.find(g => g[2].test(k.actionmap || ''))?.[0] || 'systems');
 const RECENT = 'pick-recent';
 let picking = null, pickStock = null, pickNow = null, query = '', typing = false, pickTab = 'flight';
 // The page editor's pick: { title, now, base, refuse(label), onPick(label) }. Every key is offered;
@@ -826,6 +830,8 @@ function setOpt(name, v) {
   if (name === 'vibrate' && onPhone) haptics.enable(v);
   paintNight();
   stage.classList.toggle('large', !!opts.large);
+  document.body.classList.toggle('shapes', !!opts.shapes);
+  document.body.classList.toggle('calm', !!opts.calm);
   document.querySelectorAll('.opt[data-opt]').forEach(o => o.classList.toggle('on', !!opts[o.dataset.opt]));
   $('auto').classList.toggle('on', opts.auto);
   if (name === 'anywhere') paintIdle();
@@ -975,7 +981,7 @@ $('qt').querySelector('svg').innerHTML = GLYPHS.quantum;
 
 // ---------- profile: settings, plate order, ship roles and keyboard binds in one file ----------
 // Saved as Documents\Edge Cockpit\profile.json, to copy to another PC or keep as a backup.
-const PROFILE_OPTS = ['night', 'nightLight', 'sound', 'flash', 'auto', 'recap', 'alertSound', 'anywhere', 'stack', 'large', 'makerTheme', 'plates', 'size', 'autostart', 'screen_off'];
+const PROFILE_OPTS = ['night', 'nightLight', 'sound', 'flash', 'auto', 'recap', 'alertSound', 'anywhere', 'stack', 'large', 'shapes', 'calm', 'makerTheme', 'plates', 'size', 'autostart', 'screen_off'];
 const KEPT_AS_IS = new Set(['night', 'nightLight', 'makerTheme', 'plates', 'size']);
 /** The keyboard binds in an actionmaps.xml, as a Control Profile the game can load. */
 function bindsProfile(text) {
@@ -1105,11 +1111,11 @@ function showRecap() {
   const ships = t.ships.map(m => lookup(shipsDb.ships, overrides.ships, m)?.name || shipName(m));
   const stat = (n, label) => `<div class="rc-stat"><b>${n}</b><span>${label}</span></div>`;
   $('rc-time').textContent = mins >= 60 ? `${Math.floor(mins / 60)} h ${mins % 60} min` : `${mins} min`;
-  $('rc-stats').innerHTML = [stat(t.kills, 'Kills'), stat(t.deaths, t.deaths === 1 ? 'Time down' : 'Times down'),
+  $('rc-stats').innerHTML = [t.kills ? stat(t.kills, 'Kills') : stat(t.injuries, t.injuries === 1 ? 'Injury' : 'Injuries'), stat(t.deaths, t.deaths === 1 ? 'Time down' : 'Times down'),
     stat(t.missions, t.missions === 1 ? 'Mission done' : 'Missions done'), stat(t.routes, t.routes === 1 ? 'Route set' : 'Routes set'),
     t.failed ? stat(t.failed, 'Failed') : '', t.crimeMax ? stat(t.crimeMax, 'Top CrimeStat') : ''].join('');
   const row = (k, v) => (v.length ? `<p><small>${k}</small>${v.map(controls.esc).join(' · ')}</p>` : '');
-  $('rc-lists').innerHTML = row('Flew', ships) + row('Visited', t.places);
+  $('rc-lists').innerHTML = row('Flew', ships) + row('Visited', t.places) + (t.dropped ? `<p class="ended"><small>Ended</small>${controls.esc(droppedText(t.dropped))}</p>` : '');
   $('recap').hidden = false;
   session = { ...NEW_TALLY };
 }
@@ -1307,6 +1313,8 @@ function paintStatus() {
   const law = $('law');
   let lawText = null, lawCls = '';
   if (game.crime > 0) { lawText = `CrimeStat ${game.crime}`; lawCls = 'bad'; }
+  else if (game.restricted) { lawText = 'Restricted area'; lawCls = 'warn'; }
+  else if (game.private) { lawText = 'Private property'; lawCls = 'warn'; }
   else if (game.monitored === 'down') { lawText = 'Comms down'; lawCls = 'warn'; }
   else if (game.monitored === 'no') { lawText = 'Unmonitored'; lawCls = 'warn'; }
   else if (lawless(game) && !game.jurisdiction) { lawText = 'Lawless'; lawCls = 'warn'; }
@@ -1328,6 +1336,15 @@ function paintStatus() {
 
   const chip = (id, text, cls = '') => { const c = $(id); c.hidden = !text || game.menu; c.className = 'chip ' + cls; c.querySelector('span').textContent = text || ''; };
   chip('kills', game.kills ? `Kills ${game.kills}` : null, 'info');
+  // Injuries the game reported, the one needing the most care first. A med pen logs nothing, so a tap clears them.
+  const hurt = worstInjury(game.injuries), more = game.injuries.length - 1;
+  chip('injury', hurt ? `${hurt.limb} · tier ${hurt.tier}${more > 0 ? ` +${more}` : ''}` : null, 'warn');
+  chip('fuel', game.lowFuel && game.seated ? 'Low fuel' : null, 'warn');
+  chip('party', game.party ? `Party jump calibrating${game.party.calibrating ? ` · ${game.party.calibrating}` : ''}` : null, 'info');
+  // Why the game threw you out shows at the menu too, until you are back in or tap it.
+  const drop = $('dropped');
+  drop.hidden = !game.dropped;
+  drop.querySelector('span').textContent = droppedText(game.dropped) || '';
   chip('wreck', game.wrecked && game.seated ? (game.wrecked > 1 ? 'Ship destroyed' : 'Ship disabled') : null, 'bad');
   // The ship you called at a fleet terminal, or the hangar ATC gave you, as far as the log tells.
   const hangar = hangarText(game);
@@ -1378,7 +1395,20 @@ function paintStatus() {
   paintQuantum();
   paintLog();
   paintPatch();
+  fitChips();
   requestAnimationFrame(fitMakerName);
+}
+// Chips that would run off the status screen give way, the least pressing first, so Follow game
+// and the ones that need you stay in sight.
+const CHIP_ORDER = ['kills', 'build', 'update', 'binds-chip', 'patch', 'touch-chip', 'fit-chip', 'lag', 'party', 'hangar', 'fuel', 'injury', 'wreck', 'dropped', 'law'];
+function fitChips() {
+  const screen = $('auto').closest('.facts')?.parentElement, r = screen?.getBoundingClientRect();
+  if (!r?.height) return;
+  CHIP_ORDER.forEach(id => $(id).classList.remove('squeezed'));
+  for (const id of CHIP_ORDER) {
+    if ($('auto').getBoundingClientRect().bottom <= r.bottom - 10) break;
+    if (!$(id).hidden) $(id).classList.add('squeezed');
+  }
 }
 // The maker's name only shows where the status text leaves room for it.
 function fitMakerName() {
@@ -1412,8 +1442,10 @@ function paintPast() {
   };
   const week = past.filter(t => Date.now() - Date.parse(t.start) < 7 * 86_400_000).reduce((n, t) => n + minutes(t), 0);
   $('lg-past-note').textContent = past.length ? `From the game's log backups · last 7 days: ${span(week)} played` : '';
-  const rows = past.slice(0, 5).map(t => `<tr><td>${esc(day(t.start))}</td><td>${esc(span(minutes(t)))}</td><td>${t.kills}</td><td>${t.deaths}</td><td>${t.missions}</td><td>${esc(t.ships.map(m => shipLabel(m)).join(', ') || '–')}</td></tr>`).join('');
-  $('lg-past').innerHTML = '<tr><th>Started</th><th>Played</th><th>Kills</th><th>Downed</th><th>Missions</th><th>Ships</th></tr>'
+  // Like the cards above: injuries, as the game stopped logging kills in 2026, unless a session shown does log one.
+  const shown = past.slice(0, 5), kills = shown.some(t => t.kills);
+  const rows = shown.map(t => `<tr><td>${esc(day(t.start))}</td><td>${esc(span(minutes(t)))}</td><td>${kills ? t.kills : t.injuries}</td><td>${t.deaths}</td><td>${t.missions}</td><td>${esc(t.ships.map(m => shipLabel(m)).join(', ') || '–')}</td></tr>`).join('');
+  $('lg-past').innerHTML = `<tr><th>Started</th><th>Played</th><th>${kills ? 'Kills' : 'Injuries'}</th><th>Downed</th><th>Missions</th><th>Ships</th></tr>`
     + (rows || '<tr><td class="empty" colspan="6">No earlier sessions yet. The game keeps each finished session\'s log, and they show here.</td></tr>');
 }
 function paintLog() {
@@ -1439,12 +1471,15 @@ function paintLog() {
   // This session's totals, as the recap counts them.
   const mins = minutes(session);
   $('lg-time').textContent = mins >= 60 ? `${Math.floor(mins / 60)} h ${String(mins % 60).padStart(2, '0')}` : `${mins} min`;
-  $('lg-kills').textContent = session.kills;
+  // The game stopped logging kills in 2026, so injuries show unless a session does log one.
+  $('lg-kills').textContent = session.kills || session.injuries;
+  $('lg-kills').nextElementSibling.textContent = session.kills ? 'Kills' : session.injuries === 1 ? 'Injury' : 'Injuries';
   $('lg-deaths').textContent = session.deaths;
   $('lg-missions').textContent = session.missions;
   $('lg-ships-n').textContent = session.ships.length;
   $('lg-list').innerHTML = logRows.length
-    ? logRows.map(e => `<li><time>${hhmm(e.ts)}</time><i class="${e.tone}"></i><span>${esc(e.text)}</span></li>`).join('')
+    // Newest first, as many rows as the list holds whole.
+    ? logRows.slice(0, 11).map(e => `<li><time>${hhmm(e.ts)}</time><i class="${e.tone}"></i><span>${esc(e.text)}</span></li>`).join('')
     : '<li class="empty"><span>Nothing yet. Events from the game log show here as they happen.</span></li>';
 }
 // ---------- the system you are in, as a line of its planets from the star out ----------
@@ -1514,6 +1549,11 @@ function paintPatch() {
   $('patch').querySelector('span').textContent = miss.length ? 'Log lines missing' : '';
   $('patch').dataset.miss = miss.join(', ');
 }
+// A tap clears what the log can't clear by itself: a med pen heals without a log line, a tank
+// refuels without one, and the reason the game dropped you is read once.
+for (const [id, clear] of [['injury', { injuries: [] }], ['fuel', { lowFuel: false }], ['dropped', { dropped: null }]]) {
+  controls.pressable($(id), { up: () => { tick('tap'); game = { ...game, ...clear }; paintStatus(); } });
+}
 controls.pressable($('patch'), { up: () => {
   tick('tap');
   const what = $('patch').dataset.miss, build = game.build?.branch ? version(game.build.branch) : 'this build';
@@ -1564,7 +1604,7 @@ async function poll() {
   link.classList.toggle('focused', info.focused);
   paintChannel();
   $('act-admin').hidden = info.elevated;
-  if (!info.running && !game.menu) { game = { ...EMPTY, me: game.me }; follow(false); showRecap(); }
+  if (!info.running && !game.menu) { game = { ...EMPTY, me: game.me, dropped: game.dropped }; follow(false); showRecap(); }
   paintPrompt();
   paintStatus();
   paintSetup();

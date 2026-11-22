@@ -1183,3 +1183,17 @@ body.phone .cm-head, body.phone .cm-foot { container-type: inline-size; }
 .picker.listing .pick-grid { top: 36px; }
 .ed-ph-area .ph-hide { display: none !important; }
 .ed-ph-area .plate > .pager, .ed-ph-area .swipe-hint { display: none; }
+
+/* Shapes for colour (Settings > Screen): amber marks are triangles, red ones diamonds, green ones
+   rings, so no state hangs on telling red, amber and green apart. */
+body.shapes .chip.warn i, body.shapes .logp .list li i.warn { border-radius: 0; clip-path: polygon(50% 0, 100% 100%, 0 100%); width: 9px; }
+body.shapes .chip.bad i, body.shapes .logp .list li i.bad { border-radius: 1px; transform: rotate(45deg) scale(.85); }
+body.shapes .chip.ok i, body.shapes .logp .list li i.good { background: none !important; box-shadow: inset 0 0 0 2px var(--ok); }
+body.shapes .banner.warn::before { content: '▲ '; }
+body.shapes .banner.bad::before { content: '◆ '; }
+body.shapes .banner.good::before { content: '● '; }
+body.shapes #stage.alert::before { outline: 3px dashed #ff4232; outline-offset: -9px; }
+
+/* Reduce motion (Settings > Screen): no frame flashes, blinking, pulses or slides. Colours still change. */
+body.calm *, body.calm *::before, body.calm *::after { animation: none !important; transition: none !important; }
+.chip.squeezed { display: none; }

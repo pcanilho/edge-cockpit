@@ -267,6 +267,7 @@ test('Log page: shard, jump, refinery, downed, quantum arrival, lag', async () =
 
 // The app's Rust side only passes on lines that hold one of its markers: every pattern
 // the panel reads needs a sample here, and the sample must get through.
+const N = t => `<2026-10-03T18:11:40.000Z> [Notice] <SHUDEvent_OnNotification> Added notification "${t}" [26] to queue. New queue size: 1`;
 test('every log pattern gets past the Rust line filter', async () => {
   const { PATTERNS } = await import('../ui/lib/gamelog.js');
   const rs = readFileSync(new URL('../src-tauri/src/game.rs', import.meta.url), 'utf8');
@@ -297,6 +298,15 @@ test('every log pattern gets past the Rust line filter', async () => {
     hangarName: '<2026-11-17T08:00:01.123Z> XL Hangar [Team_GameServices][ASOP]', hangarGranted: 'Added notification "Hangar Request Completed: "',
     lift: '<CSCLoadingPlatformManager::OnLoadingPlatformStateChanged> [LoadingPlatformManager_ShipElevator_1] Platform state changed to OpenIdle',
     location: '<RequestLocationInventory> Player[me] requested inventory for Location[Stanton1_Lorville]',
+    injury: N('Minor Injury Detected - Left arm - Tier 3 Treatment Required : '),
+    medbed: '<MED BED HEAL> Actor: me (Non-Authoritative CLIENT: me) | [CEntityComponentMedBed::HandleComponentEvent:1101] | -> Perform surgery event Success, med bed name: Bed_Single_Medical_Cutlass',
+    hangarQueue: N('Joined hangar queue. Your place: 3. Max. estimated wait: 120: '), restricted: N('Restricted Area: '),
+    privateProperty: N('Entering Private Property: '), impounded: N('Vehicle Impounded: Drake Cutlass Black: '), lowFuel: N('Low Fuel: '),
+    disconnect: '<Channel Disconnected> cause=30000 reason="Connection timed out" frame=1 isRemote=0 gamerules="SC_Default"',
+    popup: '<Error Popup Opened> errorCode=30000', crash: 'Cloud Imperium Games public crash handler taking over...',
+    partyMember: N('Party NovaRider connected.: '), partyInvite: N('NovaRider Party Invite Received: Accept Invitation?: '),
+    partyQt: N('NovaRider has started to QT to your current location: '), partyCalib: N('Quantum Travel Calibration Started By NovaRider: '),
+    partyIn: N('You have joined party: '),
   };
   for (const [name, re] of Object.entries(PATTERNS)) {
     const line = SAMPLES[name];
@@ -342,7 +352,12 @@ test('replays a 4.10 session from the filtered Game.log', () => {
   s = upTo('OnQuantumDriveArrived');
   assert.equal(s.qtArrived, 'Yela');
   assert.equal(s.mission?.target, 'Yela');
+  s = upTo('Low Fuel');
+  assert.equal(s.lowFuel, true);
+  assert.deepEqual(s.partyEv, { what: 'online', who: 'NovaRider', n: 1 }, 'a notice over three lines, joined by the Rust filter');
   s = lines.map(parseLine).filter(Boolean).reduce(reduce, EMPTY);
+  assert.equal(s.lowFuel, false, 'gone with the ship');
+  assert.deepEqual(s.injuries, [{ limb: 'right leg', tier: 3, severity: 'minor' }]);
   assert.equal(s.kills, 3);
   assert.equal(s.system, 'Pyro');
   assert.deepEqual(s.jump, { from: 'Stanton', to: 'Pyro' });
@@ -498,4 +513,48 @@ test('a whole log gives one session per time you joined, with its totals', async
   assert.equal(minutes(s), 8);
   assert.deepEqual([s.kills, s.deaths, s.ships], [3, 1, ['AEGS_Sabre_Firebird']]);
   assert.deepEqual(sessionsOf([]), []);
+});
+
+// HUD notices and lines from 4.x logs (sc-log-tracker's samples from 238 real sessions).
+test('injuries, the med bed, hangar queue, restricted areas, low fuel, drops and the party', async () => {
+  const { parseLine, reduce, EMPTY, alertsFor, logFor, hangarText, droppedText, worstInjury } = await import('../ui/lib/gamelog.js');
+  const run = (s, lines) => lines.reduce((g, l) => { const ev = parseLine(l); return ev ? reduce(g, ev) : g; }, s);
+  let g = { ...EMPTY, menu: false, me: { name: 'me', geid: '1' }, seated: true, ship: 'DRAK_Cutlass_Black' };
+  const a = g;
+  g = run(g, [N('Minor Injury Detected - Left arm - Tier 3 Treatment Required : '), N('Major Injury Detected - Torso - Tier 2 Treatment Required : ')]);
+  assert.equal(g.injuries.length, 2);
+  assert.deepEqual(worstInjury(g.injuries), { limb: 'torso', tier: 2, severity: 'major' });
+  assert.deepEqual(logFor(a, g).map(e => e.text), ['Minor injury · left arm · tier 3', 'Major injury · torso · tier 2']);
+  // The same injury again is no new one.
+  assert.equal(run(g, [N('Minor Injury Detected - Left arm - Tier 3 Treatment Required : ')]).hurt, 2);
+  const healed = run(g, ['<MED BED HEAL> Actor: someone (x) | -> Perform surgery event Success']);
+  assert.equal(healed.injuries.length, 2, 'another player in a med bed');
+  assert.deepEqual(run(g, ['<MED BED HEAL> Actor: me (x) | -> Perform surgery event Success']).injuries, []);
+
+  const q = run(g, [N('Joined hangar queue. Your place: 3. Max. estimated wait: 120: ')]);
+  assert.equal(hangarText(q), 'Queue 3rd · ≤ 2 min');
+  assert.equal(run(q, [N('Hangar Request Completed: ')]).hangar.status, 'granted');
+
+  const r = run(g, [N('Restricted Area: ')]);
+  assert.ok(alertsFor(g, r).some(e => e.kind === 'restricted'));
+  assert.equal(run(r, [N('Leaving Restricted Area: ')]).restricted, false);
+  const f = run(g, [N('Low Fuel: ')]);
+  assert.ok(f.lowFuel);
+  assert.equal(run(f, ["Added notification \"You have left the channel 'Drake Cutlass Black : me'.: \" [2]"]).lowFuel, false, 'leaving the seat clears it');
+
+  // Leaving by yourself shows nothing; a timeout does, at the menu too, until you are back in.
+  assert.equal(parseLine('<Channel Disconnected> cause=30016 reason="DisconnectCmd: disconnect light ExitToMenu" isRemote=0 gamerules="SC_Default"'), null);
+  assert.equal(parseLine('<Channel Disconnected> cause=30000 reason="x" isRemote=0 gamerules="SC_Frontend"'), null);
+  const d = run(g, ['<Channel Disconnected> cause=30000 reason="x" isRemote=0 gamerules="SC_Default"', 'CCIGBroker::FastShutdown']);
+  assert.ok(d.menu);
+  assert.equal(droppedText(d.dropped), 'Disconnected · connection timed out');
+  assert.equal(run(d, ['<Context Establisher Done>']).dropped, null);
+  const c = run(g, ['Cloud Imperium Games public crash handler taking over...', 'Exception STATUS_CRYENGINE_GPU_CRASH(0x2BADFF60) addr=0x0']);
+  assert.equal(droppedText(c.dropped), 'Game crashed · graphics driver crash');
+
+  const p = run(g, [N('NovaRider Party Invite Received: Accept Invitation?: '), N('Quantum Travel Calibration Started By NovaRider: ')]);
+  assert.deepEqual(p.party, { calibrating: 'NovaRider' });
+  const p2 = run(p, [N('Quantum Travel Calibration Complete By NovaRider: ')]);
+  assert.equal(p2.party, null);
+  assert.deepEqual(alertsFor(p, p2).map(e => e.text), ['Party jump calibrated']);
 });
