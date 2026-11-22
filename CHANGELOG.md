@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Screen check: after every move the console compares its size with its screen's and moves again if Windows shrank it. If it is still wrong, Settings > Screen and the status screen say so, with Refit.
+  - Screen cards show each screen's Windows scale when the screens differ.
+  - Identify screens shows each screen's name on that screen for 3 seconds.
+  - The setup check starts with the screen: the console fills it, or Refit.
+
 ## 0.9.2
 
 - The console fills the Edge at start again when your main screen uses another Windows scale (it came up smaller, in a corner).

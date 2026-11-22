@@ -384,6 +384,21 @@ await page.waitForTimeout(100);
 if (await page.evaluate(() => document.querySelector('#displays .cur b')?.textContent) !== 'XENEON EDGE') problems.push('picking a display does not stick');
 await checkLabels('settings: screen with displays', true);
 if (shots) await page.screenshot({ path: join(shots, 'settings-screen-displays.png') });
+// Screen check: a console smaller than its screen (mixed scales) shows the scale on each
+// card, an amber row and chip with Refit; Refit clears them.
+await page.evaluate(() => Object.assign(window.xfdTestDisplays, { fit: { want: [2560, 720], got: [1707, 480] } }) && window.xfdTestDisplays.list.forEach((d, i) => { d.scale = i ? 100 : 150; }));
+await page.evaluate(() => window.xfd.showSection('screen'));
+await page.waitForTimeout(100);
+const fit = await page.evaluate(() => ({ row: !document.getElementById('fit-health').hidden && document.querySelector('#fit-health b').textContent,
+  chip: !document.getElementById('fit-chip').hidden, notes: [...document.querySelectorAll('#displays .disp small')].map(s => s.textContent) }));
+if (fit.row !== 'The console is 1707 × 480 on a 2560 × 720 screen' || !fit.chip || !fit.notes[1].includes('150 % scale') || !fit.notes[2].includes('100 % scale')) problems.push(`screen check is wrong: ${JSON.stringify(fit)}`);
+await checkLabels('settings: screen too small', true);
+if (shots) await page.screenshot({ path: join(shots, 'settings-screen-fit.png') });
+await page.click('#act-refit');
+await page.waitForTimeout(150);
+if (await page.evaluate(() => !document.getElementById('fit-health').hidden || !document.getElementById('fit-chip').hidden)) problems.push('Refit leaves the screen check showing');
+await page.evaluate(() => window.xfdTestDisplays.list.forEach(d => { delete d.scale; }));
+await page.evaluate(() => window.xfd.showSection('screen'));
 const late = new Date().getHours() >= 20 || new Date().getHours() < 7;
 if (!night.on.dim || night.on.cur !== 'on') problems.push(`night mode On does not dim: ${JSON.stringify(night.on)}`);
 if (night.auto.dim !== late || !/20:00 to 07:00/.test(night.auto.note)) problems.push(`night mode Auto is wrong: ${JSON.stringify(night.auto)}`);
@@ -394,7 +409,7 @@ await page.evaluate(() => { document.getElementById('sheet').hidden = true; });
 await page.evaluate(() => window.xfd.setup());
 await page.waitForTimeout(150);
 const setup = await page.evaluate(() => [...document.querySelectorAll('#su-rows .su-row')].map(r => r.className.replace('su-row ', '') + ':' + r.querySelector('b').textContent));
-if (setup.length !== 4 || setup[0] !== 'warn:Touches land on another display' || !setup[3].startsWith('unknown:')) problems.push(`setup check is wrong: ${JSON.stringify(setup)}`);
+if (setup.length !== 5 || setup[0] !== 'ok:Console fills XENEON EDGE' || setup[1] !== 'warn:Touches land on another display' || !setup[4].startsWith('unknown:')) problems.push(`setup check is wrong: ${JSON.stringify(setup)}`);
 await checkLabels('setup check');
 if (shots) await page.screenshot({ path: join(shots, 'setup.png') });
 await page.click('#su-done');

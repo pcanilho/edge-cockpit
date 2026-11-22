@@ -48,6 +48,16 @@ struct App {
     world: world::Cache,
     /// Phones paired as extra screens, and their links.
     phones: phone::Phones,
+    /// The console's size after its last move, against the size of its display.
+    fit: Mutex<Option<Fit>>,
+}
+
+/// The console's size against its display's, after a move. Settings and the setup check
+/// show it, so a console that came up smaller than its screen is seen and refitted.
+#[derive(Serialize, Clone, Copy, PartialEq, Debug)]
+struct Fit {
+    want: (i32, i32),
+    got: (i32, i32),
 }
 
 /// Settings that matter before the UI loads, kept in prefs.json in the app's config folder.
@@ -718,6 +728,7 @@ struct DisplayView {
     height: i32,
     primary: bool,
     touch: bool,
+    scale: u32,
 }
 
 #[derive(Clone)]
@@ -727,6 +738,8 @@ struct Disp {
     rect: (i32, i32, i32, i32),
     primary: bool,
     touch: bool,
+    /// The display's scale in percent (Windows' "Scale" setting).
+    scale: u32,
 }
 
 fn display_list(w: &WebviewWindow) -> Vec<Disp> {
@@ -735,7 +748,7 @@ fn display_list(w: &WebviewWindow) -> Vec<Disp> {
         let _ = w;
         win::displays()
             .into_iter()
-            .map(|d| Disp { id: d.id, name: d.name, rect: d.rect, primary: d.primary, touch: d.touch })
+            .map(|d| Disp { id: d.id, name: d.name, rect: d.rect, primary: d.primary, touch: d.touch, scale: d.scale })
             .collect()
     }
     #[cfg(not(windows))]
@@ -752,6 +765,7 @@ fn display_list(w: &WebviewWindow) -> Vec<Disp> {
                     rect: (m.position().x, m.position().y, m.size().width as i32, m.size().height as i32),
                     primary: primary.as_ref().is_some_and(|p| p.position() == m.position()),
                     touch: false,
+                    scale: (m.scale_factor() * 100.0).round() as u32,
                 }
             })
             .collect()
@@ -781,13 +795,15 @@ struct Displays {
     /// False when Windows has touchscreens but none of them on the console's display,
     /// so touches land on another display.
     touch_ok: bool,
+    /// The console's size after its last move, against its display's.
+    fit: Option<Fit>,
 }
 
 #[tauri::command]
 fn displays(handle: AppHandle, app: State<'_, App>) -> Displays {
     let picked = app.prefs.lock().unwrap().display.clone();
     let Some(w) = handle.get_webview_window("main") else {
-        return Displays { list: vec![], picked, current: None, touch_ok: true };
+        return Displays { list: vec![], picked, current: None, touch_ok: true, fit: None };
     };
     let list = display_list(&w);
     let cur = pick_display(&list, picked.as_deref()).cloned();
@@ -795,11 +811,12 @@ fn displays(handle: AppHandle, app: State<'_, App>) -> Displays {
     Displays {
         list: list
             .iter()
-            .map(|d| DisplayView { id: d.id.clone(), name: d.name.clone(), width: d.rect.2, height: d.rect.3, primary: d.primary, touch: d.touch })
+            .map(|d| DisplayView { id: d.id.clone(), name: d.name.clone(), width: d.rect.2, height: d.rect.3, primary: d.primary, touch: d.touch, scale: d.scale })
             .collect(),
         current: cur.map(|c| c.id),
         picked,
         touch_ok,
+        fit: *app.fit.lock().unwrap(),
     }
 }
 
@@ -826,15 +843,75 @@ fn fix_touch() -> bool {
     false
 }
 
+/// Moves the console onto its display again and says whether it now fills it.
+#[tauri::command]
+fn refit(handle: AppHandle) -> bool {
+    if let Some(w) = handle.get_webview_window("main") {
+        place(&w);
+    }
+    let _ = handle.emit("displays", ());
+    handle.state::<App>().fit.lock().unwrap().is_none_or(|f| f.want == f.got)
+}
+
+/// Shows each display's name on that display for a few seconds, without taking focus.
+#[tauri::command]
+fn identify_screens(handle: AppHandle) {
+    let Some(w) = handle.get_webview_window("main") else { return };
+    let list = display_list(&w);
+    let current = pick_display(&list, handle.state::<App>().prefs.lock().unwrap().display.as_deref()).map(|d| d.id.clone());
+    let mut labels = Vec::new();
+    for (i, d) in list.iter().enumerate() {
+        let label = format!("identify-{i}");
+        if let Some(old) = handle.get_webview_window(&label) {
+            let _ = old.close();
+        }
+        let (bw, bh) = (720.min(d.rect.2), 200.min(d.rect.3));
+        let q = format!(
+            "identify.html?name={}&size={}&note={}",
+            url_part(&d.name, 80),
+            url_part(&format!("{} × {} · {} % scale", d.rect.2, d.rect.3, d.scale), 80),
+            url_part(if Some(&d.id) == current.as_ref() { "The console is here" } else { "" }, 40),
+        );
+        let made = tauri::WebviewWindowBuilder::new(&handle, &label, tauri::WebviewUrl::App(q.into()))
+            .decorations(false)
+            .always_on_top(true)
+            .focused(false)
+            .skip_taskbar(true)
+            .resizable(false)
+            .visible(false)
+            .build();
+        if let Ok(b) = made {
+            // Position first, so the size is taken at the scale of that display.
+            let _ = b.set_position(PhysicalPosition::new(d.rect.0 + (d.rect.2 - bw) / 2, d.rect.1 + (d.rect.3 - bh) / 2));
+            let _ = b.set_size(tauri::PhysicalSize::new(bw as u32, bh as u32));
+            let _ = b.set_position(PhysicalPosition::new(d.rect.0 + (d.rect.2 - bw) / 2, d.rect.1 + (d.rect.3 - bh) / 2));
+            let _ = b.show();
+            labels.push(label);
+        }
+    }
+    std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_secs(3));
+        for l in labels {
+            if let Some(b) = handle.get_webview_window(&l) {
+                let _ = b.close();
+            }
+        }
+    });
+}
+
 fn place(w: &WebviewWindow) {
     match edge_rect(w) {
         Some((x, y, wd, ht)) => {
             #[cfg(windows)]
-            win::place(x, y, wd, ht);
+            let got = win::place(x, y, wd, ht);
             #[cfg(not(windows))]
-            {
+            let got = {
                 let _ = w.set_position(PhysicalPosition::new(x, y));
                 let _ = w.set_size(tauri::PhysicalSize::new(wd as u32, ht as u32));
+                w.outer_size().ok().map(|s| (x, y, s.width as i32, s.height as i32))
+            };
+            if let Some(g) = got {
+                record_fit(w.app_handle(), (x, y, wd, ht), g);
             }
         }
         None => {
@@ -843,6 +920,15 @@ fn place(w: &WebviewWindow) {
             let _ = w.set_size(tauri::LogicalSize::new(1280.0, 360.0));
             let _ = w.set_position(PhysicalPosition::new(40, 40));
         }
+    }
+}
+
+/// Keeps the console's size against its display's, for Settings and the setup check.
+fn record_fit(handle: &AppHandle, want: fit::Rect, got: fit::Rect) {
+    let f = Fit { want: (want.2, want.3), got: (got.2, got.3) };
+    let changed = handle.state::<App>().fit.lock().unwrap().replace(f) != Some(f);
+    if changed {
+        let _ = handle.emit("displays", ());
     }
 }
 
@@ -1069,7 +1155,7 @@ fn main() {
             key, wheel, ui_ready, user_ships, release_keys, game_info, read_binds, install_binds, run_as_admin, quit,
             save_profile, load_profile, save_user_ships, install_profile_binds, save_page, page_files,
             get_prefs, set_pref, wake_screen, sleep_screen, check_update, install_update, perf,
-            displays, set_display, fix_touch, report_issue, world_prices, world_status,
+            displays, set_display, fix_touch, refit, identify_screens, report_issue, world_prices, world_status,
             phones_view, phones_enable, phones_set, phones_forget, share
         ])
         .setup(|app| {
@@ -1096,7 +1182,8 @@ fn main() {
             {
                 let raw = w.hwnd()?.0 as isize;
                 let (x, y, wd, ht) = edge_rect(&w).unwrap_or((40, 40, 1600, 450));
-                win::setup_panel(raw, x, y, wd, ht);
+                let got = win::setup_panel(raw, x, y, wd, ht);
+                record_fit(&handle, (x, y, wd, ht), got);
             }
             #[cfg(not(windows))]
             {
@@ -1152,7 +1239,7 @@ mod tests {
     use super::{pick_display, Disp};
 
     fn d(id: &str, name: &str, w: i32, h: i32, primary: bool, touch: bool) -> Disp {
-        Disp { id: id.into(), name: name.into(), rect: (0, 0, w, h), primary, touch }
+        Disp { id: id.into(), name: name.into(), rect: (0, 0, w, h), primary, touch, scale: 100 }
     }
 
     #[test]
