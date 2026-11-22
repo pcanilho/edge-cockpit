@@ -431,6 +431,14 @@ export function item(it) {
   if (unset(it)) return blank(x, y, it.t === 'switch' ? 84 : w, it.t === 'switch' ? 196 : ht, 0, 'Pick a key');
   switch (it.t) {
     case 'key': return keycap(x, y, w, ht, it.key, { label: it.label || undefined, fs: w < 100 ? 11 : 13 });
+    case 'seq': {
+      // A macro of your own: each step's key in turn, the gap between them. On / off steps
+      // carry their state, so switches on the console follow what the sequence set.
+      const keys = (it.steps || []).map(st => K.key(st.key)).filter(Boolean);
+      const steps = keys.flatMap((k, i) => (i ? [{ delay: it.gap || 250 }, { key: k }] : [{ key: k }]));
+      const k = { label: it.label || 'Sequence', role: 'macro', press: 'tap', activation: '', icon: 'ready', steps };
+      return keycap(x, y, w, ht, k, { fitted: true, kb: false, fs: w < 100 ? 11 : 13, sub: ht >= 96 ? `${keys.length} steps` : '' });
+    }
     case 'round': return roundButton(x, y, Math.min(w, ht), it.key, { label: it.label || undefined });
     case 'rocker': return rocker(x, y, w, ht, it.a, it.b, { vertical: ht >= w });
     case 'switch': return onOff(x, y, it.key, { label: it.label || undefined, w: 84 });

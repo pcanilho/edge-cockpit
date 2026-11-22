@@ -9,6 +9,7 @@
 - Binds you change in the game reach the console at once: it reads actionmaps.xml again when the game saves it and says if a console key lost its keyboard bind.
 - Wipe lock: hold the clock for a second (or Settings > General > Wipe lock) and touches are off for 15 s while you clean the screen. Hold anywhere for a second to end it early.
 - Night backlight: Night mode also turns the screen's own backlight down (10, 30 or 50 %, or Off), and back up when it ends. Screens that can't do this say so, and only the console dims. Screen off now moves to Settings > General.
+- Page editor: Sequence, a key of your own that sends up to six keys in turn, 250 ms, 1 s or 3 s apart (for example Landing: limiter on, gear down, VTOL on, lights on, ATC). A step that switches something must be its set-on or set-off key, so switches on the console show what the sequence set. Hold keys, keys that end a flight and other sequences can't be steps.
 
 ## 0.9.2
 

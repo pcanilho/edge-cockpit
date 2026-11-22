@@ -1122,6 +1122,10 @@ body.phone .cm-head, body.phone .cm-foot { container-type: inline-size; }
 .ed-row em.amber, .pick small.amber { font: 500 11px/1.2 var(--body); font-style: normal; color: var(--hold); letter-spacing: 0; text-transform: none; }
 .ed-row button.link, .ed-acts button, .ed-chips button { padding: 10px 12px; border-radius: 7px; background: #232a32; font: 700 11px/1 var(--hud); letter-spacing: .12em; text-transform: uppercase; color: var(--cyan); }
 .ed-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ed-row > span.ed-chips { flex-direction: row; }
+.ed-row.step { min-height: 40px; margin-bottom: 4px; padding: 4px 10px; }
+.ed-row.step > span { flex-direction: row; align-items: baseline; gap: 10px; }
+.ed-row.step button.link { padding: 8px 10px; }
 .ed-chips button { color: var(--paint); }
 .ed-chips button.cur { background: var(--cyan); color: #031016; }
 .ed-chips button:disabled { opacity: .35; }
