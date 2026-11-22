@@ -50,6 +50,9 @@ export const setDisplay = id => tauri ? tauri.core.invoke('set_display', { id })
 // Moves the console onto its screen again; true when it now fills it.
 export const refit = () => tauri ? tauri.core.invoke('refit') : Promise.resolve(window.xfdTestDisplays ? (window.xfdTestDisplays.fit = null, true) : true);
 export const identifyScreens = () => tauri ? tauri.core.invoke('identify_screens') : onlyInApp();
+// Night mode's backlight: a level in percent, or null for the day level. Resolves to whether
+// the screen answered (null: nothing to change).
+export const nightBacklight = level => tauri ? tauri.core.invoke('night_backlight', { level }) : Promise.resolve(window.xfdTestBacklight ?? null);
 export const fixTouch = () => tauri ? tauri.core.invoke('fix_touch') : onlyInApp();
 /** f() when displays are added, removed or change resolution. */
 /** f() when the game rewrites actionmaps.xml (a bind changed, or another control profile). */

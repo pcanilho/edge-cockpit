@@ -74,11 +74,13 @@ struct Prefs {
     display: Option<String>,
     /// Serve the console to phones on the home network.
     phones: bool,
+    /// The day backlight level, while Night mode holds the backlight down.
+    night_saved: Option<u32>,
 }
 
 impl Default for Prefs {
     fn default() -> Self {
-        Prefs { autostart: true, screen_off: true, saved_backlight: None, display: None, phones: false }
+        Prefs { autostart: true, screen_off: true, saved_backlight: None, display: None, phones: false, night_saved: None }
     }
 }
 
@@ -635,6 +637,60 @@ fn set_dark(handle: &AppHandle, dark: bool) {
     });
 }
 
+/// Night mode's backlight: Some(level) turns the console's display down to `level` percent
+/// (keeping the day level to put back), None puts the day level back. While the screen is
+/// off only the level to wake to changes. Returns whether the display answered DDC/CI.
+#[tauri::command]
+async fn night_backlight(handle: AppHandle, level: Option<u32>) -> Result<Option<bool>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let w = handle.get_webview_window("main")?;
+        let (x, y, wd, ht) = edge_rect(&w)?;
+        let app = handle.state::<App>();
+        let dark = app.dark.load(Ordering::SeqCst);
+        #[cfg(windows)]
+        let set = |l: Option<u32>| win::backlight(x, y, wd, ht, l);
+        #[cfg(not(windows))]
+        let set = |_: Option<u32>| -> Option<u32> {
+            let _ = (x, y, wd, ht);
+            None
+        };
+        let mut p = app.prefs.lock().unwrap();
+        let ok = match level {
+            Some(l) => {
+                // The day level: while the screen is off it is the level to wake to.
+                let day = if dark { p.saved_backlight } else { set(None) };
+                if p.night_saved.is_none() {
+                    p.night_saved = day.filter(|d| *d > l);
+                }
+                if p.night_saved.is_none() {
+                    // Already at or below the night level: nothing to do.
+                    Some(day.is_some())
+                } else if dark {
+                    p.saved_backlight = Some(l);
+                    Some(true)
+                } else {
+                    Some(set(Some(l)).is_some())
+                }
+            }
+            None => match p.night_saved.take() {
+                Some(day) if dark => {
+                    p.saved_backlight = Some(day);
+                    Some(true)
+                }
+                Some(day) => Some(set(Some(day)).is_some()),
+                None => None,
+            },
+        };
+        save_prefs(&handle, &p);
+        if let Some(answered) = ok {
+            *app.ddc.lock().unwrap() = Some(answered);
+        }
+        ok
+    })
+    .await
+    .map_err(|e| e.to_string())
+}
+
 /// Star Citizen started: wake the screen, show the panel and wait for it to exit.
 #[cfg_attr(not(windows), allow(dead_code))]
 fn game_started(handle: &AppHandle, pid: u32) {
@@ -1177,7 +1233,7 @@ fn main() {
             key, wheel, ui_ready, user_ships, release_keys, game_info, read_binds, install_binds, run_as_admin, quit,
             save_profile, load_profile, save_user_ships, install_profile_binds, save_page, page_files,
             get_prefs, set_pref, wake_screen, sleep_screen, check_update, install_update, perf,
-            displays, set_display, fix_touch, refit, identify_screens, report_issue, world_prices, world_status,
+            displays, set_display, fix_touch, refit, identify_screens, night_backlight, report_issue, world_prices, world_status,
             phones_view, phones_enable, phones_set, phones_forget, share
         ])
         .setup(|app| {

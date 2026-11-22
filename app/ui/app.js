@@ -108,8 +108,10 @@ const themeMode = v => (v === false ? 'off' : v === 'off' || THEMED.has(v) ? v :
 // Ship plates shown on this screen: all four unless you left some out (at least one stays).
 const SHIP_PLATES = ['power', 'role', 'flight', 'gear'];
 const platesMode = v => (Array.isArray(v) && v.some(x => SHIP_PLATES.includes(x)) ? SHIP_PLATES.filter(x => v.includes(x)) : SHIP_PLATES);
+// Night backlight in percent; 0 leaves the backlight alone.
+const nightLevel = v => [0, 10, 30, 50].includes(+v) ? +v : 30;
 const nightMode = v => (v === true ? 'on' : ['on', 'auto'].includes(v) ? v : 'off');
-const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), anywhere: store.get('anywhere', false), stack: store.get('stack', true), large: store.get('large', false), plates: platesMode(store.get('plates', null)), size: store.get('size', 'fit') === 'actual' ? 'actual' : 'fit', makerTheme: themeMode(store.get('makerTheme', 'auto')), vibrate: store.get('vibrate', true) };
+const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), anywhere: store.get('anywhere', false), stack: store.get('stack', true), large: store.get('large', false), plates: platesMode(store.get('plates', null)), size: store.get('size', 'fit') === 'actual' ? 'actual' : 'fit', makerTheme: themeMode(store.get('makerTheme', 'auto')), vibrate: store.get('vibrate', true), nightLight: nightLevel(store.get('nightLight', 30)) };
 // Vibration is for paired phones and tablets only; the Edge has no motor.
 if (onPhone) haptics.enable(opts.vibrate);
 stage.classList.toggle('large', opts.large);
@@ -830,11 +832,24 @@ function setOpt(name, v) {
   if (name === 'auto' && v) follow(true);
 }
 const isNight = (d = new Date()) => opts.night === 'on' || (opts.night === 'auto' && (d.getHours() >= NIGHT_FROM || d.getHours() < NIGHT_TO));
+// The backlight level last asked of the PC (undefined: not yet), and whether the screen answered.
+let nightSent, nightAnswered = null;
 function paintNight() {
-  stage.classList.toggle('night', isNight());
+  const night = isNight();
+  stage.classList.toggle('night', night);
   document.querySelectorAll('#night-seg button').forEach(b => b.classList.toggle('cur', b.dataset.v === opts.night));
+  document.querySelectorAll('#nightlight-seg button').forEach(b => b.classList.toggle('cur', +b.dataset.v === opts.nightLight));
   const hh = h => `${String(h).padStart(2, '0')}:00`;
-  $('night-note').textContent = opts.night === 'auto' ? `Dims from ${hh(NIGHT_FROM)} to ${hh(NIGHT_TO)}, now ${isNight() ? 'dimmed' : 'bright'}` : 'Dims the console for dark rooms';
+  const light = opts.nightLight && nightAnswered !== false ? ` and the backlight to ${opts.nightLight} %` : '';
+  $('night-note').textContent = opts.night === 'auto' ? `Dims from ${hh(NIGHT_FROM)} to ${hh(NIGHT_TO)}, now ${night ? 'dimmed' : 'bright'}` : opts.night === 'on' ? `Dims the console${light}` : 'Dims the console for dark rooms';
+  $('nightlight-note').textContent = nightAnswered === false ? 'This screen can\'t dim its backlight'
+    : !opts.nightLight ? 'Off: only the console dims' : 'Screen backlight at night';
+  // The PC turns the backlight down at night and back up after, once per change.
+  if (onPhone) return;
+  const want = night && opts.nightLight ? opts.nightLight : null;
+  if (want === nightSent) return;
+  nightSent = want;
+  bridge.nightBacklight(want).then(ok => { if (ok != null && ok !== nightAnswered) { nightAnswered = ok; paintNight(); } }).catch(() => {});
 }
 // ---------- display: which screen the console lives on ----------
 async function paintDisplays() {
@@ -891,6 +906,7 @@ document.querySelectorAll('.tab[data-sec]').forEach(t => {
 showSection('general');
 document.querySelectorAll('.opt[data-opt]').forEach(o => controls.pressable(o, { up: () => { tick('toggle'); setOpt(o.dataset.opt, !opts[o.dataset.opt]); } }));
 document.querySelectorAll('#night-seg button').forEach(b => controls.pressable(b, { up: () => { tick('toggle'); setOpt('night', b.dataset.v); } }));
+document.querySelectorAll('#nightlight-seg button').forEach(b => controls.pressable(b, { up: () => { tick('toggle'); setOpt('nightLight', +b.dataset.v); } }));
 document.querySelectorAll('#theme-seg button').forEach(b => controls.pressable(b, { up: () => { tick('toggle'); setOpt('makerTheme', b.dataset.v); } }));
 document.querySelectorAll('#plates-seg button').forEach(b => controls.pressable(b, { up: () => {
   const v = b.dataset.v, on = opts.plates.includes(v);
@@ -959,8 +975,8 @@ $('qt').querySelector('svg').innerHTML = GLYPHS.quantum;
 
 // ---------- profile: settings, plate order, ship roles and keyboard binds in one file ----------
 // Saved as Documents\Edge Cockpit\profile.json, to copy to another PC or keep as a backup.
-const PROFILE_OPTS = ['night', 'sound', 'flash', 'auto', 'recap', 'alertSound', 'anywhere', 'stack', 'large', 'makerTheme', 'plates', 'size', 'autostart', 'screen_off'];
-const KEPT_AS_IS = new Set(['night', 'makerTheme', 'plates', 'size']);
+const PROFILE_OPTS = ['night', 'nightLight', 'sound', 'flash', 'auto', 'recap', 'alertSound', 'anywhere', 'stack', 'large', 'makerTheme', 'plates', 'size', 'autostart', 'screen_off'];
+const KEPT_AS_IS = new Set(['night', 'nightLight', 'makerTheme', 'plates', 'size']);
 /** The keyboard binds in an actionmaps.xml, as a Control Profile the game can load. */
 function bindsProfile(text) {
   const doc = new DOMParser().parseFromString(text, 'application/xml');
@@ -1018,6 +1034,7 @@ async function loadProfile() {
   for (const k of PROFILE_OPTS) {
     const v = p.settings?.[k];
     if (k === 'night' && v !== undefined) setOpt(k, nightMode(v));
+    else if (k === 'nightLight' && v !== undefined) setOpt(k, nightLevel(v));
     else if (k === 'makerTheme' && v !== undefined) setOpt(k, themeMode(v));
     else if (k === 'plates' && v !== undefined) setOpt(k, platesMode(v));
     else if (k === 'size' && (v === 'fit' || v === 'actual')) setOpt(k, v);

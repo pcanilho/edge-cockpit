@@ -374,6 +374,16 @@ for (const v of ['on', 'auto', 'off']) {
   night[v] = await page.evaluate(() => ({ dim: document.getElementById('stage').classList.contains('night'),
     cur: document.querySelector('#night-seg .cur')?.dataset.v, note: document.getElementById('night-note').textContent }));
 }
+// Night backlight: a screen that doesn't answer DDC/CI says only the console dims.
+await page.evaluate(() => { window.xfdTestBacklight = false; });
+await page.click('#night-seg [data-v="on"]');
+await page.click('#nightlight-seg [data-v="10"]');
+await page.waitForTimeout(100);
+const nl = await page.evaluate(() => ({ cur: document.querySelector('#nightlight-seg .cur')?.dataset.v, note: document.getElementById('nightlight-note').textContent }));
+if (nl.cur !== '10' || nl.note !== 'This screen can\'t dim its backlight') problems.push(`night backlight is wrong: ${JSON.stringify(nl)}`);
+await page.click('#nightlight-seg [data-v="30"]');
+await page.click('#night-seg [data-v="off"]');
+await page.evaluate(() => { delete window.xfdTestBacklight; });
 await page.evaluate(() => window.xfd.showSection('screen'));
 await page.waitForTimeout(100);
 const disp = await page.evaluate(() => ({ cards: [...document.querySelectorAll('#displays .disp b')].map(b => b.textContent),

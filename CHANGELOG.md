@@ -8,6 +8,7 @@
   - The setup check starts with the screen: the console fills it, or Refit.
 - Binds you change in the game reach the console at once: it reads actionmaps.xml again when the game saves it and says if a console key lost its keyboard bind.
 - Wipe lock: hold the clock for a second (or Settings > General > Wipe lock) and touches are off for 15 s while you clean the screen. Hold anywhere for a second to end it early.
+- Night backlight: Night mode also turns the screen's own backlight down (10, 30 or 50 %, or Off), and back up when it ends. Screens that can't do this say so, and only the console dims. Screen off now moves to Settings > General.
 
 ## 0.9.2
 
