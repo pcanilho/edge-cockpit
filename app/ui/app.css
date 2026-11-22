@@ -616,6 +616,13 @@ body.is-dark #stage { visibility: hidden; }
 .logp .past td:first-child { color: var(--paint); }
 .logp .past th:nth-child(1) { width: 22%; } .logp .past th:nth-child(2) { width: 13%; } .logp .past th:nth-child(3), .logp .past th:nth-child(4) { width: 10%; } .logp .past th:nth-child(5) { width: 12%; }
 .logp .past td.empty { border: 0; color: var(--muted); white-space: normal; }
+/* A phone's narrow view keeps when, how long and which ships. */
+.logp .past { container-type: inline-size; }
+@container (max-width: 760px) {
+  .logp .past th:nth-child(n+3):nth-child(-n+5), .logp .past td:nth-child(n+3):nth-child(-n+5):not(.empty) { display: none; }
+  .logp .past th:nth-child(1) { width: 42%; } .logp .past th:nth-child(2) { width: 24%; }
+  .logp .past .note { display: none; }
+}
 .logp .card small, .logp .list small { display: block; position: static; font: 700 11px/1.4 var(--hud); letter-spacing: .2em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
 .logp .list small { color: var(--muted); margin-bottom: 8px; }
 .logp .card b { display: block; position: static; font: 600 22px/1.25 var(--body); color: var(--paint); }
