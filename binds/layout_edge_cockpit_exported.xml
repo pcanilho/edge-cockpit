@@ -22,6 +22,22 @@
   <action name="v_close_all_doors">
    <rebind input="kb1_rctrl+rshift+f5"/>
   </action>
+  <!-- Door locks on -->
+  <action name="v_lock_all_doors">
+   <rebind input="kb1_rshift+pgdn"/>
+  </action>
+  <!-- Door locks off -->
+  <action name="v_unlock_all_doors">
+   <rebind input="kb1_rctrl+lalt+rshift+f1"/>
+  </action>
+  <!-- Port locks on -->
+  <action name="v_lock_all_ports">
+   <rebind input="kb1_rctrl+lalt+rshift+f2"/>
+  </action>
+  <!-- Port locks off -->
+  <action name="v_unlock_all_ports">
+   <rebind input="kb1_rctrl+lalt+rshift+f3"/>
+  </action>
  </actionmap>
  <actionmap name="spaceship_movement">
   <!-- Speed limiter -->
@@ -209,6 +225,18 @@
   <!-- Missile mode -->
   <action name="v_toggle_missile_mode">
    <rebind input="kb1_rctrl+lalt+end"/>
+  </action>
+  <!-- Turret 1 -->
+  <action name="v_enter_remote_turret_1">
+   <rebind input="kb1_rctrl+lalt+rshift+f4"/>
+  </action>
+  <!-- Turret 2 -->
+  <action name="v_enter_remote_turret_2">
+   <rebind input="kb1_rctrl+lalt+rshift+f5"/>
+  </action>
+  <!-- Turret 3 -->
+  <action name="v_enter_remote_turret_3">
+   <rebind input="kb1_rctrl+lalt+rshift+f6"/>
   </action>
  </actionmap>
  <actionmap name="player">
@@ -409,6 +437,22 @@
   <!-- Lights off -->
   <action name="v_lights_off">
    <rebind input="kb1_rctrl+insert"/>
+  </action>
+ </actionmap>
+ <actionmap name="spaceship_targeting">
+  <!-- Pin target -->
+  <action name="v_target_pin_selected">
+   <rebind input="kb1_rshift+pgup"/>
+  </action>
+  <!-- Unpin target -->
+  <action name="v_target_unpin_selected">
+   <rebind input="kb1_rshift+delete"/>
+  </action>
+ </actionmap>
+ <actionmap name="spaceship_targeting_advanced">
+  <!-- Next pinned -->
+  <action name="v_target_cycle_pinned_fwd">
+   <rebind input="kb1_rshift+end"/>
   </action>
  </actionmap>
 </ActionMaps>

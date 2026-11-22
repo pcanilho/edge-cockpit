@@ -39,9 +39,13 @@
         <svg class="orrery" id="orrery" viewBox="0 0 302 52" hidden></svg>
         <div class="chips">
           <button class="chip" id="law" hidden><i></i><span></span></button>
+          <button class="chip warn" id="dropped" hidden><i></i><span></span></button>
+          <button class="chip warn" id="injury" hidden><i></i><span></span></button>
+          <button class="chip warn" id="fuel" hidden><i></i><span></span></button>
           <button class="chip" id="kills" hidden><i></i><span></span></button>
           <button class="chip" id="wreck" hidden><i></i><span></span></button>
           <button class="chip" id="hangar" hidden><i></i><span></span></button>
+          <button class="chip" id="party" hidden><i></i><span></span></button>
           <button class="chip warn" id="lag" hidden><i></i><span></span></button>
           <button class="chip warn" id="build" hidden><i></i><span></span></button>
           <button class="chip warn" id="patch" hidden><i></i><span></span></button>
@@ -77,7 +81,7 @@
       <h2>Settings</h2>
       <button class="tab" data-sec="general"><svg class="i" viewBox="0 0 24 24"></svg><span>General</span></button>
       <button class="tab" data-sec="screen"><svg class="i" viewBox="0 0 24 24"></svg><span>Screen</span></button>
-      <button class="tab" data-sec="feedback"><svg class="i" viewBox="0 0 24 24"></svg><span>Touch feedback</span></button>
+      <button class="tab" data-sec="feedback"><svg class="i" viewBox="0 0 24 24"></svg><span>Feedback</span></button>
       <button class="tab" data-sec="phones"><svg class="i" viewBox="0 0 24 24"></svg><span>Devices</span><i class="dot" id="phones-dot" hidden></i></button>
       <button class="tab" data-sec="binds"><svg class="i" viewBox="0 0 24 24"></svg><span>Keybinds</span><i class="dot warn" id="binds-dot" hidden></i></button>
       <button class="tab" data-sec="profile"><svg class="i" viewBox="0 0 24 24"></svg><span>Profile</span></button>
@@ -91,8 +95,8 @@
         <div class="rows">
           <button class="opt" data-opt="autostart" data-app><span class="txt">Start with Windows<small>Waits in the tray and shows itself when you play</small></span><span class="knob"></span></button>
           <button class="opt" data-opt="auto"><span class="txt">Follow game<small>Turn pages to match your seat, ship and status</small></span><span class="knob"></span></button>
-          <button class="opt" data-opt="recap"><span class="txt">Session recap<small>When you leave the game: time played, kills, missions, ships and places</small></span><span class="knob"></span></button>
-          <button class="opt" data-opt="alertSound"><span class="txt">Alert sound<small>A short tone with CrimeStat, armistice, ship disabled and hangar alerts</small></span><span class="knob"></span></button>
+          <button class="opt" data-opt="recap"><span class="txt">Session recap<small>When you leave the game: time played, injuries, missions, ships, places and why it ended</small></span><span class="knob"></span></button>
+          <button class="opt" data-opt="alertSound"><span class="txt">Alert sound<small>A short tone with CrimeStat, armistice, ship, hangar and party alerts</small></span><span class="knob"></span></button>
           <button class="opt" data-opt="anywhere"><span class="txt">Test mode<small>Send keys to any window, not just the game</small></span><span class="knob"></span></button>
           <button class="opt" data-opt="stack"><span class="txt">Two rows on a tall screen<small>On a screen that isn't ultra-wide, stacks the console for bigger keys</small></span><span class="knob"></span></button>
           <button class="act" id="act-wipe"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Wipe lock<small>Touches off for 15 s to clean the screen. Or hold the clock</small></span></button>
@@ -119,10 +123,12 @@
           <button class="act" id="act-refit"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Refit<small></small></span></button></div>
       </section>
       <section class="pane" data-sec="feedback" hidden>
-        <h3>Touch feedback</h3>
+        <h3>Feedback</h3>
         <div class="rows">
           <button class="opt" data-opt="sound"><span class="txt">Click sounds<small>A short tick on every touch, pitched by the kind of control</small></span><span class="knob"></span></button>
           <button class="opt" data-opt="flash"><span class="txt">Press flash<small>Lights a control when its key goes out</small></span><span class="knob"></span></button>
+          <button class="opt" data-opt="shapes"><span class="txt">Shapes for colour<small>Amber marks as triangles, red as diamonds, green as rings</small></span><span class="knob"></span></button>
+          <button class="opt" data-opt="calm"><span class="txt">Reduce motion<small>No flashing frame, blinking or sliding</small></span><span class="knob"></span></button>
         </div>
       </section>
       <section class="pane" data-sec="phones" hidden>
