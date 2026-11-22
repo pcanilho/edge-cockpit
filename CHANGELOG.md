@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.10.0
 
 - **Reload the edge-cockpit control profile** for the new keys below.
 - Screen check: after every move the console compares its size with its screen's and moves again if Windows shrank it. If it is still wrong, Settings > Screen and the status screen say so, with Refit.

@@ -27,11 +27,11 @@ It starts with Windows, wakes when Star Citizen starts and goes dark when you qu
 ## Pages
 
 - **Ship**: power plate with **Flight Ready**, a role module (target dial, mining laser, salvage beam, tractor beam...), flight and gear plates. Long-press a plate's title to rearrange or swap the role module, long-press a key to swap it; both saved. On another screen, pick which plates it shows.
-- **Build your own pages**: long-press a ship page's title, then **New blank page** or **Duplicate & edit**. Drag controls from the palette onto a plate (16 px grid), tap one to pick its key, label and size. Switches take only actions with set-on and set-off binds, eject-type keys only a cover or slide. Undo, Try it (no keys sent), phone preview, Fit or Actual size. **Use for** picks the ships it replaces the ship page of. **Share** saves it to `Documents\Edge Cockpit\Pages`; **Import** adds one from there. A tablet or PC showing the whole console can edit it too, live on the Edge.
+- **Build your own pages**: long-press a ship page's title, then **New blank page** or **Duplicate & edit**. Drag controls from the palette onto a plate (16 px grid), tap one to pick its key, label and size. Switches take only actions with set-on and set-off binds, eject-type keys only a cover or slide. A **Sequence** key sends up to six keys in turn (for example limiter on, gear down, lights on, ATC). Undo, Try it (no keys sent), phone preview, Fit or Actual size. **Use for** picks the ships it replaces the ship page of. **Share** saves it to `Documents\Edge Cockpit\Pages`; **Import** adds one from there. A tablet or PC showing the whole console can edit it too, live on the Edge.
 - **On foot**: weapon wheel, suit, comms, emotes.
 - **Downed**: revive request.
 - **MFD & assists**: MFD screens, light amplification, auto precision, wind compensation, Self repair all.
-- **Log**: this session's stats, who downed you, region and shard, last jump, refinery jobs, a timeline.
+- **Log**: this session's stats, who downed you, region and shard, last jump, refinery jobs, a timeline, and past sessions from the game's log backups.
 - **World**: executive hangar cycle (you sync it; hidden after a patch until you sync again), keycard printer and Ruin vault door timers, RSI server status, and the market where you are: buy and sell here, nearby, or find any commodity. Prices and stock are player reports from [UEX](https://uexcorp.space), each with its age. If the page doesn't know where you are, **Locate** (on foot) opens your inventory for a moment so `Game.log` names the place.
 
 | | |
@@ -54,7 +54,7 @@ It starts with Windows, wakes when Star Citizen starts and goes dark when you qu
 
 ## It follows the game
 
-From `Game.log` it opens the right page and shows your ship, mission, location, quantum target and alerts. Behind the status display sits a render of your ship from [FleetYards.net](https://fleetyards.net), fetched once and kept. Ships from Drake, Aegis, Origin, MISC, Anvil, RSI, Crusader, Argo and Consolidated Outland get their maker's theme (**Settings > Screen**), where **Large labels** also lives. The frame goes red only for a CrimeStat or a disabled ship.
+From `Game.log` it opens the right page and shows your ship, mission, location, quantum target, injuries, hangar queue and alerts (restricted areas, low fuel, party invites, why the game dropped you). Behind the status display sits a render of your ship from [FleetYards.net](https://fleetyards.net), fetched once and kept. Ships from Drake, Aegis, Origin, MISC, Anvil, RSI, Crusader, Argo and Consolidated Outland get their maker's theme (**Settings > Screen**), where **Large labels** also lives. The frame goes red only for a CrimeStat or a disabled ship.
 
 It reads your `actionmaps.xml`, so rebound keys just work. **Settings > Keybinds** lists any it can't press. It keeps the last 5 versions in `Documents\Edge Cockpit\Binds`: when a game update wipes your binds, **Restore** puts them back as a Control Profile.
 
@@ -67,6 +67,7 @@ No telemetry. Network calls: FleetYards for ship images (once per ship), GitHub 
 ## If keys do nothing
 
 - **Settings > General > Setup check** shows what's off.
+- Console smaller than the screen, or in a corner? **Refit** in **Settings > Screen**. **Identify screens** shows which screen is which.
 - Keys only reach the game while it's in front. **Test mode** sends them anywhere.
 - Game running as administrator? So must the console: **Run as administrator** in settings or the setup check.
 - Touches land on the wrong screen? Windows **Tablet PC Settings** > **Setup**, then tap the touchscreen when asked.
