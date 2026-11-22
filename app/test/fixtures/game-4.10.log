@@ -654,6 +654,11 @@ Windows 11 (10.0.26100)
 <2026-11-16T19:07:43.960Z> [Notice] <Vivox> Channel volume adjusted [51] [Team_Vivox][Comms]
 <2026-11-16T19:07:44.052Z> [Notice] <AttachmentReceived> Player[Argoneth] Attachment[body_6, clothing_shirt_9, 752260631771] Status[persistent] Port[Body_ItemPort] Elapsed[0.941094] [Team_CoreGameplayFeatures][Inventory]
 <2026-11-16T19:07:44.874Z> [Notice] | NOT AUTH | AEGS_Sabre_Firebird_932943782879[932943782879]|CSCItemNavigation::OnQuantumDriveArrived| [Team_CoreGameplayFeatures][Navigation]
+<2026-11-16T19:07:50.112Z> [Notice] <SHUDEvent_OnNotification> Added notification "Party
+<2026-11-16T19:07:50.112Z> NovaRider connected.: " [12] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-16T19:07:50.112Z>    "Party
+<2026-11-16T19:07:52.480Z> [Notice] <SHUDEvent_OnNotification> Added notification "Low Fuel: " [13] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-16T19:07:52.480Z>    "Low Fuel: " [13]
 <2026-11-16T19:07:45.259Z> [Notice] <CEntityComponentInstancedInterior::OnEntityLeaveZone> [InstancedInterior] OnEntityLeaveZone - InstancedInterior [Hangar_865] [767277652540] -> Entity [Door_41] [805620251854] [Team_CGP2][Interiors]
 <2026-11-16T19:07:45.860Z> [Notice] <StatObjLoad 0x3813567c Format> 'objects/spaceships/ships/aegs/sabre/hull_23.cgf' [Team_Engine][Streaming]
 <2026-11-16T19:07:46.288Z> [Notice] <CSCPlayerShoppingInventoryMgr> Request inventory refresh [10] [Team_CoreGameplayFeatures][Shopping]
@@ -1096,6 +1101,8 @@ Windows 11 (10.0.26100)
 <2026-11-16T19:11:19.068Z> [Notice] <AttachmentReceived> Player[Argoneth] Attachment[body_96, cds_undersuit_8, 179648404161] Status[persistent] Port[Body_ItemPort] Elapsed[0.131501] [Team_CoreGameplayFeatures][Inventory]
 <2026-11-16T19:11:19.470Z> [Notice] <SHUDEvent_OnNotification> Added notification "Refinery Work Orders have been Completed at Ruin Station: " [9] to queue. New queue size: 1 [Team_CoreGameplayFeatures][Missions][Comms]
 <2026-11-16T19:11:21.548Z> [Notice] <Vivox> Channel volume adjusted [15] [Team_Vivox][Comms]
+<2026-11-16T19:11:40.204Z> [Notice] <SHUDEvent_OnNotification> Added notification "Minor Injury Detected - Right leg - Tier 3 Treatment Required : " [14] to queue. New queue size: 1, MissionId: [00000000-0000-0000-0000-000000000000], ObjectiveId: [] [Team_CoreGameplayFeatures][Missions][Comms]
+<2026-11-16T19:11:40.204Z>    "Minor Injury Detected - Right leg - Tier 3 Treatment Required : " [14]
 <2026-11-16T19:11:21.698Z> [Notice] <CPhysicalProxy::OnPhysicsPostStep> Entity moved out of grid [404534920364] [Team_Physics]
 <2026-11-16T19:11:21.746Z> [Notice] <Vivox> Channel volume adjusted [15] [Team_Vivox][Comms]
 <2026-11-16T19:11:22.233Z> [Notice] <Ship Status> Ship health 87% components nominal [Team_ShipSystems]

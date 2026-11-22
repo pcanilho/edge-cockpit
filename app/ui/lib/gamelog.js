@@ -72,6 +72,41 @@ export const PATTERNS = {
   // The hangar's ship lift: Loading Platform Manager [LoadingPlatformManager_ShipElevator_HangarXLTop_Nyx] Platform state changed to RaisingPlatform
   lift: /<CSCLoadingPlatformManager::OnLoadingPlatformStateChanged>.*?\[LoadingPlatformManager_ShipElevator_([^\]]*)\] Platform state changed to (\w+)/,
   location: /<RequestLocationInventory> Player\[([^\]]+)\] requested inventory for Location\[([^\]]+)\]/,
+  // HUD notices that only you get. Notices over several lines reach the console joined into one.
+  // Added notification "Minor Injury Detected - Left arm - Tier 3 Treatment Required : " [26]
+  injury: /"(Minor|Moderate|Major|Severe) Injury Detected - (.+?) - Tier (\d)/i,
+  // <MED BED HEAL> Actor: me (...) | ... -> Perform surgery event Success, med bed name: ..., vehicle name: @vehicle_NameDRAK_Cutlass_Red, ...
+  medbed: /<MED BED HEAL> Actor: ([\w-]+).*?surgery event Success/,
+  // Added notification "Joined hangar queue. Your place: 3. Max. estimated wait: 120: " [9]
+  hangarQueue: /"Joined hangar queue\. Your place: (\d+)\. Max\. estimated wait: (\d+(?:\.\d+)?)/,
+  restricted: /"(Leaving )?Restricted Area\b/,
+  privateProperty: /"(Entering|Leaving) Private Property\b/,
+  impounded: /"Vehicle Impounded\b/,
+  lowFuel: /"Low Fuel\b/,
+  // Why a session ended: <Channel Disconnected> cause=30000 reason="..." ... gamerules="SC_Default"
+  disconnect: /<Channel Disconnected> cause=(\d+) reason="([^"]*)"/,
+  popup: /Error Popup Opened> errorCode=(\d+)/,
+  crash: /crash handler taking over|^\s*Exception ((?:STATUS|EXCEPTION)_\w+)\(/,
+  // The party: Added notification "Party Name connected.: ", "Name Party Invite Received: ...",
+  // "Name has started to QT to your current location", "Quantum Travel Calibration Started By Name: ".
+  partyMember: /"Party ([\w-]+) (connected|disconnected)\./,
+  partyInvite: /"([\w-]+) Party Invite Received/,
+  partyQt: /"([\w-]+) has started to QT to your current location/,
+  partyCalib: /"Quantum Travel Calibration (Started|Complete) By ?([\w-]*)/,
+  partyIn: /"(You have joined party|You have created party|You have left the party|You have been kicked from the party|Party Disbanded)/,
+};
+
+// What the game's network and crash codes mean, from community log readers (sc-log-tracker).
+export const DROP_CODES = {
+  30000: 'connection timed out', 30013: 'the server crashed', 30015: 'signed in somewhere else', 30024: 'game services stopped answering',
+  30028: 'idle too long', 41045: 'timed out joining', 41058: 'player lookup failed', 41070: 'timed out loading your character',
+  64004: 'server could not place you', 64008: 'server could not place you', 64010: 'location lookup timed out',
+  67001: 'server database unreachable', 70003: 'sign-in timed out', 70006: 'game files failed the check',
+};
+export const CRASH_KINDS = {
+  STATUS_CRYENGINE_GPU_CRASH: 'graphics driver crash', STATUS_CRYENGINE_OUT_OF_SYSMEM: 'out of memory',
+  STATUS_CRYENGINE_WATCH_DOG: 'the game hung', EXCEPTION_ACCESS_VIOLATION: 'game bug', EXCEPTION_BREAKPOINT: 'game bug',
+  STATUS_CRYENGINE_FATAL_ERROR: 'fatal engine error',
 };
 
 /** Game builds this panel was tested on. A different major version shows an "untested" badge. */
@@ -219,6 +254,39 @@ export function parseLine(line) {
   if (m) return { type: 'jurisdiction', name: m[1].trim() };
   m = PATTERNS.monitored.exec(line);
   if (m) return { type: 'monitored', value: { Entered: 'yes', Exited: 'no', Down: 'down', Restored: 'yes' }[m[1] || m[2]] };
+  m = PATTERNS.injury.exec(line);
+  if (m) return { type: 'injury', severity: m[1].toLowerCase(), limb: m[2].trim().toLowerCase(), tier: Number(m[3]) };
+  m = PATTERNS.medbed.exec(line);
+  if (m) return { type: 'medbed', who: m[1] };
+  m = PATTERNS.hangarQueue.exec(line);
+  if (m) return { type: 'hangar-queue', place: Number(m[1]), wait: Number(m[2]) };
+  m = PATTERNS.restricted.exec(line);
+  if (m) return { type: 'restricted', inside: !m[1] };
+  m = PATTERNS.privateProperty.exec(line);
+  if (m) return { type: 'private', inside: m[1] === 'Entering' };
+  if (PATTERNS.impounded.test(line)) return { type: 'impounded' };
+  if (PATTERNS.lowFuel.test(line)) return { type: 'low-fuel' };
+  m = PATTERNS.disconnect.exec(line);
+  if (m) {
+    // 30016 is a disconnect the player asked for (or can't be told from one), 30010 the menu's own.
+    const code = Number(m[1]);
+    if (code === 30016 || code === 30010 || !/gamerules="SC_Default"/.test(line)) return null;
+    return { type: 'dropped', code };
+  }
+  m = PATTERNS.popup.exec(line);
+  if (m) return { type: 'dropped', code: Number(m[1]), popup: true };
+  m = PATTERNS.crash.exec(line);
+  if (m) return { type: 'crashed', kind: m[1] || null };
+  m = PATTERNS.partyMember.exec(line);
+  if (m) return { type: 'party', what: m[2] === 'connected' ? 'online' : 'offline', who: m[1] };
+  m = PATTERNS.partyInvite.exec(line);
+  if (m) return { type: 'party', what: 'invite', who: m[1] };
+  m = PATTERNS.partyQt.exec(line);
+  if (m) return { type: 'party', what: 'qt', who: m[1] };
+  m = PATTERNS.partyCalib.exec(line);
+  if (m) return { type: 'party', what: m[1] === 'Started' ? 'calibrating' : 'calibrated', who: m[2] || null };
+  m = PATTERNS.partyIn.exec(line);
+  if (m) return { type: 'party', what: /joined|created/.test(m[1]) ? 'joined' : 'left', who: null };
   m = PATTERNS.crime.exec(line);
   if (m && /notification|SHUDEvent|CrimeStat Rating/i.test(line)) {
     const how = (m[1] || '').toLowerCase();
@@ -236,7 +304,12 @@ export const lawless = state => state.monitored === 'down' || state.monitored ==
 // monitored: yes, no (left monitored space) or down (comm array offline). crime: CrimeStat level.
 // build: { branch, changelist } of the running game. wrecked: 1 disabled, 2 destroyed, for the ship you fly.
 // kills: players and NPCs you killed this session. location: where you last opened your inventory.
-export const EMPTY = Object.freeze({ seated: false, ship: null, armistice: false, qtTarget: null, down: false, menu: true, me: null,
+// injuries: [{ limb, tier, severity }] the game reported since your last med bed or respawn; hurt and healed count them.
+// restricted, private: inside a restricted area or private property. impounded, lowFuel: as the HUD said.
+// dropped: { code, crash, kind, n } why the game last threw you out, until you are back in.
+// party: { calibrating } while a party member calibrates a party jump; partyEv: the last party notice, { what, who, n }.
+export const EMPTY = Object.freeze({ injuries: [], hurt: 0, healed: 0, restricted: false, private: false, impounded: 0, lowFuel: false,
+  dropped: null, party: null, partyEv: null, seated: false, ship: null, armistice: false, qtTarget: null, down: false, menu: true, me: null,
   mission: null, jurisdiction: null, monitored: null, crime: 0, build: null, wrecked: 0, wreckedBy: null, kills: 0, location: null, hangar: null,
   shipId: null, lastShip: null, shard: null, system: null, qtArrived: null, lag: null, downedBy: null, refinery: null, stored: null, jumps: 0, qtRoute: null, jump: null });
 
@@ -266,11 +339,22 @@ export const placeName = p => place(p).name;
 
 // What outlives leaving the game or changing server: who you are, the mission, and what the Log page shows.
 const kept = s => ({ me: s.me, mission: s.mission, build: s.build, kills: s.kills, shard: s.shard, lastShip: s.lastShip,
-  downedBy: s.downedBy, refinery: s.refinery, stored: s.stored, jumps: s.jumps, jump: s.jump, system: s.system });
+  downedBy: s.downedBy, refinery: s.refinery, stored: s.stored, jumps: s.jumps, jump: s.jump, system: s.system,
+  hurt: s.hurt, healed: s.healed, impounded: s.impounded, dropped: s.dropped, partyEv: s.partyEv });
 const isMe = (state, ev) =>
   (ev.who == null && ev.geid == null) || (state.me && (ev.who === state.me.name || ev.geid === state.me.geid));
 
 export function reduce(state, ev) {
+  const r = step(state, ev);
+  // Low fuel is the ship's: it goes when you leave the seat or take another ship's.
+  return r.lowFuel && (!r.seated || r.ship !== state.ship) && r !== state ? { ...r, lowFuel: false } : r;
+}
+
+const SEVERITY = ['minor', 'moderate', 'major', 'severe'];
+/** The injury that needs the most care: the lowest tier (tier 1 is a hospital), then the worst severity. */
+export const worstInjury = list => [...(list || [])].sort((a, b) => a.tier - b.tier || SEVERITY.indexOf(b.severity) - SEVERITY.indexOf(a.severity))[0] || null;
+
+function step(state, ev) {
   const live = state.menu ? { ...state, menu: false } : state;  // anything in the world means we're in it
   switch (ev.type) {
     case 'seat':
@@ -310,7 +394,7 @@ export function reduce(state, ev) {
       if (!state.lastShip?.id || ev.id !== state.lastShip.id || state.seated) return state;
       return { ...live, stored: { ship: state.lastShip.ship, n: (state.stored?.n || 0) + 1 }, hangar: null, lastShip: { ...state.lastShip, id: null } };
     case 'session': return { ...EMPTY, ...kept(state), shard: ev.shard || state.shard };
-    case 'loaded': return state.menu ? { ...EMPTY, ...kept(state), menu: false } : state;
+    case 'loaded': return state.menu ? { ...EMPTY, ...kept(state), menu: false, dropped: null } : state;
     case 'menu': return state.menu ? state : { ...EMPTY, ...kept(state) };
     case 'build': return { ...state, build: { ...state.build, ...(ev.branch ? { branch: ev.branch } : { changelist: ev.changelist }) } };
     case 'wreck':
@@ -352,7 +436,34 @@ export function reduce(state, ev) {
         downedBy: { by: ev.by || null, weapon: ev.weapon || null, damage: ev.damage || null, ejected: ev.ejected || null, hospital: null, n: (state.downedBy?.n || 0) + 1 } };
     case 'respawn':
       if (!state.down || (state.me && !isMe(state, ev))) return state;
-      return { ...state, down: false };
+      return { ...state, down: false, injuries: [] };
+    case 'injury': {
+      const now = state.injuries.find(i => i.limb === ev.limb);
+      if (now && now.tier <= ev.tier && SEVERITY.indexOf(now.severity) >= SEVERITY.indexOf(ev.severity)) return live;
+      const injury = { limb: ev.limb, tier: ev.tier, severity: ev.severity };
+      return { ...live, injuries: [...state.injuries.filter(i => i.limb !== ev.limb), injury], hurt: state.hurt + 1 };
+    }
+    case 'medbed':
+      if (state.me && ev.who !== state.me.name) return state;
+      return { ...live, injuries: [], healed: state.healed + 1 };
+    case 'hangar-queue': return { ...live, hangar: { status: 'queued', area: null, lift: null, place: ev.place, wait: ev.wait } };
+    case 'restricted': return state.restricted === ev.inside ? live : { ...live, restricted: ev.inside };
+    case 'private': return state.private === ev.inside ? live : { ...live, private: ev.inside };
+    case 'impounded': return { ...live, impounded: state.impounded + 1 };
+    case 'low-fuel': return state.seated && !state.lowFuel ? { ...live, lowFuel: true } : live;
+    case 'dropped': {
+      // An error box shows for many reasons; only the codes known to end a session count.
+      if (ev.popup && !DROP_CODES[ev.code]) return state;
+      if (state.dropped && !state.dropped.crash && state.dropped.code === ev.code) return state;
+      return { ...state, dropped: { code: ev.code, crash: false, kind: null, n: (state.dropped?.n || 0) + 1 } };
+    }
+    case 'crashed':
+      if (state.dropped?.crash) return ev.kind && !state.dropped.kind ? { ...state, dropped: { ...state.dropped, kind: ev.kind } } : state;
+      return { ...state, dropped: { code: null, crash: true, kind: ev.kind, n: (state.dropped?.n || 0) + 1 } };
+    case 'party': {
+      const party = ev.what === 'calibrating' ? { calibrating: ev.who } : ev.what === 'calibrated' || ev.what === 'left' ? null : state.party;
+      return { ...live, party, partyEv: { what: ev.what, who: ev.who, n: (state.partyEv?.n || 0) + 1 } };
+    }
     case 'mission': {
       const m = state.mission;
       if (ev.kind === 'accepted') {
@@ -384,7 +495,7 @@ export function reduce(state, ev) {
 
 // ---------- session recap ----------
 /** A fresh tally, from the log time a session started (ISO string or null). */
-export const NEW_TALLY = Object.freeze({ start: null, end: null, kills: 0, deaths: 0, ships: [], missions: 0, failed: 0, crimeMax: 0, places: [], routes: 0 });
+export const NEW_TALLY = Object.freeze({ start: null, end: null, kills: 0, injuries: 0, deaths: 0, dropped: null, ships: [], missions: 0, failed: 0, crimeMax: 0, places: [], routes: 0 });
 /** The log line's timestamp, or null. */
 export const stamp = line => /^<(\d{4}-\d\d-\d\dT[\d:.]+Z)>/.exec(line)?.[1] || null;
 
@@ -392,10 +503,13 @@ export const stamp = line => /^<(\d{4}-\d\d-\d\dT[\d:.]+Z)>/.exec(line)?.[1] || 
 export function tally(t, a, b, ts) {
   if (a === b) return ts && t.start ? { ...t, end: ts } : t;
   if (a.menu && !b.menu) return { ...NEW_TALLY, start: ts, end: ts };
+  // Why the session ended, for the recap.
+  if (b.dropped && b.dropped !== a.dropped) return { ...t, dropped: b.dropped };
   if (b.menu) return t;
   const n = { ...t, end: ts || t.end };
   if (!n.start) n.start = ts;
   if (b.kills > a.kills) n.kills += b.kills - a.kills;
+  if (b.hurt > a.hurt) n.injuries += b.hurt - a.hurt;
   if (b.down && !a.down) n.deaths++;
   if (b.seated && b.ship && (!a.seated || a.ship !== b.ship) && !n.ships.includes(b.ship)) n.ships = [...n.ships, b.ship];
   const ma = a.mission, mb = b.mission;
@@ -432,12 +546,32 @@ export function alertsFor(a, b) {
     const who = culprit(b.wreckedBy, b.me);
     out.push({ kind: 'wreck', text: `${b.wrecked >= 2 ? 'Ship destroyed' : 'Ship disabled'}${who ? ` by ${who}` : ''}`, tone: 'bad' });
   }
+  if (b.hurt > a.hurt) { const i = b.injuries[b.injuries.length - 1]; if (i) out.push({ kind: 'injury', text: `${cap(i.limb)} injured · tier ${i.tier}`, tone: 'warn' }); }
+  if (b.restricted && !a.restricted) out.push({ kind: 'restricted', text: 'Restricted area · leave or the ship is impounded', tone: 'warn' });
+  if (b.impounded > a.impounded) out.push({ kind: 'impounded', text: 'Ship impounded', tone: 'warn' });
+  if (b.lowFuel && !a.lowFuel) out.push({ kind: 'fuel', text: 'Low fuel', tone: 'warn' });
+  const p = b.partyEv;
+  if (p && p.n !== a.partyEv?.n) {
+    if (p.what === 'invite') out.push({ kind: 'party', text: `Party invite from ${p.who}`, tone: 'good' });
+    if (p.what === 'qt') out.push({ kind: 'party', text: `${p.who} is jumping to you`, tone: 'good' });
+    if (p.what === 'calibrated') out.push({ kind: 'party', text: 'Party jump calibrated', tone: 'good' });
+  }
   if (b.refinery && b.refinery.n !== a.refinery?.n) out.push({ kind: 'refinery', text: `Refinery job done · ${b.refinery.place}`, tone: 'good' });
   if (b.jump && b.jumps > a.jumps) out.push({ kind: 'jump', text: `Entered ${b.jump.to}`, tone: 'good' });
   const ha = a.hangar, hb = b.hangar;
   if (hb?.status === 'granted' && ha?.status !== 'granted') out.push({ kind: 'hangar', text: 'Hangar assigned', tone: 'good' });
   if (hb?.status === 'called' && hb.lift === 'up' && ha?.lift !== 'up') out.push({ kind: 'hangar', text: `Ship ready · ${hangarName(hb, b.me)}`, tone: 'good' });
   return out;
+}
+
+const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+const ordinal = n => `${n}${[, 'st', 'nd', 'rd'][(n % 100 >> 3 ^ 1) && n % 10] || 'th'}`;
+
+/** Why the game threw you out, for people: "Disconnected · connection timed out", or null. */
+export function droppedText(d) {
+  if (!d) return null;
+  if (d.crash) return `Game crashed${CRASH_KINDS[d.kind] ? ` · ${CRASH_KINDS[d.kind]}` : ''}`;
+  return `Disconnected · ${DROP_CODES[d.code] || `error ${d.code}`}`;
 }
 
 /** A hangar's name for people: "XL Hangar" for your own (the game says "Name's XL Hangar"), else as logged. */
@@ -452,6 +586,7 @@ export function hangarName(h, me) {
 export function hangarText(state) {
   const h = state.hangar;
   if (!h) return null;
+  if (h.status === 'queued') return `Queue ${ordinal(h.place)}${h.wait ? ` · ≤ ${h.wait >= 90 ? `${Math.round(h.wait / 60)} min` : `${Math.round(h.wait)} s`}` : ''}`;
   if (h.status === 'granted') return h.lift === 'lowering' ? 'Landed · lift going down' : 'Hangar assigned';
   const name = hangarName(h, state.me);
   return { rising: `${name} · lift rising`, up: `${name} · ship ready`, lowering: `${name} · lift going down` }[h.lift] || `${name} · ship called`;
@@ -472,14 +607,25 @@ export const weaponName = w => w.replace(/_\d+$/, '').replace(/^[A-Z]{3,5}_/, ''
 
 /** What changed from state a to b that belongs on the Log page: [{ kind, text, tone }]. */
 export function logFor(a, b) {
-  const out = alertsFor(a, b).filter(e => e.kind !== 'armistice');
+  const out = alertsFor(a, b).filter(e => e.kind !== 'armistice' && e.kind !== 'injury');
   if (b.shard && b.shard !== a.shard) { const s = shardName(b.shard); out.push({ kind: 'shard', text: `Joined ${[s.region, s.n && `shard ${s.n}`].filter(Boolean).join(' · ')}`, tone: 'info' }); }
+  if (b.dropped && (b.dropped.n !== a.dropped?.n || b.dropped.kind !== a.dropped?.kind)) out.push({ kind: 'dropped', text: droppedText(b.dropped), tone: 'warn' });
   if (b.menu) return out;
   if (b.down && !a.down) { const t = b.downedBy ? downText(b.downedBy) : ''; out.push({ kind: 'down', text: `Downed${t ? ` ${t}` : ''}`, tone: 'bad' }); }
   if (b.downedBy?.hospital && b.downedBy.hospital !== a.downedBy?.hospital) out.push({ kind: 'respawn', text: `Respawn at ${placeName(b.downedBy.hospital) || b.downedBy.hospital}`, tone: 'info' });
   if (b.downedBy?.ejected && b.downedBy.ejected !== a.downedBy?.ejected) out.push({ kind: 'eject', text: `Thrown clear of the wreck of ${shipName(shipModel(b.downedBy.ejected))}`, tone: 'warn' });
   if (b.qtArrived && b.qtArrived !== a.qtArrived) out.push({ kind: 'qt', text: `Quantum arrived · ${b.qtArrived.replace(/_/g, ' ')}`, tone: 'info' });
   if (b.stored && b.stored.n !== a.stored?.n) out.push({ kind: 'stored', text: `${shipName(b.stored.ship)} stored`, tone: 'good' });
+  for (const i of b.hurt > a.hurt ? b.injuries.filter(x => !a.injuries.includes(x)) : []) out.push({ kind: 'injury', text: `${cap(i.severity)} injury · ${i.limb} · tier ${i.tier}`, tone: 'warn' });
+  if (b.healed > a.healed) out.push({ kind: 'medbed', text: 'Treated in a med bed', tone: 'good' });
+  if (b.private !== a.private) out.push({ kind: 'private', text: b.private ? 'Entered private property' : 'Left private property', tone: 'info' });
+  if (a.restricted && !b.restricted) out.push({ kind: 'restricted', text: 'Left the restricted area', tone: 'info' });
+  if (b.hangar?.status === 'queued' && (a.hangar?.status !== 'queued' || a.hangar.place !== b.hangar.place)) out.push({ kind: 'hangar', text: `Hangar queue · ${hangarText(b)}`.replace('Hangar queue · Queue', 'Hangar queue'), tone: 'info' });
+  const p = b.partyEv;
+  if (p && p.n !== a.partyEv?.n) {
+    const t = { online: `${p.who} online`, offline: `${p.who} offline`, calibrating: `Party jump calibrating${p.who ? ` · ${p.who}` : ''}`, joined: 'Joined a party', left: 'Left the party' }[p.what];
+    if (t) out.push({ kind: 'party', text: p.what === 'online' || p.what === 'offline' ? `Party · ${t}` : t, tone: 'info' });
+  }
   if (b.seated && b.ship && (!a.seated || a.ship !== b.ship)) out.push({ kind: 'seat', text: `Took the seat of ${shipName(b.ship)}`, tone: 'info' });
   return out;
 }

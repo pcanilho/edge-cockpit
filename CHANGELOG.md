@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- **Reload the edge-cockpit control profile** for the new keys below.
+- Injuries: the status screen shows the injury that needs the most care, with its tier (tier 3: med pen, tier 2: med bed, tier 1: hospital). It clears after a med bed treatment or a respawn, or with a tap (a med pen leaves no log line). The Log page and recap count injuries instead of kills, which the game stopped logging in 2026; Kills come back for a session that logs one.
+- Hangar queue: the hangar chip shows your place in the queue and the longest wait the game gives.
+- Restricted area: an amber banner and tone when you enter one, and the law chip says Restricted area or Private property while you're inside. Ship impounded and Low fuel alerts too. Tap Low fuel to clear it after refuelling.
+- Why the game dropped you: a timeout, a server crash, an idle kick, a sign-in elsewhere, or the kind of game crash. It shows on the status screen until you are back in, in the Log and in the session recap. Leaving by yourself shows nothing.
+- Party: a banner when someone invites you or starts a jump to you, a chip while a party jump calibrates, and party members coming online in the Log.
+- New keys for your own pages and long-press swaps: Door locks and Port locks as ON/OFF switches (the game's separate lock and unlock binds), Pin target, Unpin target, Pin 1–3, Next pinned, and remote turrets (Turret 1–3, Next, Previous, Exit).
+- Settings > Screen: Shapes for colour (amber marks are triangles, red diamonds, green rings, and the red frame is dashed) and Reduce motion (no flashing, blinking or sliding).
+- HUD notices that run over several lines in Game.log now reach the console whole.
+
 ## 0.9.2
 
 - The console fills the Edge at start again when your main screen uses another Windows scale (it came up smaller, in a corner).

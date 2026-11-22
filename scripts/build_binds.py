@@ -28,7 +28,8 @@ NUMPAD = [f'np_{n}' for n in range(10)] + ['np_divide', 'np_multiply', 'np_subtr
 POOL = ([f'{mods}+f{n}' for mods in ('rctrl', 'rshift', 'rctrl+rshift') for n in range(1, 13)]
         + [f'rctrl+{k}' for k in NAV + NUMPAD] + [f'rctrl+rshift+{k}' for k in NAV]
         + [f'rctrl+lalt+{k}' for k in [f'f{n}' for n in range(1, 13)] + NAV + NUMPAD if k != 'delete']
-        + [f'rshift+{k}' for k in NAV])
+        + [f'rshift+{k}' for k in NAV]
+        + [f'rctrl+lalt+rshift+f{n}' for n in range(1, 13)])
 
 
 def combo(s):

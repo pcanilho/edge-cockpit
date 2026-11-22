@@ -151,9 +151,59 @@ impl Tail {
         self.offset += n as u64;
         self.rest.push_str(&String::from_utf8_lossy(&buf));
         let rest = std::mem::take(&mut self.rest);
-        let mut parts = rest.split('\n').collect::<Vec<_>>();
-        self.rest = parts.pop().unwrap_or_default().to_string();
-        parts.into_iter().map(|l| l.trim_end_matches('\r')).filter(|l| relevant(l)).map(str::to_string).collect()
+        let mut parts = rest.split('\n').map(|l| l.trim_end_matches('\r')).collect::<Vec<_>>();
+        let tail = parts.pop().unwrap_or_default();
+        let (lines, open) = join_notices(&parts);
+        // A notice still waiting for its last line is read again with the next poll.
+        self.rest = parts[open..].iter().map(|l| format!("{l}\n")).collect::<String>() + tail;
+        lines.into_iter().filter(|l| relevant(l)).collect()
+    }
+}
+
+const NOTICE: &str = "Added notification \"";
+/// A HUD notice can run over several lines: "Added notification \"Party", then
+/// "<time> Name connected.: \" [3] to queue ...". Joins each into one line, the
+/// continuations' text without their timestamps. Returns the lines and the index of
+/// a notice not finished yet (parts.len() when none).
+fn join_notices(parts: &[&str]) -> (Vec<String>, usize) {
+    let closed = |l: &str| l.contains("\" [");
+    let mut out = vec![];
+    let mut i = 0;
+    while i < parts.len() {
+        let l = parts[i];
+        if !l.find(NOTICE).is_some_and(|at| !closed(&l[at..])) {
+            out.push(l.to_string());
+            i += 1;
+            continue;
+        }
+        // Continuation lines carry a timestamp and the text, never a [Notice] tag.
+        let more = parts[i + 1..].iter().take(MAX_NOTICE_LINES).position(|c| closed(c) || c.contains("[Notice]") || c.contains(NOTICE));
+        match more {
+            Some(n) if closed(parts[i + 1 + n]) && !parts[i + 1 + n].contains("[Notice]") => {
+                let mut joined = l.to_string();
+                for c in &parts[i + 1..=i + 1 + n] {
+                    joined.push(' ');
+                    joined.push_str(strip_stamp(c));
+                }
+                out.push(joined);
+                i += n + 2;
+            }
+            None if parts.len() - i - 1 < MAX_NOTICE_LINES => return (out, i),
+            _ => {
+                out.push(l.to_string());
+                i += 1;
+            }
+        }
+    }
+    (out, parts.len())
+}
+const MAX_NOTICE_LINES: usize = 10;
+
+/// "<2026-10-03T18:01:10.000Z> Name connected." -> "Name connected."
+fn strip_stamp(l: &str) -> &str {
+    match l.strip_prefix('<').and_then(|r| r.find('>').map(|e| &r[e + 1..])) {
+        Some(r) => r.trim_start(),
+        None => l,
     }
 }
 
@@ -174,6 +224,12 @@ const MARKERS: &[&str] = &[
     "You have joined", "You have left", "CSCItemNavigation::", "SetVehicleSpawningInformations", "[Team_GameServices][ASOP]",
     "Hangar Request Completed", "OnLoadingPlatformStateChanged", "<Actor stall>", "<Changing Solar System>",
     "Refinery Work Order", "DoesLocationContainHospital", "STOWING ON UNREGISTER",
+    // Injuries and the med bed, hangar queue, restricted areas, fuel, why the game dropped you, and the party.
+    "Injury Detected", "<MED BED HEAL>", "Joined hangar queue", "Restricted Area", "Private Property", "Vehicle Impounded",
+    "Low Fuel", "<Channel Disconnected>", "Error Popup Opened", "crash handler taking over", "Exception STATUS_",
+    "Exception EXCEPTION_", "notification \"Party", "Party Invite", "Party Launch", "joined party", "created party",
+    "left the party", "kicked from the party", "Party Disbanded", "New Party Leader", "started to QT to your",
+    "Quantum Travel Calibration",
 ];
 
 pub fn relevant(line: &str) -> bool {
@@ -225,6 +281,29 @@ mod tests {
             assert!(relevant(l), "{l}");
         }
         assert!(!relevant("<2026-11-17> [Notice] <CEntityComponentPhysics> nothing to see"));
+    }
+
+    /// A notice over several lines reaches the console as one, also when the game has
+    /// written only part of it at a poll.
+    #[test]
+    fn joins_notices_over_several_lines() {
+        let dir = std::env::temp_dir().join(format!("xfd-notice-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let p = dir.join("Game.log");
+        fs::write(&p, "<t> [Notice] <SHUDEvent_OnNotification> Added notification \"Party\r\n").unwrap();
+        let mut t = Tail::new(p.clone());
+        assert!(t.poll().is_empty(), "waits for the rest of the notice");
+        fs::OpenOptions::new().append(true).open(&p).unwrap()
+            .write_all(b"<t> NovaRider connected.: \" [3] to queue.\r\n<t>    \"Party\r\n<t> noise\r\n").unwrap();
+        assert_eq!(t.poll(), vec!["<t> [Notice] <SHUDEvent_OnNotification> Added notification \"Party NovaRider connected.: \" [3] to queue."]);
+        // A notice that never closes doesn't hold up the lines after it.
+        let mut lines = vec!["Added notification \"Low Fuel"];
+        lines.extend(["<t> x"; 11]);
+        lines.push("Entering Armistice Zone");
+        let (out, open) = join_notices(&lines);
+        assert_eq!(open, lines.len());
+        assert!(out.iter().any(|l| l.contains("Armistice")));
+        fs::remove_dir_all(dir).ok();
     }
 
     /// A whole 4.10 session (test/fixtures/game-4.10.log: the game's own line formats, with
