@@ -63,7 +63,21 @@
 <figure class="device">
   <div class="bezel"><a href="img/panel.png"><img src="img/panel.png" width="2560" height="720" alt="The console on a fighter: status display, power plate with Flight Ready, a target wheel, flight and gear plates"></a></div>
   <a class="handset" href="img/phone-flight.png"><img src="img/phone-flight.png" width="786" height="1704" alt="The flight plate on a phone"></a>
-  <figcaption>Built for the Corsair Xeneon Edge (2560 × 720). Phones, tablets and other PCs on your network join as extra screens.</figcaption>
+  <div class="demo-bar">
+    <button class="key primary" type="button" data-demo-start>
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
+      Try it live
+    </button>
+    <div class="scenes" role="group" aria-label="Demo scenes" hidden>
+      <button class="key" type="button" data-scene="demo=ship" aria-pressed="true">Fighter</button>
+      <button class="key" type="button" data-scene="demo=ship&amp;page=mining" aria-pressed="false">Mining</button>
+      <button class="key" type="button" data-scene="demo=armistice" aria-pressed="false">Armistice</button>
+      <button class="key" type="button" data-scene="demo=alert" aria-pressed="false">Red alert</button>
+      <button class="key" type="button" data-scene="demo=downed" aria-pressed="false">Downed</button>
+      <button class="key" type="button" data-scene="demo=log" aria-pressed="false">Log</button>
+    </div>
+  </div>
+  <figcaption data-caption-live="Live demo: tap, swipe and hold it as on the Edge. It plays a recorded session and sends no keys.">Built for the Corsair Xeneon Edge (2560 × 720). Phones, tablets and other PCs on your network join as extra screens.</figcaption>
 </figure>
 
 <section id="features" class="features">

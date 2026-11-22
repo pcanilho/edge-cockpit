@@ -39,10 +39,21 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh api "repos/$GITHUB_REPOSITORY/releases/latest" > release.json || echo '{}' > release.json
+      # The live demo runs the released console, not main, so it never shows what isn't out yet.
+      - name: Demo from the release
+        run: |
+          tag=$(jq -r '.tag_name // empty' release.json)
+          ref=HEAD
+          if [ -n "$tag" ] && git fetch --quiet --no-tags --depth 1 origin "refs/tags/$tag:refs/tags/$tag"; then ref="refs/tags/$tag"; fi
+          mkdir -p "$RUNNER_TEMP/demo"
+          git archive "$ref" app/ui app/scripts layouts binds | tar -x -C "$RUNNER_TEMP/demo"
+          ln -s "$PWD/app/node_modules" "$RUNNER_TEMP/demo/app/node_modules"
+          node "$RUNNER_TEMP/demo/app/scripts/sync.mjs"
+          echo "Demo from $ref"
       - name: Build
         env:
           BASE_URL: ${{ steps.pages.outputs.base_url }}
-        run: python3 site/build.py _site --release release.json --base-url "$BASE_URL"
+        run: python3 site/build.py _site --release release.json --base-url "$BASE_URL" --demo "$RUNNER_TEMP/demo/app/ui"
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: _site
