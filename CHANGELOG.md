@@ -3,6 +3,10 @@
 ## Unreleased
 
 - **Reload the edge-cockpit control profile** for the new keys below.
+- Screen check: after every move the console compares its size with its screen's and moves again if Windows shrank it. If it is still wrong, Settings > Screen and the status screen say so, with Refit.
+  - Screen cards show each screen's Windows scale when the screens differ.
+  - Identify screens shows each screen's name on that screen for 3 seconds.
+  - The setup check starts with the screen: the console fills it, or Refit.
 - Injuries: the status screen shows the injury that needs the most care, with its tier (tier 3: med pen, tier 2: med bed, tier 1: hospital). It clears after a med bed treatment or a respawn, or with a tap (a med pen leaves no log line). The Log page and recap count injuries instead of kills, which the game stopped logging in 2026; Kills come back for a session that logs one.
 - Hangar queue: the hangar chip shows your place in the queue and the longest wait the game gives.
 - Restricted area: an amber banner and tone when you enter one, and the law chip says Restricted area or Private property while you're inside. Ship impounded and Low fuel alerts too. Tap Low fuel to clear it after refuelling.

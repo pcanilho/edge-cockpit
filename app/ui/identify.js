@@ -1,0 +1,3 @@
+// Fills identify.html from its address: ?name=…&size=…&note=…
+const q = new URLSearchParams(location.search);
+for (const k of ['name', 'size', 'note']) document.getElementById(k).textContent = q.get(k) || '';

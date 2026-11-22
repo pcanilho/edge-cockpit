@@ -52,6 +52,7 @@
           <button class="chip new" id="update" hidden><i></i><span></span></button>
           <button class="chip warn" id="binds-chip" hidden><i></i><span></span></button>
           <button class="chip warn" id="touch-chip" hidden><i></i><span></span></button>
+          <button class="chip warn" id="fit-chip" hidden><i></i><span></span></button>
           <button class="chip auto" id="auto"><i></i><span>Follow game</span></button>
         </div>
       </div>
@@ -112,10 +113,12 @@
           <div class="opt choice" id="plates-row"><span class="txt">Ship plates here<small id="plates-note">The rest grow to fill</small></span><span class="seg" id="plates-seg"><button data-v="power">Power</button><button data-v="role">Role</button><button data-v="flight">Flight</button><button data-v="gear">Gear</button></span></div>
           <div class="opt choice" id="size-row"><span class="txt">Size<small id="size-note">Fit grows the console to fill the screen</small></span><span class="seg" id="size-seg"><button data-v="fit">Fit</button><button data-v="actual">Actual size</button></span></div>
         </div>
-        <h4 class="sub">Show the console on</h4>
+        <h4 class="sub with-act">Show the console on<button id="act-identify">Identify screens</button></h4>
         <div class="displays" id="displays"></div>
         <div class="health warn" id="touch-health" hidden><i></i><div class="txt"><b>Touches land on another display</b><p>Windows has the touchscreen mapped to a different display than the console.</p></div>
           <button class="act" id="act-touch"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Fix touch<small>Touch the screen Windows asks for</small></span></button></div>
+        <div class="health warn" id="fit-health" hidden><i></i><div class="txt"><b></b><p></p></div>
+          <button class="act" id="act-refit"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Refit<small></small></span></button></div>
       </section>
       <section class="pane" data-sec="feedback" hidden>
         <h3>Feedback</h3>

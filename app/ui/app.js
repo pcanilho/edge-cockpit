@@ -849,15 +849,34 @@ async function paintDisplays() {
   if (!d) { box.innerHTML = ''; return; }
   const cur = d.list.find(x => x.id === d.current);
   const card = (id, name, note) => `<button class="disp${(d.picked ?? null) === id ? ' cur' : ''}" data-id="${controls.esc(id ?? '')}"><b>${controls.esc(name)}</b><small>${controls.esc(note)}</small></button>`;
+  // Scale shows when the screens differ, which is when a move between them can go wrong.
+  const mixed = new Set(d.list.map(x => x.scale ?? 100)).size > 1;
   box.innerHTML = card(null, 'Automatic', cur ? `Now ${cur.name}` : 'Finds the touchscreen') +
-    d.list.map(x => card(x.id, x.name, [`${x.width} × ${x.height}`, x.touch && 'touch', x.primary && 'main'].filter(Boolean).join(' · '))).join('');
+    d.list.map(x => card(x.id, x.name, [`${x.width} × ${x.height}`, mixed && x.scale && `${x.scale} % scale`, x.touch && 'touch', x.primary && 'main'].filter(Boolean).join(' · '))).join('');
   box.querySelectorAll('.disp').forEach(b => controls.pressable(b, { up: async () => {
     tick('toggle');
     await bridge.setDisplay(b.dataset.id || null);
     paintDisplays();
   } }));
-  $('touch-health').hidden = d.touch_ok;
+  const bad = fitWrong(d);
+  // One warning row at a time, size first: the touch chip stays on the status screen.
+  $('touch-health').hidden = d.touch_ok || bad;
   $('touch-chip').hidden = d.touch_ok;
+  $('fit-health').hidden = !bad;
+  $('fit-chip').hidden = !bad;
+  if (bad) {
+    const [[ww, wh], [gw, gh]] = [d.fit.want, d.fit.got];
+    $('fit-health').querySelector('b').textContent = `The console is ${gw} × ${gh} on a ${ww} × ${wh} screen`;
+    $('fit-health').querySelector('p').textContent = mixed ? 'Windows resized it while moving it between screens of different scale.' : 'Windows did not give it the whole screen.';
+    $('act-refit').querySelector('small').textContent = `Moves it onto ${cur?.name || 'its screen'} again and checks the size`;
+  }
+}
+/** The console's size after its last move differs from its screen's. */
+const fitWrong = d => !!d?.fit && (d.fit.want[0] !== d.fit.got[0] || d.fit.want[1] !== d.fit.got[1]);
+async function refit() {
+  const ok = await bridge.refit().catch(() => false);
+  toast(ok ? 'The console fills its screen' : 'Still the wrong size. Pick the screen in Settings › Screen, or set both screens to the same scale.');
+  paintDisplays(); paintSetup();
 }
 bridge.onDisplays(() => { paintDisplays(); paintSetup(); });
 const TAB_ICONS = { general: 'cog', screen: 'bulb', feedback: 'pulse', phones: 'phone', binds: 'list', profile: 'person', about: 'download' };
@@ -901,7 +920,7 @@ async function installBinds() {
 }
 const acts = { 'act-binds': [() => reloadBinds().then(() => toast('Binds reloaded')), 'reload'], 'act-install': [installBinds, 'layers'],
   'act-admin': [bridge.runAsAdmin, 'shield'], 'act-sleep': [() => { openSheet(false); bridge.sleepScreen(); }, 'moon'],
-  'act-update': [installUpdate, 'download'], 'act-touch': [() => bridge.fixTouch().then(ok => ok || toast('Windows did not open its touchscreen setup. Open Tablet PC Settings, then Setup.')), 'hand'], 'act-save': [saveProfile, 'download'], 'act-load': [loadProfile, 'reload'], 'act-quit': [bridge.quit, 'power'], 'act-setup': [() => { openSheet(false); showSetup(); }, 'hand'] };
+  'act-refit': [refit, 'reload'], 'act-update': [installUpdate, 'download'], 'act-touch': [() => bridge.fixTouch().then(ok => ok || toast('Windows did not open its touchscreen setup. Open Tablet PC Settings, then Setup.')), 'hand'], 'act-save': [saveProfile, 'download'], 'act-load': [loadProfile, 'reload'], 'act-quit': [bridge.quit, 'power'], 'act-setup': [() => { openSheet(false); showSetup(); }, 'hand'] };
 for (const [id, [run, icon]] of Object.entries(acts)) {
   $(id).querySelector('svg').innerHTML = GLYPHS[icon] || '';
   controls.pressable($(id), { up: () => { tick('tap'); run(); } });
@@ -1058,7 +1077,12 @@ async function paintSetup() {
   const touch = d?.list.find(x => x.touch);
   const h = bindHealth(), bad = h.missing.length + h.stick.length;
   const ch = info.channel ? info.channel.split(/[\\/]/).pop().toUpperCase() : null;
+  const cur = d?.list.find(x => x.id === d.current);
+  const scales = d && new Set(d.list.map(x => x.scale ?? 100)).size > 1 ? ` Main screen at ${d.list.find(x => x.primary)?.scale ?? 100} %.` : '';
   const rows = [
+    !d || !cur ? ['unknown', 'Screen', 'Checked in the app.']
+      : fitWrong(d) ? ['warn', `The console is ${d.fit.got[0]} × ${d.fit.got[1]} on ${cur.name}`, `It should be ${d.fit.want[0]} × ${d.fit.want[1]}. Refit moves it again.`, 'Refit', refit]
+      : ['ok', `Console fills ${cur.name}`, `${cur.width} × ${cur.height}${cur.scale ? ` at ${cur.scale} % scale` : ''}.${scales}`],
     !d ? ['unknown', 'Touchscreen', 'Checked in the app.']
       : !touch ? ['warn', 'No touchscreen found', 'The console works with a mouse too. Plug in the touchscreen\'s USB cable for touch.']
       : !d.touch_ok ? ['warn', 'Touches land on another display', `Windows maps ${touch.name}'s touches to the wrong screen.`, 'Fix touch', () => bridge.fixTouch()]
@@ -1116,6 +1140,9 @@ controls.pressable($('update'), { up: () => { tick('tap'); openSheet(true, 'abou
 controls.pressable($('binds-chip'), { up: () => { tick('tap'); openSheet(true, 'binds'); } });
 controls.pressable($('touch-chip'), { up: () => { tick('tap'); openSheet(true, 'screen'); } });
 $('touch-chip').querySelector('span').textContent = 'Touch on another display';
+controls.pressable($('fit-chip'), { up: () => { tick('tap'); refit(); } });
+$('fit-chip').querySelector('span').textContent = 'Console too small · Refit';
+controls.pressable($('act-identify'), { up: () => { tick('tap'); bridge.identifyScreens().catch(() => toast('Shows each screen\'s name on it, in the app')); } });
 $('toast-act').addEventListener('pointerdown', e => e.stopPropagation());
 
 // ---------- game state ----------
@@ -1320,7 +1347,7 @@ function paintStatus() {
 }
 // Chips that would run off the status screen give way, the least pressing first, so Follow game
 // and the ones that need you stay in sight.
-const CHIP_ORDER = ['kills', 'build', 'update', 'touch-chip', 'binds-chip', 'patch', 'lag', 'party', 'hangar', 'fuel', 'injury', 'wreck', 'dropped', 'law'];
+const CHIP_ORDER = ['kills', 'build', 'update', 'binds-chip', 'patch', 'touch-chip', 'fit-chip', 'lag', 'party', 'hangar', 'fuel', 'injury', 'wreck', 'dropped', 'law'];
 function fitChips() {
   const screen = $('auto').closest('.facts')?.parentElement, r = screen?.getBoundingClientRect();
   if (!r?.height) return;

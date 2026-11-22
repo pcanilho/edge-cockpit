@@ -47,6 +47,9 @@ export const installUpdate = () => tauri.core.invoke('install_update');
 // Outside the app (UI tests, mocks) a page may supply its own displays.
 export const displays = () => tauri ? tauri.core.invoke('displays') : Promise.resolve(window.xfdTestDisplays ?? { list: [], picked: null, current: null, touch_ok: true });
 export const setDisplay = id => tauri ? tauri.core.invoke('set_display', { id }) : Promise.resolve(window.xfdTestDisplays && (window.xfdTestDisplays.picked = id));
+// Moves the console onto its screen again; true when it now fills it.
+export const refit = () => tauri ? tauri.core.invoke('refit') : Promise.resolve(window.xfdTestDisplays ? (window.xfdTestDisplays.fit = null, true) : true);
+export const identifyScreens = () => tauri ? tauri.core.invoke('identify_screens') : onlyInApp();
 export const fixTouch = () => tauri ? tauri.core.invoke('fix_touch') : onlyInApp();
 /** f() when displays are added, removed or change resolution. */
 export const onDisplays = f => tauri?.event.listen('displays', () => f());
