@@ -345,6 +345,27 @@ fn read_binds(app: State<'_, App>) -> Option<String> {
     std::fs::read_to_string(game::actionmaps(&channel)).ok()
 }
 
+/// One earlier game session's log, filtered to the lines the console reads.
+#[derive(Serialize)]
+struct PastLog {
+    name: String,
+    lines: Vec<String>,
+}
+
+/// The game's log backups from the last 30 days (at most 12), for the Log page's past sessions.
+#[tauri::command]
+async fn past_logs(app: State<'_, App>) -> Result<Vec<PastLog>, String> {
+    let Some(ch) = app.channel.lock().unwrap().clone() else { return Ok(vec![]) };
+    tauri::async_runtime::spawn_blocking(move || {
+        game::backups(&ch, 12, 30)
+            .into_iter()
+            .map(|p| PastLog { name: p.file_name().unwrap_or_default().to_string_lossy().into_owned(), lines: game::relevant_lines(&p) })
+            .collect()
+    })
+    .await
+    .map_err(|e| e.to_string())
+}
+
 /// The player's own ship roles, Documents\Edge Cockpit\ships.json, if there is one.
 #[tauri::command]
 fn user_ships(handle: AppHandle) -> Option<String> {
@@ -1230,7 +1251,7 @@ fn main() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(App::default())
         .invoke_handler(tauri::generate_handler![
-            key, wheel, ui_ready, user_ships, release_keys, game_info, read_binds, install_binds, run_as_admin, quit,
+            key, wheel, ui_ready, user_ships, past_logs, release_keys, game_info, read_binds, install_binds, run_as_admin, quit,
             save_profile, load_profile, save_user_ships, install_profile_binds, save_page, page_files,
             get_prefs, set_pref, wake_screen, sleep_screen, check_update, install_update, perf,
             displays, set_display, fix_touch, refit, identify_screens, night_backlight, report_issue, world_prices, world_status,

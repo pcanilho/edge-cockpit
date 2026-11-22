@@ -1,7 +1,7 @@
 // Edge Cockpit: builds the cockpit console, turns touches into key presses and
 // follows Game.log for the status display, the moods and the pages.
 import { GLYPHS } from './lib/glyphs.js';
-import { parseLine, reduce, lawless, EMPTY, version, missingLines, untested, place, tally, stamp, NEW_TALLY, minutes, shipName, alertsFor, hangarText, culprit, logFor, shardName, weaponName, placeName, worstInjury, droppedText } from './lib/gamelog.js';
+import { parseLine, reduce, lawless, EMPTY, version, sessionsOf, missingLines, untested, place, tally, stamp, NEW_TALLY, minutes, shipName, alertsFor, hangarText, culprit, logFor, shardName, weaponName, placeName, worstInjury, droppedText } from './lib/gamelog.js';
 import { pageFor, pageById } from './lib/pages.js';
 import { lookup } from './lib/ships.js';
 import * as bridge from './bridge.js';
@@ -1420,8 +1420,37 @@ function fitMakerName() {
 const hhmm = ts => ts ? new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
 const shipLabel = m => lookup(shipsDb.ships, overrides.ships, m)?.name || shipName(m);
 const lastRow = kind => logRows.find(r => r.kind === kind);
+// ---------- past sessions: the game's own log backups, read once per Game.log ----------
+let past = null, pastLoading = false;
+async function loadPast() {
+  if (pastLoading) return;
+  pastLoading = true;
+  const logs = await bridge.pastLogs().catch(() => []);
+  past = logs.flatMap(l => sessionsOf(l.lines)).sort((a, b) => b.start.localeCompare(a.start));
+  pastLoading = false;
+  paintLog();
+}
+function paintPast() {
+  if (!$('lg-past')) return;
+  if (!past) { loadPast(); return; }
+  const esc = controls.esc;
+  const span = m => (m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}` : `${m} min`);
+  const day = iso => {
+    const d = new Date(iso), now = new Date(), days = Math.round((new Date(now.toDateString()) - new Date(d.toDateString())) / 86_400_000);
+    const t = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    return `${days === 0 ? 'Today' : days === 1 ? 'Yesterday' : d.toLocaleDateString([], days < 7 ? { weekday: 'short' } : { day: 'numeric', month: 'short' })} ${t}`;
+  };
+  const week = past.filter(t => Date.now() - Date.parse(t.start) < 7 * 86_400_000).reduce((n, t) => n + minutes(t), 0);
+  $('lg-past-note').textContent = past.length ? `From the game's log backups · last 7 days: ${span(week)} played` : '';
+  // Like the cards above: injuries, as the game stopped logging kills in 2026, unless a session shown does log one.
+  const shown = past.slice(0, 5), kills = shown.some(t => t.kills);
+  const rows = shown.map(t => `<tr><td>${esc(day(t.start))}</td><td>${esc(span(minutes(t)))}</td><td>${kills ? t.kills : t.injuries}</td><td>${t.deaths}</td><td>${t.missions}</td><td>${esc(t.ships.map(m => shipLabel(m)).join(', ') || '–')}</td></tr>`).join('');
+  $('lg-past').innerHTML = `<tr><th>Started</th><th>Played</th><th>${kills ? 'Kills' : 'Injuries'}</th><th>Downed</th><th>Missions</th><th>Ships</th></tr>`
+    + (rows || '<tr><td class="empty" colspan="6">No earlier sessions yet. The game keeps each finished session\'s log, and they show here.</td></tr>');
+}
 function paintLog() {
   if (current !== 'log' || !$('lg-list')) return;
+  paintPast();
   const esc = controls.esc, set = (id, t = '', p = '', q = '', b = '') => {
     $(id + '-t').textContent = t; $(id + '-b').textContent = b; $(id + '-p').innerHTML = p; $(id + '-q').innerHTML = q;
     $(id + '-b').closest('.card').classList.toggle('none', !b);
@@ -1449,7 +1478,8 @@ function paintLog() {
   $('lg-missions').textContent = session.missions;
   $('lg-ships-n').textContent = session.ships.length;
   $('lg-list').innerHTML = logRows.length
-    ? logRows.map(e => `<li><time>${hhmm(e.ts)}</time><i class="${e.tone}"></i><span>${esc(e.text)}</span></li>`).join('')
+    // Newest first, as many rows as the list holds whole.
+    ? logRows.slice(0, 11).map(e => `<li><time>${hhmm(e.ts)}</time><i class="${e.tone}"></i><span>${esc(e.text)}</span></li>`).join('')
     : '<li class="empty"><span>Nothing yet. Events from the game log show here as they happen.</span></li>';
 }
 // ---------- the system you are in, as a line of its planets from the star out ----------
@@ -1534,7 +1564,7 @@ controls.pressable($('patch'), { up: () => {
 
 function onLog({ lines, live, reset }) {
   // A new Game.log means a new channel or a restart: its binds may differ too.
-  if (reset) { placeSeen = { at: 0, moved: false }; game = { ...EMPTY }; session = { ...NEW_TALLY }; lastSeq = 0; logRows = []; watch = newWatch(); if (bridge.inApp) { reloadBinds(); loadUserShips(); } }
+  if (reset) { past = null; placeSeen = { at: 0, moved: false }; game = { ...EMPTY }; session = { ...NEW_TALLY }; lastSeq = 0; logRows = []; watch = newWatch(); if (bridge.inApp) { reloadBinds(); loadUserShips(); } }
   for (const line of lines) {
     const ev = parseLine(line);
     const was = game;

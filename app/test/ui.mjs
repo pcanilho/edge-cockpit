@@ -36,6 +36,9 @@ await page.addInitScript(() => {
   const raf = window.requestAnimationFrame.bind(window);
   window.requestAnimationFrame = cb => { window.__raf++; return raf(cb); };
 });
+// Past sessions on the Log page: the fixture log as a backup.
+const pastLines = (await readFile(join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'game-4.10.filtered.log'), 'utf8')).split('\n');
+await page.addInitScript(lines => { window.xfdTestPastLogs = [{ name: 'Game Build 1.log', lines }]; }, pastLines);
 // No network in the test: ship outlines fall back to the role badge.
 await page.route(/fleetyards|fltyrd/, r => r.abort());
 
@@ -183,6 +186,29 @@ for (const id of ids) {
   for (const o of overlaps) problems.push(`${id}: ${o}`);
   for (const t of await page.evaluate(() => [...document.querySelectorAll('#status, #console .plate')].flatMap(p => window.__textCheck(p)))) problems.push(`${id}: ${t}`);
   if (shots) await page.screenshot({ path: join(shots, `${id}.png`) });
+}
+// Past sessions: the backup log's one session, in a table that fits.
+{
+  await page.evaluate(() => window.xfd.show('log'));
+  await page.waitForTimeout(300);
+  const pastRows = await page.evaluate(() => [...document.querySelectorAll('#lg-past tr')].map(r => r.textContent));
+  if (pastRows.length !== 2 || !/8 min.*Sabre Firebird/.test(pastRows[1] || '')) problems.push(`past sessions show ${JSON.stringify(pastRows)}`);
+  await checkLabels('log with past sessions');
+  for (const t of await page.evaluate(() => [...document.querySelectorAll('#console .plate')].flatMap(p => window.__textCheck(p)))) problems.push(`log with past sessions: ${t}`);
+  if (shots) await page.screenshot({ path: join(shots, 'log-past.png') });
+  // The cards full: a whole session (downed, shard, ships) still fits them.
+  const pg = await browser.newPage({ viewport: { width: 2560, height: 720 } });
+  await pg.addInitScript(TEXT_CHECK);
+  await pg.route(/fleetyards|fltyrd/, r => r.abort());
+  await pg.goto(base);
+  await pg.waitForSelector('body[data-ready]');
+  await pg.evaluate(() => document.fonts.ready);
+  await pg.evaluate(lines => { window.xfd.feed(lines, false); window.xfd.show('log'); }, pastLines);
+  await pg.waitForTimeout(300);
+  await checkLabels('log with a full session', false, pg);
+  for (const t of await pg.evaluate(() => [...document.querySelectorAll('#console .plate')].flatMap(p => window.__textCheck(p)))) problems.push(`log with a full session: ${t}`);
+  if (shots) await pg.screenshot({ path: join(shots, 'log-full.png') });
+  await pg.close();
 }
 // Large labels: every page again with the bigger text, which must still fit.
 await page.evaluate(() => document.getElementById('stage').classList.add('large'));
@@ -785,6 +811,20 @@ for (const [W, H] of [[1920, 1080], [1180, 820]]) {
   // A keycap beside it.
   await drop('Wide key', 400, 240);
   await press('#pick-grid .pick:not(.no)');
+  // A sequence: the picker asks for step 1, then step 2; a toggle with a set pair is refused.
+  await drop('Sequence', 400, 400);
+  const seqPick = await pg.evaluate(() => ({ title: document.getElementById('pick-title').textContent }));
+  if (!/step 1/.test(seqPick.title)) problems.push(`a new sequence's picker shows ${JSON.stringify(seqPick)}`);
+  await pg.evaluate(() => [...document.querySelectorAll('#pick-tabs .tab')].find(t => t.dataset.g === 'flight').dispatchEvent(new PointerEvent('pointerup')));
+  await press('#pick-grid .pick:not(.no)');
+  await pg.waitForTimeout(100);
+  if (!/step 2/.test(await pg.evaluate(() => document.getElementById('pick-title').textContent))) problems.push('a sequence does not ask for its second step');
+  await pg.evaluate(() => [...document.querySelectorAll('#pick-tabs .tab')].find(t => t.dataset.g === 'flight').dispatchEvent(new PointerEvent('pointerup')));
+  await press('#pick-grid .pick:not(.no)');
+  await pg.waitForTimeout(100);
+  const seqCard = await pg.evaluate(() => [...document.querySelectorAll('.ed-card .ed-row small')].map(s => s.textContent));
+  if (!seqCard.includes('Step 1') || !seqCard.includes('Step 2') || !seqCard.includes('Between steps')) problems.push(`a sequence's card shows ${seqCard.join(', ')}`);
+  if (shots) await pg.screenshot({ path: join(shots, 'editor-sequence.png') });
   const saved0 = await pg.evaluate(() => JSON.parse(localStorage.getItem('xfd-pages'))[0].plates[0].add.length);
   // Try it: a press lights up but sends nothing.
   await press('.ed-bar [data-a="try"]');
@@ -792,7 +832,13 @@ for (const [W, H] of [[1920, 1080], [1180, 820]]) {
   await press('.ed-bar [data-a="try"]');
   await press('.ed-bar [data-a="done"]');
   const r = await pg.evaluate(() => ({ editing: window.xfd.editing(), items: window.xfd.myPages()[0]?.plates[0].add.map(i => i.t), note: document.querySelector('.ed-note')?.textContent }));
-  if (r.editing || r.items?.join() !== 'switch,key') problems.push(`after Done the editor shows ${JSON.stringify(r)}`);
+  if (r.editing || r.items?.join() !== 'switch,key,seq') problems.push(`after Done the editor shows ${JSON.stringify(r)}`);
+  // The sequence sends its two keys, one after the other.
+  const sent0 = await pg.evaluate(() => (window.__keys || []).length);
+  await press('#console [data-add="2"]');
+  await pg.waitForTimeout(800);
+  const seqSent = await pg.evaluate(n => (window.__keys || []).slice(n).filter(k => k.spec).length, sent0);
+  if (seqSent !== 2) problems.push(`a sequence sent ${seqSent} keys, not 2`);
   if (saved0) problems.push('the page was saved before Done');
   await checkLabels('a page from the editor', false, pg);
   for (const x of await pg.evaluate(() => [...document.querySelectorAll('#console .plate')].flatMap(p => window.__textCheck(p)))) problems.push(`a page from the editor: ${x}`);
