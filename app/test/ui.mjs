@@ -199,6 +199,7 @@ for (const id of ids) {
   // The cards full: a whole session (downed, shard, ships) still fits them.
   const pg = await browser.newPage({ viewport: { width: 2560, height: 720 } });
   await pg.addInitScript(TEXT_CHECK);
+  await pg.addInitScript(lines => { window.xfdTestPastLogs = [{ name: 'Game Build 1.log', lines }]; }, pastLines);
   await pg.route(/fleetyards|fltyrd/, r => r.abort());
   await pg.goto(base);
   await pg.waitForSelector('body[data-ready]');
