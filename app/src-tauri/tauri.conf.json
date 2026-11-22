@@ -52,6 +52,8 @@
       "nsis": {
         "installMode": "currentUser",
         "displayLanguageSelector": false,
+        "headerImage": "installer/header.bmp",
+        "sidebarImage": "installer/sidebar.bmp",
         "installerHooks": "installer-hooks.nsh"
       }
     },
