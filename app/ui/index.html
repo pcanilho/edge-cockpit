@@ -27,7 +27,7 @@
   <section class="plate status" id="status">
     <div class="screen" id="mfd">
       <div class="brand"><b>EDGE</b> COCKPIT
-        <span class="link" id="link"><i></i><span id="channel">OFFLINE</span></span><span class="clock" id="clock">00:00</span></div>
+        <span class="link" id="link"><i></i><span id="channel">OFFLINE</span></span><span class="clock" id="clock">00:00</span><button class="help" id="help" aria-label="How the keys work">?</button></div>
       <div class="hero" id="hero"><svg class="rings" viewBox="0 0 260 260" aria-hidden="true">
         <circle cx="130" cy="130" r="124" stroke-dasharray="1 4"/><circle cx="130" cy="130" r="112" opacity=".4"/>
         <path d="M130 0v14M130 246v14M0 130h14M246 130h14"/></svg><div class="figure" id="figure"></div></div>
@@ -102,6 +102,7 @@
           <button class="act" id="act-wipe"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Wipe lock<small>Touches off for 15 s to clean the screen. Or hold the clock</small></span></button>
           <button class="act" id="act-sleep"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Screen off now<small>Touch the screen to wake it</small></span></button>
           <button class="act" id="act-setup"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Setup check<small>Touchscreen, game, control profile and admin rights</small></span></button>
+          <button class="act" id="act-legend"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">How the keys work<small>Hold ring, long press, macros, switches and covers. Or tap the ? on the status screen</small></span></button>
         </div>
       </section>
       <section class="pane" data-sec="screen" hidden>
@@ -197,6 +198,13 @@
       <small id="su-count">Setup</small><h3 id="su-title">Set up Edge Cockpit</h3>
       <div class="su-rows" id="su-rows"></div>
       <div class="su-foot"><p class="su-test" id="su-test"></p><div class="upd-btns"><button class="later" id="su-key">Test a key</button><button class="go" id="su-done">Done</button></div></div>
+    </div>
+  </div>
+  <div class="setup legend" id="legend" role="dialog" aria-labelledby="lgd-title" hidden>
+    <div class="su-card lgd-card">
+      <small>Controls</small><h3 id="lgd-title">How the keys work</h3>
+      <div class="lgd-rows" id="lgd-rows"></div>
+      <div class="su-foot"><p class="su-test">Open this again from the ? at the top of the status screen.</p><div class="upd-btns"><button class="go" id="lgd-done">Got it</button></div></div>
     </div>
   </div>
   <div class="upd-prompt" id="upd-prompt" role="dialog" aria-labelledby="upd-p-title" hidden>

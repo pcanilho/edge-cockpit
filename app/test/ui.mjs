@@ -485,6 +485,21 @@ if (shots) await page.screenshot({ path: join(shots, 'setup.png') });
 await page.click('#su-done');
 if (!(await page.evaluate(() => document.getElementById('setup').hidden))) problems.push('Done does not close the setup check');
 
+// The controls legend follows the first setup check: ten samples, nothing cut off, Got it closes it for good.
+const legend = await page.evaluate(() => ({ shown: !document.getElementById('legend').hidden, rows: document.querySelectorAll('#lgd-rows .lgd-row').length }));
+if (!legend.shown || legend.rows !== 10) problems.push(`controls legend after the setup check is wrong: ${JSON.stringify(legend)}`);
+await checkLabels('controls legend');
+if (shots) await page.screenshot({ path: join(shots, 'legend.png') });
+await page.click('#lgd-done');
+if (!(await page.evaluate(() => document.getElementById('legend').hidden))) problems.push('Got it does not close the controls legend');
+await page.evaluate(() => window.xfd.setup());
+await page.click('#su-done');
+if (!(await page.evaluate(() => document.getElementById('legend').hidden))) problems.push('the controls legend shows again after the setup check');
+// The ? on the status screen opens it again.
+await page.click('#help');
+if (await page.evaluate(() => document.getElementById('legend').hidden)) problems.push('the ? does not open the controls legend');
+await page.click('#lgd-done');
+
 // Patch watch: a session loaded long ago with no character or server line shows the chip.
 await page.evaluate(() => { window.xfd.feed(['<2020-01-01T10:00:00.000Z> <Context Establisher Done>'], false); window.xfd.feed(['nothing the console reads']); });
 if (await page.evaluate(() => document.getElementById('patch').hidden)) problems.push('patch watch chip did not show');
