@@ -16,6 +16,7 @@ import * as perf from './perf.js';
 import * as world from './world.js';
 import * as phone from './phone.js';
 import { keepAwake } from './awake.js';
+import * as haptics from './haptics.js';
 
 const $ = id => document.getElementById(id);
 // On a phone (link.js set this up), the console shows one plate at a time.
@@ -108,7 +109,9 @@ const themeMode = v => (v === false ? 'off' : v === 'off' || THEMED.has(v) ? v :
 const SHIP_PLATES = ['power', 'role', 'flight', 'gear'];
 const platesMode = v => (Array.isArray(v) && v.some(x => SHIP_PLATES.includes(x)) ? SHIP_PLATES.filter(x => v.includes(x)) : SHIP_PLATES);
 const nightMode = v => (v === true ? 'on' : ['on', 'auto'].includes(v) ? v : 'off');
-const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), anywhere: store.get('anywhere', false), stack: store.get('stack', true), large: store.get('large', false), plates: platesMode(store.get('plates', null)), size: store.get('size', 'fit') === 'actual' ? 'actual' : 'fit', makerTheme: themeMode(store.get('makerTheme', 'auto')) };
+const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), anywhere: store.get('anywhere', false), stack: store.get('stack', true), large: store.get('large', false), plates: platesMode(store.get('plates', null)), size: store.get('size', 'fit') === 'actual' ? 'actual' : 'fit', makerTheme: themeMode(store.get('makerTheme', 'auto')), vibrate: store.get('vibrate', true) };
+// Vibration is for paired phones and tablets only; the Edge has no motor.
+if (onPhone) haptics.enable(opts.vibrate);
 stage.classList.toggle('large', opts.large);
 
 // ---------- binds: the player's actionmaps.xml, then our Xeneon profile, then the defaults ----------
@@ -197,8 +200,7 @@ const keyText = spec => (spec || '').split('+').map(p => ({ ralt: 'RAlt', lalt: 
 // ---------- sound ----------
 let audio;
 function tick(kind) {
-  // A device that can buzz (Android) feels each press. iPhone browsers don't allow it.
-  if (onPhone && navigator.vibrate) navigator.vibrate({ critical: [30, 40, 30], error: 60, detent: 5 }[kind] ?? 12);
+  haptics.buzz(kind);
   if (!opts.sound) return;
   try {
     audio ||= new AudioContext();
@@ -819,6 +821,7 @@ function setOpt(name, v) {
   if (name === 'plates') render();
   if (name === 'plates' || name === 'size') paintScreenOpts();
   if (name === 'makerTheme') paintStatus();
+  if (name === 'vibrate' && onPhone) haptics.enable(v);
   paintNight();
   stage.classList.toggle('large', !!opts.large);
   document.querySelectorAll('.opt[data-opt]').forEach(o => o.classList.toggle('on', !!opts[o.dataset.opt]));
@@ -859,7 +862,7 @@ function showSection(sec) {
   if (sec === 'phones') paintPhones();
 }
 function openSheet(open, sec) {
-  if (onPhone) { if (open) phone.openSettings({ set: (plate, mode) => bridge.phoneSet(plate, mode), opts, setOpt }); return; }
+  if (onPhone) { if (open) phone.openSettings({ set: (plate, mode) => bridge.phoneSet(plate, mode), opts, setOpt, vibrates: !!haptics.can }); return; }
   if (sec) showSection(sec); $('sheet').hidden = !open; paintSoftkeys();
 }
 document.querySelectorAll('.tab[data-sec]').forEach(t => {

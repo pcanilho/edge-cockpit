@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Devices: Vibration On/Off in the device's settings, next to Sound. Android buzzes on every press, as before, and can now be turned off. iPhone (iOS 17.4 and later) gets one light tick per press. The Edge is unchanged.
+
 ## 0.9.1
 
 - Installer in the cockpit look: Edge Cockpit art on the welcome and finish pages and in the header, with dark welcome, finish and header areas.

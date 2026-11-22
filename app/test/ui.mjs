@@ -519,6 +519,41 @@ for (const [W, H, tag] of [[393, 852, 'portrait'], [852, 393, 'landscape']]) {
   await ctx.close();
 }
 report.push(`phone views checked: ${phoneViews}, smallest ${Math.round(phoneLow * 100)} %`);
+// Vibration. Android: a buzz per press, and Off stops it. iPhone: a control gets its invisible
+// switch label on its first press and the press still sends its key. The Edge gets neither.
+for (const kind of ['android', 'iphone']) {
+  const ua = kind === 'iphone' ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1' : undefined;
+  const ctx = await browser.newContext({ viewport: { width: 393, height: 852 }, hasTouch: true, isMobile: true, userAgent: ua });
+  const ph = await ctx.newPage();
+  ph.on('pageerror', e => errors.push(`vibration ${kind}: ${e.message}`));
+  await ph.addInitScript(kind => {
+    window.__buzz = [];
+    if (kind === 'iphone') { delete Navigator.prototype.vibrate; Object.defineProperty(HTMLInputElement.prototype, 'switch', { configurable: true, get() { return this.hasAttribute('switch'); } }); }
+    else Navigator.prototype.vibrate = p => { window.__buzz.push(p); return true; };
+  }, kind);
+  await ph.route(/fleetyards|fltyrd/, r => r.abort());
+  await ph.goto(base + '?phone&demo=ship');
+  await ph.waitForSelector('body[data-ready]');
+  await ph.evaluate(() => { window.xfd.show('flight'); [...document.querySelectorAll('#ph-rail button')].find(b => b.textContent === 'Power')?.click(); });
+  const key = (await ph.evaluateHandle(() => [...document.querySelectorAll('#console .well.key')].find(w => { const b = w.getBoundingClientRect(); return !w.querySelector('button') && b.width > 30 && w.contains(document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2)); }))).asElement();
+  const press = async () => { const b = await key.boundingBox(); await ph.touchscreen.tap(b.x + b.width / 2, b.y + b.height / 2); await ph.waitForTimeout(80); };
+  await ph.evaluate(() => { window.__keys = []; });
+  await press(); await press();
+  const r = await ph.evaluate(k => ({ keys: window.__keys.length, buzz: window.__buzz.length, labels: k.querySelectorAll(':scope > label.hx').length, on: document.body.classList.contains('hx-on') }), key);
+  if (!r.keys) problems.push(`vibration ${kind}: pressing a key sent nothing (${JSON.stringify(r)})`);
+  if (kind === 'android' && (r.buzz < 2 || r.labels)) problems.push(`vibration android: ${JSON.stringify(r)}`);
+  if (kind === 'iphone' && (r.labels !== 1 || !r.on)) problems.push(`vibration iphone: ${JSON.stringify(r)}`);
+  // This device's settings: Sound and Vibration, and Off stops it.
+  await ph.evaluate(() => document.getElementById('ph-gear').click());
+  const row = await ph.evaluate(() => !!document.querySelector('.ph-sheet .seg[data-seg=vibrate]'));
+  if (!row) problems.push(`vibration ${kind}: no Vibration switch in the device's settings`);
+  await ph.evaluate(() => { document.querySelector('.ph-sheet .seg[data-seg=vibrate] button[data-v=off]')?.click(); document.querySelector('.ph-sheet').hidden = true; window.__buzz = []; });
+  await press();
+  const off = await ph.evaluate(() => ({ buzz: window.__buzz.length, on: document.body.classList.contains('hx-on') }));
+  if (off.buzz || off.on) problems.push(`vibration ${kind}: still on after Off (${JSON.stringify(off)})`);
+  await ctx.close();
+}
+if (await page.evaluate(() => document.querySelectorAll('label.hx').length || document.body.classList.contains('hx-on'))) problems.push('the Edge got vibration labels');
 // Another computer or a tablet across: the whole console, not one plate at a time.
 for (const [W, H] of [[1920, 1080], [1180, 820]]) {
   const ctx = await browser.newContext({ viewport: { width: W, height: H } });
