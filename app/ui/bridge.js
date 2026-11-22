@@ -26,6 +26,8 @@ export async function wheel(clicks, anywhere) {
 export const releaseKeys = () => tauri?.core.invoke('release_keys');
 const demoOn = !!new URLSearchParams(location.search).get('demo');
 export const gameInfo = () => tauri ? tauri.core.invoke('game_info') : Promise.resolve({ channel: demoOn ? 'LIVE' : null, elevated: false, focused: demoOn, running: demoOn, log: demoOn, game_elevated: null });
+// The game's log backups (last 30 days), filtered to the lines the console reads.
+export const pastLogs = () => tauri ? tauri.core.invoke('past_logs') : Promise.resolve(window.xfdTestPastLogs ?? []);
 export const userShips = () => tauri ? tauri.core.invoke('user_ships') : Promise.resolve(null);
 // Outside the app (UI tests, mocks) a page may supply its own actionmaps.xml.
 export const readBinds = () => tauri ? tauri.core.invoke('read_binds') : Promise.resolve(window.xfdTestBinds ?? null);

@@ -523,6 +523,24 @@ export function tally(t, a, b, ts) {
   return n;
 }
 
+/** The sessions in a whole log: one tally per time you joined the game, each with a start. */
+export function sessionsOf(lines) {
+  let state = { ...EMPTY }, t = { ...NEW_TALLY };
+  const out = [];
+  const done = () => { if (t.start && t.end) out.push(t); };
+  for (const line of lines) {
+    const ev = parseLine(line);
+    const was = state;
+    if (ev) state = reduce(state, ev);
+    const next = tally(t, was, state, stamp(line));
+    // A new tally starts each time you leave the menu: keep the one before it.
+    if (next !== t && next.start !== t.start && t.start) done();
+    t = next;
+  }
+  done();
+  return out;
+}
+
 /** Minutes between the tally's first and last log line. */
 export const minutes = t => (t.start && t.end ? Math.max(0, Math.round((Date.parse(t.end) - Date.parse(t.start)) / 60000)) : 0);
 

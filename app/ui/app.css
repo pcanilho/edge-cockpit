@@ -606,14 +606,31 @@ body.is-dark #stage { visibility: hidden; }
 .qt.arrived svg { color: var(--ok); }
 
 /* Log page: four cards and the session timeline. */
-.logp .card { padding: 26px 30px; }
-.logp .card small, .logp .list small { display: block; position: static; font: 700 11px/1.4 var(--hud); letter-spacing: .2em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+.logp .card { padding: 20px 26px; }
+.logp .past { padding: 20px 26px; overflow: hidden; }
+.logp .past small { display: inline-block; position: static; font: 700 11px/1.4 var(--hud); letter-spacing: .2em; text-transform: uppercase; color: var(--accent); }
+.logp .past .note { position: absolute; right: 26px; top: 20px; font: 500 12px/1.4 var(--body); color: var(--muted); }
+.logp .past table { position: static; width: 100%; margin-top: 10px; border-collapse: collapse; font: 500 15px/1 var(--body); color: var(--ink); table-layout: fixed; }
+.logp .past th { padding: 8px 0; text-align: left; font: 700 10px/1 var(--hud); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.logp .past td { padding: 11px 8px 11px 0; border-top: 1px solid #ffffff10; white-space: nowrap; overflow: hidden; }
+.logp .past td:first-child { color: var(--paint); }
+.logp .past th:nth-child(1) { width: 22%; } .logp .past th:nth-child(2) { width: 13%; } .logp .past th:nth-child(3), .logp .past th:nth-child(4) { width: 10%; } .logp .past th:nth-child(5) { width: 12%; }
+.logp .past td.empty { border: 0; color: var(--muted); white-space: normal; }
+/* A phone's narrow view keeps when, how long and which ships. */
+.logp .past { container-type: inline-size; }
+@container (max-width: 760px) {
+  .logp .past th:nth-child(n+3):nth-child(-n+5), .logp .past td:nth-child(n+3):nth-child(-n+5):not(.empty) { display: none; }
+  .logp .past th:nth-child(1) { width: 42%; } .logp .past th:nth-child(2) { width: 24%; }
+  .logp .past .note { display: none; }
+}
+.logp .card small, .logp .list small { display: block; position: static; font: 700 11px/1.4 var(--hud); letter-spacing: .2em; text-transform: uppercase; color: var(--accent); margin-bottom: 8px; }
 .logp .list small { color: var(--muted); margin-bottom: 8px; }
-.logp .card b { display: block; position: static; font: 600 26px/1.25 var(--body); color: var(--paint); }
-.logp .card p { position: static; margin-top: 10px; font: 500 16px/1.45 var(--body); color: var(--muted); }
+.logp .card b { display: block; position: static; font: 600 22px/1.25 var(--body); color: var(--paint); }
+.logp .card p { position: static; margin-top: 6px; font: 500 14px/1.35 var(--body); color: var(--muted); }
 .logp .card p:empty { display: none; }
 .logp .card p em { font-style: normal; color: var(--paint); }
-.logp .card .t { position: absolute; right: 26px; top: 24px; font: 600 13px/1 var(--hud); color: var(--dim); letter-spacing: .08em; }
+.logp .card > small { display: inline-block; }
+.logp .card .t { position: absolute; right: 26px; top: 21px; font: 600 13px/1 var(--hud); color: var(--dim); letter-spacing: .08em; }
 .logp .card.none b { display: none; }
 .logp .list { padding: 22px 28px; overflow: hidden; }
 .logp .list ol { position: static; list-style: none; margin: 0; padding: 0; }
@@ -1122,6 +1139,10 @@ body.phone .cm-head, body.phone .cm-foot { container-type: inline-size; }
 .ed-row em.amber, .pick small.amber { font: 500 11px/1.2 var(--body); font-style: normal; color: var(--hold); letter-spacing: 0; text-transform: none; }
 .ed-row button.link, .ed-acts button, .ed-chips button { padding: 10px 12px; border-radius: 7px; background: #232a32; font: 700 11px/1 var(--hud); letter-spacing: .12em; text-transform: uppercase; color: var(--cyan); }
 .ed-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ed-row > span.ed-chips { flex-direction: row; }
+.ed-row.step { min-height: 40px; margin-bottom: 4px; padding: 4px 10px; }
+.ed-row.step > span { flex-direction: row; align-items: baseline; gap: 10px; }
+.ed-row.step button.link { padding: 8px 10px; }
 .ed-chips button { color: var(--paint); }
 .ed-chips button.cur { background: var(--cyan); color: #031016; }
 .ed-chips button:disabled { opacity: .35; }

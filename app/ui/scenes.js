@@ -246,8 +246,9 @@ function logPage() {
   const stats = [['lg-time', 'Played'], ['lg-kills', 'Injuries'], ['lg-deaths', 'Downed'], ['lg-missions', 'Missions'], ['lg-ships-n', 'Ships flown']]
     .map(([id, l]) => `<div><b id="${id}">0</b><small>${esc(l)}</small></div>`).join('');
   return [add(p,
-    card('lg-down', 24, 46, 520, 300, 'Last downed'), card('lg-where', 556, 46, 520, 300, 'Where'),
-    card('lg-ref', 24, 358, 520, 322, 'Refinery'), card('lg-ships', 556, 358, 520, 322, 'Ships')),
+    card('lg-down', 24, 46, 520, 150, 'Last downed'), card('lg-where', 556, 46, 520, 150, 'Where'),
+    card('lg-ref', 24, 204, 520, 150, 'Refinery'), card('lg-ships', 556, 204, 520, 150, 'Ships'),
+    screen(24, 362, 1052, 318, '<small>Past sessions</small><span class="note" id="lg-past-note"></span><table id="lg-past"></table>', 'past')),
   add(list, screen(24, 46, 1018, 96, stats, 'stats'), screen(24, 154, 1018, 526, '<ol id="lg-list"></ol>', 'list'))];
 }
 
@@ -431,6 +432,14 @@ export function item(it) {
   if (unset(it)) return blank(x, y, it.t === 'switch' ? 84 : w, it.t === 'switch' ? 196 : ht, 0, 'Pick a key');
   switch (it.t) {
     case 'key': return keycap(x, y, w, ht, it.key, { label: it.label || undefined, fs: w < 100 ? 11 : 13 });
+    case 'seq': {
+      // A macro of your own: each step's key in turn, the gap between them. On / off steps
+      // carry their state, so switches on the console follow what the sequence set.
+      const keys = (it.steps || []).map(st => K.key(st.key)).filter(Boolean);
+      const steps = keys.flatMap((k, i) => (i ? [{ delay: it.gap || 250 }, { key: k }] : [{ key: k }]));
+      const k = { label: it.label || 'Sequence', role: 'macro', press: 'tap', activation: '', icon: 'ready', steps };
+      return keycap(x, y, w, ht, k, { fitted: true, kb: false, fs: w < 100 ? 11 : 13, sub: ht >= 96 ? `${keys.length} steps` : '' });
+    }
     case 'round': return roundButton(x, y, Math.min(w, ht), it.key, { label: it.label || undefined });
     case 'rocker': return rocker(x, y, w, ht, it.a, it.b, { vertical: ht >= w });
     case 'switch': return onOff(x, y, it.key, { label: it.label || undefined, w: 84 });

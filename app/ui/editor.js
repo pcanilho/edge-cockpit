@@ -3,7 +3,7 @@
 // move, drag its corner to resize. Every change autosaves as a draft and can be undone; Done
 // saves the page. Keys are picked with the same picker as everywhere, which refuses what the
 // rules don't allow (a switch without set-on/set-off binds, an eject key without a cover).
-import { TYPES, GRID, WIDTHS, PLATE_H, SPACE, GAP, FIELDS, cleanPage, refuse, unset } from './lib/custom.js';
+import { TYPES, GRID, WIDTHS, PLATE_H, SPACE, GAP, FIELDS, cleanPage, refuse, unset, MAX_STEPS, GAPS } from './lib/custom.js';
 import { esc, h } from './controls.js';
 import { previewPlate } from './phone.js';
 
@@ -36,9 +36,10 @@ const G = {
   label: '<path d="M5 12h14"/>',
   placard: '<rect x="4" y="9" width="16" height="6" rx="1"/>',
   plate: '<rect x="4" y="4" width="16" height="16" rx="2" stroke-dasharray="3 2"/>',
+  seq: '<path d="M4 7h7M4 12h10M4 17h13"/><path d="M17 5l3 2-3 2"/>',
 };
 const PALETTE = [
-  ['Keys', [['key', 'Keycap', 'key', 96, 96], ['key', 'Wide key', 'wide', 192, 96], ['rocker', 'Rocker', 'rocker', 192, 96], ['round', 'Round button', 'round', 112, 112]]],
+  ['Keys', [['key', 'Keycap', 'key', 96, 96], ['key', 'Wide key', 'wide', 192, 96], ['rocker', 'Rocker', 'rocker', 192, 96], ['round', 'Round button', 'round', 112, 112], ['seq', 'Sequence', 'seq', 192, 112]]],
   ['Switches', [['switch', 'On / off switch', 'switch', 84, 196], ['onoffkey', 'On / off key', 'onoffkey', 160, 96], ['rotary', 'Rotary', 'rotary', 192, 192]]],
   ['Steps & safety', [['slider', 'Slider', 'slider', 112, 320], ['guard', 'Guarded cover', 'guard', 192, 96], ['slide', 'Slide to confirm', 'slide', 272, 96]]],
   ['Displays', [['screen', 'Status screen', 'screen', 272, 112], ['label', 'Label', 'label', 128, 32], ['placard', 'Placard', 'placard', 128, 32], ['plate', 'Blank plate', 'plate', 450, 0]]],
@@ -473,6 +474,13 @@ function card(el) {
       pos.forEach((q, i) => keyRow(`pos${i}`, `Position ${i + 1}`, q.key));
       if (pos.length < 4) rows.push(`<div class="ed-row">${btn('addpos', 'Add a position', 'link')}</div>`);
     }
+    if (t.takes === 'steps') {
+      const steps = it.steps || [];
+      steps.forEach((st, i) => { keyRow(`step${i}`, `Step ${i + 1}`, st.key); rows[rows.length - 1] = rows.at(-1).replace('class="ed-row', 'class="ed-row step'); });
+      rows.push(`<div class="ed-row">${steps.length < MAX_STEPS ? btn('addstep', 'Add a step', 'link') : ''}${steps.length ? btn('dropstep', 'Remove the last', 'link') : ''}</div>`);
+      rows.push(`<div class="ed-row col"><small>Between steps</small><span class="ed-chips">${GAPS.map(g => `<button data-a="gap:${n(g)}" class="${(it.gap || GAPS[0]) === g ? 'cur' : ''}">${g < 1000 ? `${n(g)} ms` : `${n(g / 1000)} s`}</button>`).join('')}</span></div>`);
+      rows.push(`<div class="ed-row"><span><small>Label</small><b>${esc(it.label || 'Sequence')}</b></span>${btn('label', 'Edit', 'link')}</div>`);
+    }
     if (t.takes === 'text') rows.push(`<div class="ed-row"><span><small>Text</small><b>${esc(it.text || '')}</b></span>${btn('text', 'Edit', 'link')}</div>`);
     if (t.takes === 'field') rows.push(`<div class="ed-row col"><small>Shows</small><span class="ed-chips">${Object.entries(FIELDS).map(([f, name]) => `<button data-a="field:${esc(f)}" class="${it.field === f ? 'cur' : ''}">${esc(name)}</button>`).join('')}</span></div>`);
     if (['tap', 'set', 'danger'].includes(t.takes) && it.key) rows.push(`<div class="ed-row"><span><small>Label</small><b>${esc(it.label || `${it.key} (the key's own)`)}</b></span>${it.label ? btn('unlabel', 'Reset', 'link') : ''}${btn('label', 'Edit', 'link')}</div>`);
@@ -516,10 +524,13 @@ function cardTap(e) {
   ctx.tick('tap');
   const p = sel.p;
   if (a.startsWith('pick:')) return pick(a.slice(5));
+  if (a === 'addstep') { commit(sp => { (sp.plates[p].add[sel.add].steps ||= []).push({ key: '' }); }); return pick(`step${(item().steps || []).length - 1}`); }
+  if (a === 'dropstep') return commit(sp => { sp.plates[p].add[sel.add].steps?.pop(); });
+  if (a.startsWith('gap:')) return commit(sp => { sp.plates[p].add[sel.add].gap = +a.slice(4); });
   if (a === 'addpos') return commit(sp => { (sp.plates[p].add[sel.add].positions ||= []).push({ label: '', key: '' }); });
   if (a.startsWith('field:')) return commit(sp => { sp.plates[p].add[sel.add].field = a.slice(6); });
   if (a === 'text') return type('Text', item().text, 24, v => commit(sp => { sp.plates[p].add[sel.add].text = v; }));
-  if (a === 'label') return type('Label', item().label || item().key, 24, v => commit(sp => { sp.plates[p].add[sel.add].label = v === item().key ? '' : v; }));
+  if (a === 'label') return type('Label', item().label || item().key || (item().t === 'seq' ? 'Sequence' : ''), 24, v => commit(sp => { sp.plates[p].add[sel.add].label = v === item().key ? '' : v; }));
   if (a === 'unlabel') return commit(sp => { sp.plates[p].add[sel.add].label = ''; });
   if (a === 'dup') {
     const it = item();
@@ -547,18 +558,25 @@ function pick(slot = 'key') {
   const it = item();
   if (!it) return;
   const t = TYPES[it.t];
+  // A new sequence: its first empty step, then the next until it has two.
+  if (t.takes === 'steps' && slot === 'key') {
+    const i = (it.steps || []).findIndex(st => !st.key);
+    slot = `step${i >= 0 ? i : (it.steps || []).length}`;
+  }
   const pos = slot.startsWith('pos') ? +slot.slice(3) : -1;
-  const now = pos >= 0 ? it.positions[pos]?.key : it[slot];
+  const step = slot.startsWith('step') ? +slot.slice(4) : -1;
+  const now = pos >= 0 ? it.positions[pos]?.key : step >= 0 ? it.steps?.[step]?.key : it[slot];
   const { p, add } = sel;
   ctx.openPicker({
-    title: `${t.name}: ${t.takes === 'set' ? 'what it switches' : t.takes === 'pair' ? (slot === 'a' ? 'first key' : 'second key') : 'its key'}`,
+    title: `${t.name}: ${t.takes === 'set' ? 'what it switches' : t.takes === 'pair' ? (slot === 'a' ? 'first key' : 'second key') : step >= 0 ? `step ${step + 1}` : 'its key'}`,
     now, base: t.takes === 'set',
     refuse: label => refuse(it.t, label, ctx.keys),
-    onPick: label => commit(sp => {
+    onPick: label => { commit(sp => {
       const x = sp.plates[p].add[add];
       if (pos >= 0) x.positions[pos] = { label: x.positions[pos].label || '', key: label };
+      else if (step >= 0) (x.steps ||= [])[step] = { key: label };
       else x[slot] = label;
-    }),
+    }); if (step >= 0 && unset(item())) setTimeout(() => pick(), 0); },
   });
 }
 

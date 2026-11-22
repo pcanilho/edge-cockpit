@@ -1,7 +1,7 @@
 // Your own pages: the format and the rules every control keeps.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanPage, cleanItem, refuse, switchable, isDanger, duplicate, blank, lefts, pageForShip, WIDTHS, SPACE, GRID } from '../ui/lib/custom.js';
+import { cleanPage, cleanItem, refuse, refuseItem, unset, switchable, isDanger, duplicate, blank, lefts, pageForShip, WIDTHS, SPACE, GRID } from '../ui/lib/custom.js';
 
 const K = (label, o = {}) => [label, { label, action: o.action || label.toLowerCase().replace(/ /g, '_'), ...o }];
 const keys = new Map([K('Lights on'), K('Lights off'), K('Lights'), K('Ping'), K('Shields'), K('Eject', { action: 'v_eject', role: 'critical' }),
@@ -83,4 +83,26 @@ test('a control without its key is unset; a page keeps Fit or Actual size', asyn
   const p = { id: 'my-abcd', plates: [{ w: 450 }] };
   assert.equal(cleanPage({ ...p, size: 'actual' }).size, 'actual');
   assert.equal(cleanPage({ ...p, size: 'huge' }).size, null);
+});
+
+test('a sequence takes taps and set-on / set-off keys, never a toggle with a set pair, danger, hold or another sequence', () => {
+  const ks = new Map([...keys, K('Startup', { role: 'macro', steps: [] })]);
+  assert.equal(refuse('seq', 'Lights on', ks), '');
+  assert.equal(refuse('seq', 'Ping', ks), '');
+  assert.equal(refuse('seq', 'Decoy', ks), '');
+  assert.match(refuse('seq', 'Lights', ks), /Lights on or Lights off/);
+  assert.match(refuse('seq', 'Eject', ks), /guarded cover/);
+  assert.match(refuse('seq', 'Space brake', ks), /Hold keys/);
+  assert.match(refuse('seq', 'Startup', ks), /another sequence/);
+});
+
+test('a sequence keeps six steps at most, a known gap, and needs two steps', () => {
+  const it = cleanItem({ t: 'seq', x: 32, y: 48, w: 192, h: 112, steps: Array.from({ length: 10 }, () => ({ key: 'Ping' })), gap: 7 }, 818);
+  assert.equal(it.steps.length, 6);
+  assert.equal(it.gap, 250);
+  assert.equal(cleanItem({ t: 'seq', steps: [], gap: 3000 }, 818).gap, 3000);
+  assert.ok(unset({ t: 'seq', steps: [{ key: 'Ping' }] }));
+  assert.ok(!unset({ t: 'seq', steps: [{ key: 'Ping' }, { key: 'Lights on' }] }));
+  assert.match(refuseItem({ t: 'seq', steps: [{ key: 'Ping' }] }, keys), /two steps/);
+  assert.equal(refuseItem({ t: 'seq', steps: [{ key: 'Ping' }, { key: 'Lights off' }] }, keys), '');
 });

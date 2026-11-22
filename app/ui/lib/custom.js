@@ -16,6 +16,7 @@ export const GAP = 6;
 /** The controls you can place, their smallest size, and what they take. */
 export const TYPES = {
   key: { name: 'Keycap', min: [56, 56], takes: 'tap' },
+  seq: { name: 'Sequence', min: [96, 80], takes: 'steps' },
   rocker: { name: 'Rocker', min: [56, 72], takes: 'pair' },
   round: { name: 'Round button', min: [80, 80], takes: 'tap' },
   switch: { name: 'On / off switch', min: [84, 196], fixed: true, takes: 'set' },
@@ -40,11 +41,28 @@ const DANGER = /eject|self_destruct|selfdestruct|jettison|emergency|panic/i;
 export const isDanger = k => !!k && (k.role === 'critical' || DANGER.test(k.action || '') || DANGER.test(k.label || ''));
 const tap = k => !!k && !k.more && k.role !== 'hold';
 
+/** A sequence: at most this many steps, with one of these gaps between them (ms). */
+export const MAX_STEPS = 6;
+export const GAPS = [250, 1000, 3000];
+
+/** Why a key can't be a step of a sequence, or '' when it can. */
+function refuseStep(key, keys) {
+  const k = keys.get(key);
+  if (!k) return 'Not a known key';
+  if (k.role === 'macro' || k.steps) return 'A sequence can\'t run another sequence';
+  if (isDanger(k)) return 'Keys that end a flight or dump cargo need their own guarded cover';
+  if (k.role === 'hold') return 'Hold keys can\'t be a step';
+  // A toggle with set-on / set-off binds: the step must say which, so switches know the state.
+  if (keys.has(`${key} on`) && keys.has(`${key} off`)) return `Pick ${key} on or ${key} off, so switches show the state the sequence set`;
+  return '';
+}
+
 /** Why a key can't go on this control, or '' when it can. `keys` is the label -> key map. */
 export function refuse(type, key, keys) {
   const t = TYPES[type];
   if (!t) return 'Unknown control';
   if (t.takes === 'text' || t.takes === 'field') return '';
+  if (t.takes === 'steps') return refuseStep(key, keys);
   if (t.takes === 'set') {
     const on = keys.get(`${key} on`), off = keys.get(`${key} off`);
     return on && off ? '' : 'No set-on / set-off bind, so a switch could show the wrong state. Use a keycap';
@@ -67,6 +85,10 @@ export function refuseItem(it, keys) {
     const pos = (it.positions || []).filter(p => p.key);
     return pos.length < 2 ? 'Needs two positions or more' : pos.map(p => refuse(it.t, p.key, keys)).find(Boolean) || '';
   }
+  if (t.takes === 'steps') {
+    const steps = (it.steps || []).filter(st => st.key);
+    return steps.length < 2 ? 'Needs two steps or more' : steps.map(st => refuse(it.t, st.key, keys)).find(Boolean) || '';
+  }
   return refuse(it.t, it.key, keys);
 }
 
@@ -76,6 +98,7 @@ export function unset(it) {
   if (!t || t.takes === 'text' || t.takes === 'field') return false;
   if (t.takes === 'pair') return !it.a || !it.b;
   if (t.takes === 'positions') return (it.positions || []).filter(p => p.key).length < 2;
+  if (t.takes === 'steps') return (it.steps || []).filter(st => st.key).length < 2;
   return !it.key;
 }
 
@@ -106,6 +129,8 @@ export function cleanItem(it, plateW) {
   const out = { t: it.t, x, y, w, h };
   for (const k of ['key', 'a', 'b', 'label', 'text', 'field']) if (it[k] !== undefined) out[k] = str(it[k]);
   if (Array.isArray(it.positions)) out.positions = it.positions.slice(0, 4).map(p => ({ label: str(p?.label, 12), key: str(p?.key) }));
+  if (Array.isArray(it.steps)) out.steps = it.steps.slice(0, MAX_STEPS).map(st => ({ key: str(st?.key) }));
+  if (t.takes === 'steps') out.gap = GAPS.includes(+it.gap) ? +it.gap : GAPS[0];
   return out;
 }
 
