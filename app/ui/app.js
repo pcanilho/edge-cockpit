@@ -17,6 +17,7 @@ import * as world from './world.js';
 import * as phone from './phone.js';
 import { keepAwake } from './awake.js';
 import * as haptics from './haptics.js';
+import { reportText, issueBody } from './lib/report.js';
 
 const $ = id => document.getElementById(id);
 // On a phone (link.js set this up), the console shows one plate at a time.
@@ -1031,8 +1032,29 @@ bridge.onBinds(async () => {
   const lost = after.missing.length + after.stick.length - before.missing.length - before.stick.length;
   toast(lost > 0 ? `Binds changed in game: ${lost} console ${lost === 1 ? 'key has' : 'keys have'} no keyboard bind now` : lost < 0 ? `Binds changed in game: ${-lost} more console ${lost === -1 ? 'key works' : 'keys work'}` : 'Binds changed in game');
 });
+// ---------- report a problem: a report file and a bug form filled in; nothing is sent ----------
+async function reportData() {
+  const [sys, shown] = await Promise.all([bridge.reportInfo().catch(() => ({})), bridge.displays().catch(() => ({ list: [] }))]);
+  const h = bindHealth();
+  return {
+    at: new Date().toISOString(), version: prefs.version, os: sys.os, webview: sys.webview,
+    screens: (shown.list || []).map(d => ({ ...d, current: d.id === shown.current })),
+    game: { channel: info.channel, build: game.build?.branch ? version(game.build.branch) : null, changelist: game.build?.changelist, running: info.running },
+    binds: { total: h.total, missing: h.missing.length, stick: h.stick.length, shared: h.shared.length, copies: backups?.copies?.length ?? 0, lost: !!backups?.lost },
+    page: current, ship: game.ship || null, settings: opts, missing: $('patch').hidden ? null : $('patch').dataset.miss,
+    lines: recent, me: game.me?.name,
+  };
+}
+async function reportProblem(title = 'Bug: ') {
+  const d = await reportData();
+  let path = null;
+  try { path = await bridge.saveReport(reportText(d)); }
+  catch (err) { toast(`No report file: ${err?.message || err}. The bug form opens anyway.`); }
+  const opened = await bridge.reportIssue(title, issueBody(d, path));
+  toast(opened === false ? 'Could not open the browser. The report is in Documents\\Edge Cockpit\\report.txt' : 'Report saved. Drag report.txt into the bug form.');
+}
 const acts = { 'act-binds': [() => reloadBinds().then(() => toast('Binds reloaded')), 'reload'], 'act-install': [installBinds, 'layers'],
-  'act-restore': [restoreBinds, 'back'], 'act-keep': [keepBinds, 'x'],
+  'act-restore': [restoreBinds, 'back'], 'act-keep': [keepBinds, 'x'], 'act-report': [() => reportProblem(), 'chat'],
   'act-admin': [bridge.runAsAdmin, 'shield'], 'act-sleep': [() => { openSheet(false); bridge.sleepScreen(); }, 'moon'],
   'act-refit': [refit, 'reload'], 'act-update': [installUpdate, 'download'], 'act-touch': [() => bridge.fixTouch().then(ok => ok || toast('Windows did not open its touchscreen setup. Open Tablet PC Settings, then Setup.')), 'hand'], 'act-save': [saveProfile, 'download'], 'act-load': [loadProfile, 'reload'], 'act-quit': [bridge.quit, 'power'], 'act-setup': [() => { openSheet(false); showSetup(); }, 'hand'], 'act-wipe': [() => { openSheet(false); wipe(true); }, 'wiper'] };
 for (const [id, [run, icon]] of Object.entries(acts)) {
@@ -1619,12 +1641,15 @@ for (const [id, clear] of [['injury', { injuries: [] }], ['fuel', { lowFuel: fal
 controls.pressable($('patch'), { up: () => {
   tick('tap');
   const what = $('patch').dataset.miss, build = game.build?.branch ? version(game.build.branch) : 'this build';
-  toast(`Game.log on ${build} shows nothing for ${what}. A patch may have changed it.`, { label: 'Report', run: () => bridge.reportIssue(
-    `Patch watch: no log line for ${what} on ${build}`,
-    `Edge Cockpit ${prefs.version} found no Game.log line for: ${what}.\nGame build: ${game.build?.branch || '?'} (changelist ${game.build?.changelist || '?'}).`) });
+  toast(`Game.log on ${build} shows nothing for ${what}. A patch may have changed it.`, { label: 'Report', run: () => reportProblem(`Patch watch: no log line for ${what} on ${build}`) });
 } });
 
+// The last Game.log lines the console read, for Report a problem.
+const RECENT_MAX = 300;
+let recent = [];
 function onLog({ lines, live, reset }) {
+  if (reset) recent = [];
+  recent = recent.concat(lines).slice(-RECENT_MAX);
   // A new Game.log means a new channel or a restart: its binds may differ too.
   if (reset) { past = null; placeSeen = { at: 0, moved: false }; game = { ...EMPTY }; session = { ...NEW_TALLY }; lastSeq = 0; logRows = []; watch = newWatch(); if (bridge.inApp) { reloadBinds(); loadUserShips(); } }
   for (const line of lines) {
@@ -1971,5 +1996,5 @@ window.xfd = {
     return CUSTOM.get(spec.id) || null;
   },
   deletePage: id => { putPage(id, null); pageGone(id); },
-  show, raise, setup: showSetup, feed: (lines, live = true) => onLog({ lines, live }), recap: t => { session = { ...NEW_TALLY, ...t }; showRecap(); }, perf: perf.toggle, showSection, bindHealth, bindsProfile, backupProfile, paintBackups, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
+  show, raise, setup: showSetup, feed: (lines, live = true) => onLog({ lines, live }), recap: t => { session = { ...NEW_TALLY, ...t }; showRecap(); }, perf: perf.toggle, showSection, bindHealth, bindsProfile, reportProblem, backupProfile, paintBackups, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
 document.body.dataset.ready = '1';

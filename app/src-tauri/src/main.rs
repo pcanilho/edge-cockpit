@@ -290,6 +290,43 @@ fn url_part(s: &str, max: usize) -> String {
         .collect()
 }
 
+/// What a bug report says about the PC: Windows and WebView2 versions.
+#[derive(Serialize)]
+struct ReportInfo {
+    os: String,
+    webview: String,
+}
+
+#[tauri::command]
+fn report_info() -> ReportInfo {
+    #[cfg(windows)]
+    let os = win::windows_version();
+    #[cfg(not(windows))]
+    let os = std::env::consts::OS.to_string();
+    ReportInfo { os, webview: tauri::webview_version().unwrap_or_default() }
+}
+
+/// Largest report written: a few hundred log lines and the details.
+const REPORT_MAX: usize = 512 * 1024;
+
+/// Saves a bug report as Documents\Edge Cockpit\report.txt and shows it in Explorer, to
+/// attach to the issue. Returns the path.
+#[tauri::command]
+fn save_report(handle: AppHandle, text: String) -> Result<String, String> {
+    if text.len() > REPORT_MAX {
+        return Err("The report is too big".into());
+    }
+    let dir = user_dir(&handle).ok_or("No Documents folder")?;
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let path = dir.join("report.txt");
+    std::fs::write(&path, text).map_err(|e| e.to_string())?;
+    #[cfg(windows)]
+    {
+        let _ = std::process::Command::new("explorer.exe").arg(format!("/select,{}", path.display())).spawn();
+    }
+    Ok(path.to_string_lossy().into_owned())
+}
+
 /// Opens a new issue on the app's GitHub page in the browser, title and body filled in.
 /// Only this one address: the page can't open anything else.
 #[tauri::command]
@@ -1298,7 +1335,7 @@ fn main() {
             key, wheel, ui_ready, user_ships, past_logs, release_keys, game_info, read_binds, install_binds, run_as_admin, quit,
             save_profile, load_profile, save_user_ships, install_profile_binds, binds_backups, read_binds_backup, dismiss_binds_loss, save_page, page_files,
             get_prefs, set_pref, wake_screen, sleep_screen, check_update, install_update, perf,
-            displays, set_display, fix_touch, refit, identify_screens, night_backlight, report_issue, world_prices, world_status,
+            displays, set_display, fix_touch, refit, identify_screens, night_backlight, report_issue, report_info, save_report, world_prices, world_status,
             phones_view, phones_enable, phones_set, phones_forget, share
         ])
         .setup(|app| {

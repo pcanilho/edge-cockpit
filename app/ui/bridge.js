@@ -71,6 +71,9 @@ export const onAutostart = f => tauri?.event.listen('autostart', e => f(e.payloa
 /** onScreen(dark) when the screen goes off or wakes. */
 export const onScreen = f => tauri?.event.listen('screen', e => f(e.payload));
 /** Opens a new GitHub issue for the app in the browser, with a title and body filled in. */
+// Windows and WebView2 versions, and the report file (Documents\\Edge Cockpit\\report.txt).
+export const reportInfo = () => tauri ? tauri.core.invoke('report_info') : Promise.resolve({ os: 'Browser', webview: navigator.userAgent.match(/Chrome\/([\d.]+)/)?.[1] || '?' });
+export const saveReport = text => tauri ? tauri.core.invoke('save_report', { text }) : Promise.resolve((window.xfdReport = text, 'Documents\\Edge Cockpit\\report.txt'));
 export const reportIssue = (title, body) => tauri ? tauri.core.invoke('report_issue', { title, body }) : Promise.resolve(window.xfdReported = { title, body });
 // The World page's prices and server status. Outside the app (UI tests, previews) a page may supply its own.
 export const worldPrices = () => tauri ? tauri.core.invoke('world_prices') : window.xfdTestWorld?.prices ? Promise.resolve(window.xfdTestWorld.prices) : onlyInApp();
