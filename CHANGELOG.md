@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.0
+
+- Installer in the cockpit look: Edge Cockpit art on the welcome and finish pages and in the header, with dark welcome, finish and header areas.
+
 ## 0.9.0
 
 - Your keys: long-press any tap key to swap it for another. A cyan dot marks keys you changed; Back to stock undoes it. Kept per page and in saved profiles.
