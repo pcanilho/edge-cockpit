@@ -74,11 +74,13 @@ struct Prefs {
     display: Option<String>,
     /// Serve the console to phones on the home network.
     phones: bool,
+    /// The day backlight level, while Night mode holds the backlight down.
+    night_saved: Option<u32>,
 }
 
 impl Default for Prefs {
     fn default() -> Self {
-        Prefs { autostart: true, screen_off: true, saved_backlight: None, display: None, phones: false }
+        Prefs { autostart: true, screen_off: true, saved_backlight: None, display: None, phones: false, night_saved: None }
     }
 }
 
@@ -635,6 +637,60 @@ fn set_dark(handle: &AppHandle, dark: bool) {
     });
 }
 
+/// Night mode's backlight: Some(level) turns the console's display down to `level` percent
+/// (keeping the day level to put back), None puts the day level back. While the screen is
+/// off only the level to wake to changes. Returns whether the display answered DDC/CI.
+#[tauri::command]
+async fn night_backlight(handle: AppHandle, level: Option<u32>) -> Result<Option<bool>, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let w = handle.get_webview_window("main")?;
+        let (x, y, wd, ht) = edge_rect(&w)?;
+        let app = handle.state::<App>();
+        let dark = app.dark.load(Ordering::SeqCst);
+        #[cfg(windows)]
+        let set = |l: Option<u32>| win::backlight(x, y, wd, ht, l);
+        #[cfg(not(windows))]
+        let set = |_: Option<u32>| -> Option<u32> {
+            let _ = (x, y, wd, ht);
+            None
+        };
+        let mut p = app.prefs.lock().unwrap();
+        let ok = match level {
+            Some(l) => {
+                // The day level: while the screen is off it is the level to wake to.
+                let day = if dark { p.saved_backlight } else { set(None) };
+                if p.night_saved.is_none() {
+                    p.night_saved = day.filter(|d| *d > l);
+                }
+                if p.night_saved.is_none() {
+                    // Already at or below the night level: nothing to do.
+                    Some(day.is_some())
+                } else if dark {
+                    p.saved_backlight = Some(l);
+                    Some(true)
+                } else {
+                    Some(set(Some(l)).is_some())
+                }
+            }
+            None => match p.night_saved.take() {
+                Some(day) if dark => {
+                    p.saved_backlight = Some(day);
+                    Some(true)
+                }
+                Some(day) => Some(set(Some(day)).is_some()),
+                None => None,
+            },
+        };
+        save_prefs(&handle, &p);
+        if let Some(answered) = ok {
+            *app.ddc.lock().unwrap() = Some(answered);
+        }
+        ok
+    })
+    .await
+    .map_err(|e| e.to_string())
+}
+
 /// Star Citizen started: wake the screen, show the panel and wait for it to exit.
 #[cfg_attr(not(windows), allow(dead_code))]
 fn game_started(handle: &AppHandle, pid: u32) {
@@ -932,6 +988,16 @@ fn record_fit(handle: &AppHandle, want: fit::Rect, got: fit::Rect) {
     }
 }
 
+/// Whether actionmaps.xml changed since the last look. The first sighting only records it:
+/// the console reads the binds anyway when it finds the game.
+fn binds_changed(seen: &mut Option<std::time::SystemTime>, now: Option<std::time::SystemTime>) -> bool {
+    let changed = seen.is_some() && now.is_some() && *seen != now;
+    if now.is_some() {
+        *seen = now;
+    }
+    changed
+}
+
 /// Game.log lines for the console, and for phones (who also get them later, on connecting).
 fn emit_log(handle: &AppHandle, batch: LogBatch) {
     handle.state::<App>().phones.log_batch(&batch.lines, batch.live, batch.reset);
@@ -944,6 +1010,9 @@ fn watch_game(handle: AppHandle) {
         let mut tail: Option<game::Tail> = None;
         let mut since_scan = Duration::MAX;
         let mut quiet = Duration::ZERO;
+        // actionmaps.xml: the game rewrites it when you change a bind or pick a control profile.
+        let mut binds_seen: Option<std::time::SystemTime> = None;
+        let mut since_binds = Duration::ZERO;
         loop {
             // Look for the channel every few seconds (less often once found), preferring the
             // one the running game is in.
@@ -979,6 +1048,15 @@ fn watch_game(handle: AppHandle) {
                 } else {
                     quiet = Duration::ZERO;
                     emit_log(&handle, LogBatch { lines, live: true, reset: false });
+                }
+            }
+            since_binds = since_binds.saturating_add(game::POLL);
+            if since_binds >= Duration::from_secs(2) {
+                since_binds = Duration::ZERO;
+                let path = handle.state::<App>().channel.lock().unwrap().as_ref().map(|c| game::actionmaps(c));
+                let now = path.and_then(|p| std::fs::metadata(p).and_then(|m| m.modified()).ok());
+                if binds_changed(&mut binds_seen, now) {
+                    let _ = handle.emit("binds", ());
                 }
             }
             // Quick while the log is busy, and slower once nothing has happened for a while.
@@ -1155,7 +1233,7 @@ fn main() {
             key, wheel, ui_ready, user_ships, release_keys, game_info, read_binds, install_binds, run_as_admin, quit,
             save_profile, load_profile, save_user_ships, install_profile_binds, save_page, page_files,
             get_prefs, set_pref, wake_screen, sleep_screen, check_update, install_update, perf,
-            displays, set_display, fix_touch, refit, identify_screens, report_issue, world_prices, world_status,
+            displays, set_display, fix_touch, refit, identify_screens, night_backlight, report_issue, world_prices, world_status,
             phones_view, phones_enable, phones_set, phones_forget, share
         ])
         .setup(|app| {
@@ -1240,6 +1318,19 @@ mod tests {
 
     fn d(id: &str, name: &str, w: i32, h: i32, primary: bool, touch: bool) -> Disp {
         Disp { id: id.into(), name: name.into(), rect: (0, 0, w, h), primary, touch, scale: 100 }
+    }
+
+    #[test]
+    fn binds_change_only_after_the_first_sighting() {
+        use std::time::{Duration, UNIX_EPOCH};
+        let (a, b) = (UNIX_EPOCH + Duration::from_secs(1), UNIX_EPOCH + Duration::from_secs(2));
+        let mut seen = None;
+        assert!(!super::binds_changed(&mut seen, None), "no file yet");
+        assert!(!super::binds_changed(&mut seen, Some(a)), "first sighting");
+        assert!(!super::binds_changed(&mut seen, Some(a)), "unchanged");
+        assert!(super::binds_changed(&mut seen, Some(b)), "rewritten");
+        assert!(!super::binds_changed(&mut seen, None), "gone for a moment");
+        assert!(!super::binds_changed(&mut seen, Some(b)), "back, unchanged");
     }
 
     #[test]

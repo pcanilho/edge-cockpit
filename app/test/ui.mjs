@@ -374,6 +374,16 @@ for (const v of ['on', 'auto', 'off']) {
   night[v] = await page.evaluate(() => ({ dim: document.getElementById('stage').classList.contains('night'),
     cur: document.querySelector('#night-seg .cur')?.dataset.v, note: document.getElementById('night-note').textContent }));
 }
+// Night backlight: a screen that doesn't answer DDC/CI says only the console dims.
+await page.evaluate(() => { window.xfdTestBacklight = false; });
+await page.click('#night-seg [data-v="on"]');
+await page.click('#nightlight-seg [data-v="10"]');
+await page.waitForTimeout(100);
+const nl = await page.evaluate(() => ({ cur: document.querySelector('#nightlight-seg .cur')?.dataset.v, note: document.getElementById('nightlight-note').textContent }));
+if (nl.cur !== '10' || nl.note !== 'This screen can\'t dim its backlight') problems.push(`night backlight is wrong: ${JSON.stringify(nl)}`);
+await page.click('#nightlight-seg [data-v="30"]');
+await page.click('#night-seg [data-v="off"]');
+await page.evaluate(() => { delete window.xfdTestBacklight; });
 await page.evaluate(() => window.xfd.showSection('screen'));
 await page.waitForTimeout(100);
 const disp = await page.evaluate(() => ({ cards: [...document.querySelectorAll('#displays .disp b')].map(b => b.textContent),
@@ -404,6 +414,23 @@ if (!night.on.dim || night.on.cur !== 'on') problems.push(`night mode On does no
 if (night.auto.dim !== late || !/20:00 to 07:00/.test(night.auto.note)) problems.push(`night mode Auto is wrong: ${JSON.stringify(night.auto)}`);
 if (night.off.dim || night.off.cur !== 'off') problems.push(`night mode Off still dims: ${JSON.stringify(night.off)}`);
 await page.evaluate(() => { document.getElementById('sheet').hidden = true; });
+
+// Wipe lock: holding the clock covers the console, so a touch reaches no key; holding the
+// cover ends it.
+{
+  await page.evaluate(() => { document.getElementById('sheet').hidden = true; });
+  const c = await (await page.$('#clock')).boundingBox();
+  await page.mouse.move(c.x + c.width / 2, c.y + c.height / 2); await page.mouse.down(); await page.waitForTimeout(1150); await page.mouse.up();
+  const w = await page.evaluate(() => {
+    const k = document.querySelector('#console .plate button, #console .plate [class*="cap"]')?.getBoundingClientRect();
+    const top = k && document.elementFromPoint(k.left + k.width / 2, k.top + k.height / 2);
+    return { shown: !document.getElementById('wipe').hidden, covers: !!top?.closest('#wipe'), text: document.getElementById('wipe-left').textContent };
+  });
+  if (!w.shown || !w.covers || !/^Touches are off for 1[45] s$/.test(w.text)) problems.push(`wipe lock is wrong: ${JSON.stringify(w)}`);
+  if (shots) await page.screenshot({ path: join(shots, 'wipe.png') });
+  await page.mouse.move(1280, 360); await page.mouse.down(); await page.waitForTimeout(1150); await page.mouse.up();
+  if (await page.evaluate(() => !document.getElementById('wipe').hidden)) problems.push('holding the wipe lock does not end it');
+}
 
 // The setup check: four rows, the touch warning from the displays above, nothing cut off.
 await page.evaluate(() => window.xfd.setup());
