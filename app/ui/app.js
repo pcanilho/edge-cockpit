@@ -1315,7 +1315,20 @@ function paintStatus() {
   paintQuantum();
   paintLog();
   paintPatch();
+  fitChips();
   requestAnimationFrame(fitMakerName);
+}
+// Chips that would run off the status screen give way, the least pressing first, so Follow game
+// and the ones that need you stay in sight.
+const CHIP_ORDER = ['kills', 'build', 'update', 'touch-chip', 'binds-chip', 'patch', 'lag', 'party', 'hangar', 'fuel', 'injury', 'wreck', 'dropped', 'law'];
+function fitChips() {
+  const screen = $('auto').closest('.facts')?.parentElement, r = screen?.getBoundingClientRect();
+  if (!r?.height) return;
+  CHIP_ORDER.forEach(id => $(id).classList.remove('squeezed'));
+  for (const id of CHIP_ORDER) {
+    if ($('auto').getBoundingClientRect().bottom <= r.bottom - 10) break;
+    if (!$(id).hidden) $(id).classList.add('squeezed');
+  }
 }
 // The maker's name only shows where the status text leaves room for it.
 function fitMakerName() {

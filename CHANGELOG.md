@@ -9,8 +9,9 @@
 - Why the game dropped you: a timeout, a server crash, an idle kick, a sign-in elsewhere, or the kind of game crash. It shows on the status screen until you are back in, in the Log and in the session recap. Leaving by yourself shows nothing.
 - Party: a banner when someone invites you or starts a jump to you, a chip while a party jump calibrates, and party members coming online in the Log.
 - New keys for your own pages and long-press swaps: Door locks and Port locks as ON/OFF switches (the game's separate lock and unlock binds), Pin target, Unpin target, Pin 1–3, Next pinned, and remote turrets (Turret 1–3, Next, Previous, Exit).
-- Settings > Screen: Shapes for colour (amber marks are triangles, red diamonds, green rings, and the red frame is dashed) and Reduce motion (no flashing, blinking or sliding).
+- Settings > Feedback (was Touch feedback): Shapes for colour (amber marks are triangles, red diamonds, green rings, and the red frame is dashed) and Reduce motion (no flashing, blinking or sliding).
 - HUD notices that run over several lines in Game.log now reach the console whole.
+- Status chips that would run off the status screen give way, the least pressing first, so Follow game stays in sight.
 
 ## 0.9.2
 

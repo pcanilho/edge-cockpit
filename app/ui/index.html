@@ -80,7 +80,7 @@
       <h2>Settings</h2>
       <button class="tab" data-sec="general"><svg class="i" viewBox="0 0 24 24"></svg><span>General</span></button>
       <button class="tab" data-sec="screen"><svg class="i" viewBox="0 0 24 24"></svg><span>Screen</span></button>
-      <button class="tab" data-sec="feedback"><svg class="i" viewBox="0 0 24 24"></svg><span>Touch feedback</span></button>
+      <button class="tab" data-sec="feedback"><svg class="i" viewBox="0 0 24 24"></svg><span>Feedback</span></button>
       <button class="tab" data-sec="phones"><svg class="i" viewBox="0 0 24 24"></svg><span>Devices</span><i class="dot" id="phones-dot" hidden></i></button>
       <button class="tab" data-sec="binds"><svg class="i" viewBox="0 0 24 24"></svg><span>Keybinds</span><i class="dot warn" id="binds-dot" hidden></i></button>
       <button class="tab" data-sec="profile"><svg class="i" viewBox="0 0 24 24"></svg><span>Profile</span></button>
@@ -107,8 +107,6 @@
           <button class="opt" data-opt="screen_off" data-app><span class="txt">Screen off when not playing<small id="screen-note">Wakes when Star Citizen starts, or on a touch</small></span><span class="knob"></span></button>
           <div class="opt choice" id="night-row"><span class="txt">Night mode<small id="night-note">Dims the console for dark rooms</small></span><span class="seg" id="night-seg"><button data-v="off">Off</button><button data-v="auto">Auto</button><button data-v="on">On</button></span></div>
           <button class="opt" data-opt="large"><span class="txt">Large labels<small>Bigger key text, for glare or a screen further away</small></span><span class="knob"></span></button>
-          <button class="opt" data-opt="shapes"><span class="txt">Shapes for colour<small>Amber marks as triangles, red as diamonds, green as rings</small></span><span class="knob"></span></button>
-          <button class="opt" data-opt="calm"><span class="txt">Reduce motion<small>No flashing frame, blinking or sliding</small></span><span class="knob"></span></button>
           <div class="opt choice theme-row" id="theme-row"><span class="txt">Maker theme<small id="theme-note">Plates and trim follow the maker of the ship you fly</small></span><span class="seg" id="theme-seg"><button data-v="auto">Auto</button><button data-v="off">Off</button><button data-v="DRAK">Drake</button><button data-v="AEGS">Aegis</button><button data-v="ORIG">Origin</button><button data-v="MISC">MISC</button><button data-v="ANVL">Anvil</button><button data-v="RSI">RSI</button><button data-v="CRUS">Crusader</button><button data-v="ARGO">Argo</button><button data-v="CNOU">C.O.</button></span></div>
           <button class="act" id="act-sleep"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Screen off now<small>Touch the screen to wake it</small></span></button>
           <div class="opt choice" id="plates-row"><span class="txt">Ship plates here<small id="plates-note">The rest grow to fill</small></span><span class="seg" id="plates-seg"><button data-v="power">Power</button><button data-v="role">Role</button><button data-v="flight">Flight</button><button data-v="gear">Gear</button></span></div>
@@ -120,10 +118,12 @@
           <button class="act" id="act-touch"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Fix touch<small>Touch the screen Windows asks for</small></span></button></div>
       </section>
       <section class="pane" data-sec="feedback" hidden>
-        <h3>Touch feedback</h3>
+        <h3>Feedback</h3>
         <div class="rows">
           <button class="opt" data-opt="sound"><span class="txt">Click sounds<small>A short tick on every touch, pitched by the kind of control</small></span><span class="knob"></span></button>
           <button class="opt" data-opt="flash"><span class="txt">Press flash<small>Lights a control when its key goes out</small></span><span class="knob"></span></button>
+          <button class="opt" data-opt="shapes"><span class="txt">Shapes for colour<small>Amber marks as triangles, red as diamonds, green as rings</small></span><span class="knob"></span></button>
+          <button class="opt" data-opt="calm"><span class="txt">Reduce motion<small>No flashing frame, blinking or sliding</small></span><span class="knob"></span></button>
         </div>
       </section>
       <section class="pane" data-sec="phones" hidden>

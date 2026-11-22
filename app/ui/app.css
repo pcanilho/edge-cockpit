@@ -1167,3 +1167,4 @@ body.shapes #stage.alert::before { outline: 3px dashed #ff4232; outline-offset: 
 
 /* Reduce motion (Settings > Screen): no frame flashes, blinking, pulses or slides. Colours still change. */
 body.calm *, body.calm *::before, body.calm *::after { animation: none !important; transition: none !important; }
+.chip.squeezed { display: none; }
