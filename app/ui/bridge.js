@@ -52,6 +52,8 @@ export const refit = () => tauri ? tauri.core.invoke('refit') : Promise.resolve(
 export const identifyScreens = () => tauri ? tauri.core.invoke('identify_screens') : onlyInApp();
 export const fixTouch = () => tauri ? tauri.core.invoke('fix_touch') : onlyInApp();
 /** f() when displays are added, removed or change resolution. */
+/** f() when the game rewrites actionmaps.xml (a bind changed, or another control profile). */
+export const onBinds = f => tauri?.event.listen('binds', () => f());
 export const onDisplays = f => tauri?.event.listen('displays', () => f());
 /** onTray('settings' | 'setup' | 'update') when that tray item is picked. */
 export const onTray = f => tauri?.event.listen('tray', e => f(e.payload));

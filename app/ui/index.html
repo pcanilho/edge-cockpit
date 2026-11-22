@@ -95,6 +95,7 @@
           <button class="opt" data-opt="alertSound"><span class="txt">Alert sound<small>A short tone with CrimeStat, armistice, ship disabled and hangar alerts</small></span><span class="knob"></span></button>
           <button class="opt" data-opt="anywhere"><span class="txt">Test mode<small>Send keys to any window, not just the game</small></span><span class="knob"></span></button>
           <button class="opt" data-opt="stack"><span class="txt">Two rows on a tall screen<small>On a screen that isn't ultra-wide, stacks the console for bigger keys</small></span><span class="knob"></span></button>
+          <button class="act" id="act-wipe"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Wipe lock<small>Touches off for 15 s to clean the screen. Or hold the clock</small></span></button>
           <button class="act" id="act-setup"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Setup check<small>Touchscreen, game, control profile and admin rights</small></span></button>
         </div>
       </section>
@@ -190,6 +191,7 @@
       <p class="upd-fine">Takes a few seconds and the console restarts. Never offered while Star Citizen is running.</p>
     </div>
   </div>
+  <div class="wipe" id="wipe" hidden><b>Cleaning</b><span id="wipe-left">Touches are off for 15 s</span><small>Hold anywhere for 1 s to end it now</small></div>
   <div class="toast" id="toast" role="status"><span id="toast-text"></span><button id="toast-act" hidden></button></div>
 </div>
 <div class="dark" id="dark" hidden></div>

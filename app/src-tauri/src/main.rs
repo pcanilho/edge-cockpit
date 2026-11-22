@@ -932,6 +932,16 @@ fn record_fit(handle: &AppHandle, want: fit::Rect, got: fit::Rect) {
     }
 }
 
+/// Whether actionmaps.xml changed since the last look. The first sighting only records it:
+/// the console reads the binds anyway when it finds the game.
+fn binds_changed(seen: &mut Option<std::time::SystemTime>, now: Option<std::time::SystemTime>) -> bool {
+    let changed = seen.is_some() && now.is_some() && *seen != now;
+    if now.is_some() {
+        *seen = now;
+    }
+    changed
+}
+
 /// Game.log lines for the console, and for phones (who also get them later, on connecting).
 fn emit_log(handle: &AppHandle, batch: LogBatch) {
     handle.state::<App>().phones.log_batch(&batch.lines, batch.live, batch.reset);
@@ -944,6 +954,9 @@ fn watch_game(handle: AppHandle) {
         let mut tail: Option<game::Tail> = None;
         let mut since_scan = Duration::MAX;
         let mut quiet = Duration::ZERO;
+        // actionmaps.xml: the game rewrites it when you change a bind or pick a control profile.
+        let mut binds_seen: Option<std::time::SystemTime> = None;
+        let mut since_binds = Duration::ZERO;
         loop {
             // Look for the channel every few seconds (less often once found), preferring the
             // one the running game is in.
@@ -979,6 +992,15 @@ fn watch_game(handle: AppHandle) {
                 } else {
                     quiet = Duration::ZERO;
                     emit_log(&handle, LogBatch { lines, live: true, reset: false });
+                }
+            }
+            since_binds = since_binds.saturating_add(game::POLL);
+            if since_binds >= Duration::from_secs(2) {
+                since_binds = Duration::ZERO;
+                let path = handle.state::<App>().channel.lock().unwrap().as_ref().map(|c| game::actionmaps(c));
+                let now = path.and_then(|p| std::fs::metadata(p).and_then(|m| m.modified()).ok());
+                if binds_changed(&mut binds_seen, now) {
+                    let _ = handle.emit("binds", ());
                 }
             }
             // Quick while the log is busy, and slower once nothing has happened for a while.
@@ -1240,6 +1262,19 @@ mod tests {
 
     fn d(id: &str, name: &str, w: i32, h: i32, primary: bool, touch: bool) -> Disp {
         Disp { id: id.into(), name: name.into(), rect: (0, 0, w, h), primary, touch, scale: 100 }
+    }
+
+    #[test]
+    fn binds_change_only_after_the_first_sighting() {
+        use std::time::{Duration, UNIX_EPOCH};
+        let (a, b) = (UNIX_EPOCH + Duration::from_secs(1), UNIX_EPOCH + Duration::from_secs(2));
+        let mut seen = None;
+        assert!(!super::binds_changed(&mut seen, None), "no file yet");
+        assert!(!super::binds_changed(&mut seen, Some(a)), "first sighting");
+        assert!(!super::binds_changed(&mut seen, Some(a)), "unchanged");
+        assert!(super::binds_changed(&mut seen, Some(b)), "rewritten");
+        assert!(!super::binds_changed(&mut seen, None), "gone for a moment");
+        assert!(!super::binds_changed(&mut seen, Some(b)), "back, unchanged");
     }
 
     #[test]

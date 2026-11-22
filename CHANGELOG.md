@@ -6,6 +6,8 @@
   - Screen cards show each screen's Windows scale when the screens differ.
   - Identify screens shows each screen's name on that screen for 3 seconds.
   - The setup check starts with the screen: the console fills it, or Refit.
+- Binds you change in the game reach the console at once: it reads actionmaps.xml again when the game saves it and says if a console key lost its keyboard bind.
+- Wipe lock: hold the clock for a second (or Settings > General > Wipe lock) and touches are off for 15 s while you clean the screen. Hold anywhere for a second to end it early.
 
 ## 0.9.2
 

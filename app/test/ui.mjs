@@ -405,6 +405,23 @@ if (night.auto.dim !== late || !/20:00 to 07:00/.test(night.auto.note)) problems
 if (night.off.dim || night.off.cur !== 'off') problems.push(`night mode Off still dims: ${JSON.stringify(night.off)}`);
 await page.evaluate(() => { document.getElementById('sheet').hidden = true; });
 
+// Wipe lock: holding the clock covers the console, so a touch reaches no key; holding the
+// cover ends it.
+{
+  await page.evaluate(() => { document.getElementById('sheet').hidden = true; });
+  const c = await (await page.$('#clock')).boundingBox();
+  await page.mouse.move(c.x + c.width / 2, c.y + c.height / 2); await page.mouse.down(); await page.waitForTimeout(1150); await page.mouse.up();
+  const w = await page.evaluate(() => {
+    const k = document.querySelector('#console .plate button, #console .plate [class*="cap"]')?.getBoundingClientRect();
+    const top = k && document.elementFromPoint(k.left + k.width / 2, k.top + k.height / 2);
+    return { shown: !document.getElementById('wipe').hidden, covers: !!top?.closest('#wipe'), text: document.getElementById('wipe-left').textContent };
+  });
+  if (!w.shown || !w.covers || !/^Touches are off for 1[45] s$/.test(w.text)) problems.push(`wipe lock is wrong: ${JSON.stringify(w)}`);
+  if (shots) await page.screenshot({ path: join(shots, 'wipe.png') });
+  await page.mouse.move(1280, 360); await page.mouse.down(); await page.waitForTimeout(1150); await page.mouse.up();
+  if (await page.evaluate(() => !document.getElementById('wipe').hidden)) problems.push('holding the wipe lock does not end it');
+}
+
 // The setup check: four rows, the touch warning from the displays above, nothing cut off.
 await page.evaluate(() => window.xfd.setup());
 await page.waitForTimeout(150);

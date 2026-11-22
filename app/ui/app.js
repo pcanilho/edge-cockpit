@@ -912,9 +912,45 @@ async function installBinds() {
   try { await bridge.installBinds(); toast('Added. In game: Options, Keybindings, Control Profiles, pick "edge-cockpit", tick Keyboard only.'); }
   catch (e) { toast(String(e?.message || e)); }
 }
+// ---------- wipe lock: touches off for a while, to clean the screen ----------
+const WIPE_S = 15;
+let wipeEnd = 0, wipeTimer = 0;
+function wipe(on = true) {
+  clearInterval(wipeTimer);
+  $('wipe').hidden = !on;
+  if (!on) return;
+  wipeEnd = Date.now() + WIPE_S * 1000;
+  const paint = () => {
+    const left = Math.ceil((wipeEnd - Date.now()) / 1000);
+    if (left <= 0) { wipe(false); return; }
+    $('wipe-left').textContent = `Touches are off for ${left} s`;
+  };
+  paint();
+  wipeTimer = setInterval(paint, 1000);
+}
+// Every press on the lock is swallowed; holding it 1 s ends it early.
+{
+  let hold = 0;
+  const box = $('wipe');
+  box.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); clearTimeout(hold); hold = setTimeout(() => { tick('tap'); wipe(false); }, 1000); });
+  for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) box.addEventListener(ev, () => clearTimeout(hold));
+  box.addEventListener('contextmenu', e => e.preventDefault());
+  // The clock: hold 1 s to start it.
+  let clockHold = 0;
+  $('clock').addEventListener('pointerdown', e => { clockHold = setTimeout(() => { tick('toggle'); wipe(true); }, 1000); });
+  for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) $('clock').addEventListener(ev, () => clearTimeout(clockHold));
+}
+// The game saved new binds: read them again and say what that did to the console's keys.
+bridge.onBinds(async () => {
+  const before = bindHealth();
+  await reloadBinds();
+  const after = bindHealth();
+  const lost = after.missing.length + after.stick.length - before.missing.length - before.stick.length;
+  toast(lost > 0 ? `Binds changed in game: ${lost} console ${lost === 1 ? 'key has' : 'keys have'} no keyboard bind now` : lost < 0 ? `Binds changed in game: ${-lost} more console ${lost === -1 ? 'key works' : 'keys work'}` : 'Binds changed in game');
+});
 const acts = { 'act-binds': [() => reloadBinds().then(() => toast('Binds reloaded')), 'reload'], 'act-install': [installBinds, 'layers'],
   'act-admin': [bridge.runAsAdmin, 'shield'], 'act-sleep': [() => { openSheet(false); bridge.sleepScreen(); }, 'moon'],
-  'act-refit': [refit, 'reload'], 'act-update': [installUpdate, 'download'], 'act-touch': [() => bridge.fixTouch().then(ok => ok || toast('Windows did not open its touchscreen setup. Open Tablet PC Settings, then Setup.')), 'hand'], 'act-save': [saveProfile, 'download'], 'act-load': [loadProfile, 'reload'], 'act-quit': [bridge.quit, 'power'], 'act-setup': [() => { openSheet(false); showSetup(); }, 'hand'] };
+  'act-refit': [refit, 'reload'], 'act-update': [installUpdate, 'download'], 'act-touch': [() => bridge.fixTouch().then(ok => ok || toast('Windows did not open its touchscreen setup. Open Tablet PC Settings, then Setup.')), 'hand'], 'act-save': [saveProfile, 'download'], 'act-load': [loadProfile, 'reload'], 'act-quit': [bridge.quit, 'power'], 'act-setup': [() => { openSheet(false); showSetup(); }, 'hand'], 'act-wipe': [() => { openSheet(false); wipe(true); }, 'wiper'] };
 for (const [id, [run, icon]] of Object.entries(acts)) {
   $(id).querySelector('svg').innerHTML = GLYPHS[icon] || '';
   controls.pressable($(id), { up: () => { tick('tap'); run(); } });
