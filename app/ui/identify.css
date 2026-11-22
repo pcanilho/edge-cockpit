@@ -1,0 +1,9 @@
+/* Settings > Screen > Identify screens: the display's name, shown on that display for a few seconds. */
+@font-face { font-family: hud; src: url(vendor/fonts/chakra-petch-700.woff2); }
+@font-face { font-family: body; src: url(vendor/fonts/inter-500.woff2); }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0f14; color: #e8edf2; cursor: default; user-select: none; }
+body { box-sizing: border-box; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; border: 3px solid #58d2f0; }
+b { font: 700 44px/1 hud, sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+small { font: 500 18px/1 body, sans-serif; color: #93a0ad; }
+em { font: 700 14px/1 hud, sans-serif; font-style: normal; letter-spacing: .18em; text-transform: uppercase; color: #58d2f0; }
+em:empty { display: none; }

@@ -70,7 +70,8 @@ fn pid_of(w: HWND) -> u32 {
 
 /// Makes the panel a top-most tool window that never activates, shows it without
 /// taking focus, and starts the foreground hook. Call once, from the UI thread.
-pub fn setup_panel(raw: isize, x: i32, y: i32, w: i32, h: i32) {
+/// Returns where the console ended up.
+pub fn setup_panel(raw: isize, x: i32, y: i32, w: i32, h: i32) -> crate::fit::Rect {
     PANEL.store(raw, Ordering::SeqCst);
     OUR_PID.store(std::process::id(), Ordering::SeqCst);
     let win = hwnd(raw);
@@ -78,7 +79,7 @@ pub fn setup_panel(raw: isize, x: i32, y: i32, w: i32, h: i32) {
         let ex = GetWindowLongPtrW(win, GWL_EXSTYLE) as u32;
         let ex = (ex | WS_EX_NOACTIVATE.0 | WS_EX_TOOLWINDOW.0 | WS_EX_TOPMOST.0) & !WS_EX_APPWINDOW.0;
         SetWindowLongPtrW(win, GWL_EXSTYLE, ex as isize);
-        move_to(win, (x, y, w, h), SWP_NOACTIVATE | SWP_FRAMECHANGED);
+        let got = move_to(win, (x, y, w, h), SWP_NOACTIVATE | SWP_FRAMECHANGED);
         // No frame at all: Windows 11 rounds corners and draws a 1px border on top-level
         // windows, even borderless ones, unless told not to.
         let no_round = DWMWCP_DONOTROUND;
@@ -102,6 +103,7 @@ pub fn setup_panel(raw: isize, x: i32, y: i32, w: i32, h: i32) {
             0,
             WINEVENT_OUTOFCONTEXT,
         );
+        got
     }
 }
 
@@ -134,6 +136,8 @@ pub struct Display {
     pub rect: (i32, i32, i32, i32),
     pub primary: bool,
     pub touch: bool,
+    /// The Windows scale, in percent.
+    pub scale: u32,
 }
 
 /// Every active display. Touch comes from the pointer devices Windows knows, each of
@@ -142,6 +146,7 @@ pub fn displays() -> Vec<Display> {
     use windows::Win32::Foundation::{LPARAM, RECT};
     use windows::Win32::Graphics::Gdi::{EnumDisplayMonitors, GetMonitorInfoW, HDC, HMONITOR, MONITORINFO, MONITORINFOEXW};
     use windows::Win32::UI::Controls::{POINTER_DEVICE_INFO, POINTER_DEVICE_TYPE_TOUCH};
+    use windows::Win32::UI::HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI};
     use windows::Win32::UI::Input::Pointer::GetPointerDevices;
     const MONITORINFOF_PRIMARY: u32 = 1;
 
@@ -173,7 +178,10 @@ pub fn displays() -> Vec<Display> {
             let len = info.szDevice.iter().position(|&c| c == 0).unwrap_or(info.szDevice.len());
             let id = String::from_utf16_lossy(&info.szDevice[..len]);
             let r = info.monitorInfo.rcMonitor;
+            let (mut dx, mut dy) = (96u32, 96u32);
+            let _ = GetDpiForMonitor(m, MDT_EFFECTIVE_DPI, &mut dx, &mut dy);
             Some(Display {
+                scale: (dx * 100 + 48) / 96,
                 name: names.iter().find(|(g, _)| *g == id).map(|(_, f)| f.clone()).filter(|f| !f.is_empty()).unwrap_or_else(|| id.trim_start_matches(r"\\.\").to_string()),
                 id,
                 rect: (r.left, r.top, r.right - r.left, r.bottom - r.top),
@@ -241,23 +249,22 @@ pub fn on_display_change(f: impl Fn() + Send + Sync + 'static) {
     let _ = ON_DISPLAYS.set(Box::new(f));
 }
 
-/// Re-applies size and top-most, for when the display layout changes.
-pub fn place(x: i32, y: i32, w: i32, h: i32) {
+/// Re-applies size and top-most, for when the display layout changes. Returns where the
+/// console ended up, or None before the console exists.
+pub fn place(x: i32, y: i32, w: i32, h: i32) -> Option<crate::fit::Rect> {
     let raw = PANEL.load(Ordering::SeqCst);
-    if raw != 0 {
-        move_to(hwnd(raw), (x, y, w, h), SWP_NOACTIVATE);
-    }
+    (raw != 0).then(|| move_to(hwnd(raw), (x, y, w, h), SWP_NOACTIVATE))
 }
 
 /// Moves the panel, top-most, to exactly `r`, also when that means another display scale
 /// (see fit.rs).
-fn move_to(win: HWND, r: crate::fit::Rect, flags: SET_WINDOW_POS_FLAGS) {
+fn move_to(win: HWND, r: crate::fit::Rect, flags: SET_WINDOW_POS_FLAGS) -> crate::fit::Rect {
     crate::fit::settle(r, |(x, y, w, h)| unsafe {
         let _ = SetWindowPos(win, Some(HWND_TOPMOST), x, y, w, h, flags);
         let mut got = windows::Win32::Foundation::RECT::default();
         let _ = GetWindowRect(win, &mut got);
         (got.left, got.top, got.right - got.left, got.bottom - got.top)
-    });
+    })
 }
 
 const WM_MOUSEACTIVATE: u32 = 0x0021;
