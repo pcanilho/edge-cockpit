@@ -246,8 +246,9 @@ function logPage() {
   const stats = [['lg-time', 'Played'], ['lg-kills', 'Kills'], ['lg-deaths', 'Downed'], ['lg-missions', 'Missions'], ['lg-ships-n', 'Ships flown']]
     .map(([id, l]) => `<div><b id="${id}">0</b><small>${esc(l)}</small></div>`).join('');
   return [add(p,
-    card('lg-down', 24, 46, 520, 300, 'Last downed'), card('lg-where', 556, 46, 520, 300, 'Where'),
-    card('lg-ref', 24, 358, 520, 322, 'Refinery'), card('lg-ships', 556, 358, 520, 322, 'Ships')),
+    card('lg-down', 24, 46, 520, 150, 'Last downed'), card('lg-where', 556, 46, 520, 150, 'Where'),
+    card('lg-ref', 24, 204, 520, 150, 'Refinery'), card('lg-ships', 556, 204, 520, 150, 'Ships'),
+    screen(24, 362, 1052, 318, '<small>Past sessions</small><span class="note" id="lg-past-note"></span><table id="lg-past"></table>', 'past')),
   add(list, screen(24, 46, 1018, 96, stats, 'stats'), screen(24, 154, 1018, 526, '<ol id="lg-list"></ol>', 'list'))];
 }
 

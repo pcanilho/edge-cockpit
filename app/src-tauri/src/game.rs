@@ -180,6 +180,27 @@ pub fn relevant(line: &str) -> bool {
     MARKERS.iter().any(|m| line.contains(m))
 }
 
+/// The game's earlier logs (…\LIVE\logbackups\*.log), newest first: at most `max`, none older
+/// than `days`.
+pub fn backups(channel: &Path, max: usize, days: u64) -> Vec<PathBuf> {
+    let cutoff = SystemTime::now().checked_sub(Duration::from_secs(days * 86_400));
+    let Ok(dir) = fs::read_dir(channel.join("logbackups")) else { return vec![] };
+    let mut files: Vec<(SystemTime, PathBuf)> = dir
+        .flatten()
+        .filter(|e| e.path().extension().is_some_and(|x| x.eq_ignore_ascii_case("log")))
+        .filter_map(|e| Some((e.metadata().ok()?.modified().ok()?, e.path())))
+        .filter(|(t, _)| cutoff.is_none_or(|c| *t >= c))
+        .collect();
+    files.sort_by_key(|f| std::cmp::Reverse(f.0));
+    files.into_iter().take(max).map(|(_, p)| p).collect()
+}
+
+/// The lines of a whole log the console reads (see `relevant`).
+pub fn relevant_lines(path: &Path) -> Vec<String> {
+    let Ok(bytes) = fs::read(path) else { return vec![] };
+    String::from_utf8_lossy(&bytes).lines().filter(|l| relevant(l)).map(str::to_string).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -192,6 +213,23 @@ mod tests {
             Some(PathBuf::from(r"C:\Games\StarCitizen\PTU"))
         );
         assert_eq!(channel_from_exe(r"C:\Windows\notepad.exe"), None);
+    }
+
+    #[test]
+    fn backups_are_logs_newest_first() {
+        let ch = std::env::temp_dir().join(format!("xfd-backups-{}", std::process::id()));
+        let dir = ch.join("logbackups");
+        fs::create_dir_all(&dir).unwrap();
+        for (i, name) in ["a.log", "b.log", "notes.txt", "c.LOG"].iter().enumerate() {
+            fs::write(dir.join(name), "<Join PU> x\nnoise\n").unwrap();
+            let t = SystemTime::now() - Duration::from_secs(100 - i as u64 * 10);
+            fs::File::options().write(true).open(dir.join(name)).unwrap().set_modified(t).unwrap();
+        }
+        let got: Vec<_> = backups(&ch, 2, 30).iter().map(|p| p.file_name().unwrap().to_string_lossy().into_owned()).collect();
+        assert_eq!(got, ["c.LOG", "b.log"]);
+        assert_eq!(relevant_lines(&dir.join("a.log")), ["<Join PU> x"]);
+        assert!(backups(&ch.join("none"), 5, 30).is_empty());
+        fs::remove_dir_all(&ch).unwrap();
     }
 
     #[test]

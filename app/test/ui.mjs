@@ -36,6 +36,9 @@ await page.addInitScript(() => {
   const raf = window.requestAnimationFrame.bind(window);
   window.requestAnimationFrame = cb => { window.__raf++; return raf(cb); };
 });
+// Past sessions on the Log page: the fixture log as a backup.
+const pastLines = (await readFile(join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'game-4.10.filtered.log'), 'utf8')).split('\n');
+await page.addInitScript(lines => { window.xfdTestPastLogs = [{ name: 'Game Build 1.log', lines }]; }, pastLines);
 // No network in the test: ship outlines fall back to the role badge.
 await page.route(/fleetyards|fltyrd/, r => r.abort());
 
@@ -183,6 +186,29 @@ for (const id of ids) {
   for (const o of overlaps) problems.push(`${id}: ${o}`);
   for (const t of await page.evaluate(() => [...document.querySelectorAll('#status, #console .plate')].flatMap(p => window.__textCheck(p)))) problems.push(`${id}: ${t}`);
   if (shots) await page.screenshot({ path: join(shots, `${id}.png`) });
+}
+// Past sessions: the backup log's one session, in a table that fits.
+{
+  await page.evaluate(() => window.xfd.show('log'));
+  await page.waitForTimeout(300);
+  const pastRows = await page.evaluate(() => [...document.querySelectorAll('#lg-past tr')].map(r => r.textContent));
+  if (pastRows.length !== 2 || !/8 min.*Sabre Firebird/.test(pastRows[1] || '')) problems.push(`past sessions show ${JSON.stringify(pastRows)}`);
+  await checkLabels('log with past sessions');
+  for (const t of await page.evaluate(() => [...document.querySelectorAll('#console .plate')].flatMap(p => window.__textCheck(p)))) problems.push(`log with past sessions: ${t}`);
+  if (shots) await page.screenshot({ path: join(shots, 'log-past.png') });
+  // The cards full: a whole session (downed, shard, ships) still fits them.
+  const pg = await browser.newPage({ viewport: { width: 2560, height: 720 } });
+  await pg.addInitScript(TEXT_CHECK);
+  await pg.route(/fleetyards|fltyrd/, r => r.abort());
+  await pg.goto(base);
+  await pg.waitForSelector('body[data-ready]');
+  await pg.evaluate(() => document.fonts.ready);
+  await pg.evaluate(lines => { window.xfd.feed(lines, false); window.xfd.show('log'); }, pastLines);
+  await pg.waitForTimeout(300);
+  await checkLabels('log with a full session', false, pg);
+  for (const t of await pg.evaluate(() => [...document.querySelectorAll('#console .plate')].flatMap(p => window.__textCheck(p)))) problems.push(`log with a full session: ${t}`);
+  if (shots) await pg.screenshot({ path: join(shots, 'log-full.png') });
+  await pg.close();
 }
 // Large labels: every page again with the bigger text, which must still fit.
 await page.evaluate(() => document.getElementById('stage').classList.add('large'));

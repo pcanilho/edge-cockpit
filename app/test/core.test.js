@@ -489,3 +489,13 @@ test('find: kind chips and letters', () => {
   assert.deepEqual(W.age(now / 1000 - 5 * 3600, now), { text: '5 h ago', old: false });
   assert.deepEqual(W.age(now / 1000 - 3 * 86400, now), { text: '3 days ago', old: true });
 });
+
+test('a whole log gives one session per time you joined, with its totals', async () => {
+  const { sessionsOf, minutes } = await import('../ui/lib/gamelog.js');
+  const lines = readFileSync(new URL('./fixtures/game-4.10.filtered.log', import.meta.url), 'utf8').split('\n');
+  const [s, more] = sessionsOf(lines);
+  assert.equal(more, undefined);
+  assert.equal(minutes(s), 8);
+  assert.deepEqual([s.kills, s.deaths, s.ships], [3, 1, ['AEGS_Sabre_Firebird']]);
+  assert.deepEqual(sessionsOf([]), []);
+});
