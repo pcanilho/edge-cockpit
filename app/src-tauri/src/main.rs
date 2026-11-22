@@ -9,9 +9,9 @@ mod fit;
 mod game;
 mod keys;
 mod phone;
+mod world;
 #[cfg(windows)]
 mod win;
-mod world;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -68,22 +68,12 @@ struct Prefs {
 
 impl Default for Prefs {
     fn default() -> Self {
-        Prefs {
-            autostart: true,
-            screen_off: true,
-            saved_backlight: None,
-            display: None,
-            phones: false,
-        }
+        Prefs { autostart: true, screen_off: true, saved_backlight: None, display: None, phones: false }
     }
 }
 
 fn prefs_path(handle: &AppHandle) -> Option<PathBuf> {
-    handle
-        .path()
-        .app_config_dir()
-        .ok()
-        .map(|d| d.join("prefs.json"))
+    handle.path().app_config_dir().ok().map(|d| d.join("prefs.json"))
 }
 
 fn load_prefs(handle: &AppHandle) -> (Prefs, bool) {
@@ -136,23 +126,11 @@ fn game_focused() -> bool {
 /// Sends a bind. mode: "down", "up" or "tap" (down, wait `ms`, up).
 /// anywhere: also when the game isn't in front (for trying keys in Notepad).
 #[tauri::command]
-async fn key(
-    app: State<'_, App>,
-    spec: String,
-    mode: String,
-    ms: Option<u64>,
-    anywhere: bool,
-) -> Result<(), String> {
+async fn key(app: State<'_, App>, spec: String, mode: String, ms: Option<u64>, anywhere: bool) -> Result<(), String> {
     send_key(&app, spec, mode, ms, anywhere).await
 }
 
-async fn send_key(
-    app: &App,
-    spec: String,
-    mode: String,
-    ms: Option<u64>,
-    anywhere: bool,
-) -> Result<(), String> {
+async fn send_key(app: &App, spec: String, mode: String, ms: Option<u64>, anywhere: bool) -> Result<(), String> {
     let chord = keys::chord(&spec)?;
     #[cfg(windows)]
     win::restore_game_focus();
@@ -234,9 +212,7 @@ async fn press(chord: &[keys::Key], up: bool) -> Result<(), String> {
 
 #[cfg_attr(not(windows), allow(dead_code))]
 async fn tokio_sleep(ms: u64) {
-    tauri::async_runtime::spawn_blocking(move || std::thread::sleep(Duration::from_millis(ms)))
-        .await
-        .ok();
+    tauri::async_runtime::spawn_blocking(move || std::thread::sleep(Duration::from_millis(ms))).await.ok();
 }
 
 fn release_all(app: &App) {
@@ -277,9 +253,7 @@ fn game_info(app: State<'_, App>) -> GameInfo {
     let game_elevated = focused.then(win::foreground_elevated);
     #[cfg(not(windows))]
     let game_elevated = None;
-    let log = channel
-        .as_ref()
-        .is_some_and(|c| c.join("Game.log").is_file());
+    let log = channel.as_ref().is_some_and(|c| c.join("Game.log").is_file());
     GameInfo {
         channel: channel.map(|c| c.to_string_lossy().into_owned()),
         #[cfg(windows)]
@@ -299,13 +273,7 @@ fn url_part(s: &str, max: usize) -> String {
         .take(max)
         .collect::<String>()
         .bytes()
-        .map(|b| {
-            if b.is_ascii_alphanumeric() || b"-_.~".contains(&b) {
-                (b as char).to_string()
-            } else {
-                format!("%{b:02X}")
-            }
-        })
+        .map(|b| if b.is_ascii_alphanumeric() || b"-_.~".contains(&b) { (b as char).to_string() } else { format!("%{b:02X}") })
         .collect()
 }
 
@@ -350,19 +318,12 @@ fn perf(app: State<'_, App>) -> Perf {
     let cpu = match *last {
         Some((t, before)) if ticks >= before => {
             let wall = now.duration_since(t).as_secs_f64();
-            if wall > 0.0 {
-                (ticks - before) as f64 / 1e7 / wall / cores * 100.0
-            } else {
-                0.0
-            }
+            if wall > 0.0 { (ticks - before) as f64 / 1e7 / wall / cores * 100.0 } else { 0.0 }
         }
         _ => 0.0,
     };
     *last = Some((now, ticks));
-    Perf {
-        cpu,
-        mem_mb: mem as f64 / 1_048_576.0,
-    }
+    Perf { cpu, mem_mb: mem as f64 / 1_048_576.0 }
 }
 
 /// The player's actionmaps.xml, or None when there isn't one yet.
@@ -405,11 +366,7 @@ const PAGE_MAX: usize = 256 * 1024;
 
 /// A file name for a shared page, from its name: letters, digits, spaces and dashes only.
 fn page_file(name: &str) -> String {
-    let clean: String = name
-        .chars()
-        .filter(|c| c.is_alphanumeric() || *c == ' ' || *c == '-')
-        .take(40)
-        .collect();
+    let clean: String = name.chars().filter(|c| c.is_alphanumeric() || *c == ' ' || *c == '-').take(40).collect();
     let clean = clean.trim();
     format!("{}.json", if clean.is_empty() { "Page" } else { clean })
 }
@@ -420,9 +377,7 @@ fn save_page(handle: AppHandle, name: String, json: String) -> Result<String, St
     if json.len() > PAGE_MAX {
         return Err("The page is too big".into());
     }
-    let dir = user_dir(&handle)
-        .ok_or("No Documents folder")?
-        .join("Pages");
+    let dir = user_dir(&handle).ok_or("No Documents folder")?.join("Pages");
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let path = dir.join(page_file(&name));
     std::fs::write(&path, json).map_err(|e| e.to_string())?;
@@ -432,29 +387,13 @@ fn save_page(handle: AppHandle, name: String, json: String) -> Result<String, St
 /// Page files in Documents\Edge Cockpit\Pages, to import: (file name, contents).
 #[tauri::command]
 fn page_files(handle: AppHandle) -> Vec<(String, String)> {
-    let Some(dir) = user_dir(&handle).map(|d| d.join("Pages")) else {
-        return Vec::new();
-    };
-    let Ok(rd) = std::fs::read_dir(dir) else {
-        return Vec::new();
-    };
+    let Some(dir) = user_dir(&handle).map(|d| d.join("Pages")) else { return Vec::new() };
+    let Ok(rd) = std::fs::read_dir(dir) else { return Vec::new() };
     let mut out: Vec<(String, String)> = rd
         .flatten()
-        .filter(|e| {
-            e.path()
-                .extension()
-                .is_some_and(|x| x.eq_ignore_ascii_case("json"))
-        })
-        .filter(|e| {
-            e.metadata()
-                .is_ok_and(|m| m.is_file() && (m.len() as usize) <= PAGE_MAX)
-        })
-        .filter_map(|e| {
-            Some((
-                e.file_name().to_string_lossy().into_owned(),
-                std::fs::read_to_string(e.path()).ok()?,
-            ))
-        })
+        .filter(|e| e.path().extension().is_some_and(|x| x.eq_ignore_ascii_case("json")))
+        .filter(|e| e.metadata().is_ok_and(|m| m.is_file() && (m.len() as usize) <= PAGE_MAX))
+        .filter_map(|e| Some((e.file_name().to_string_lossy().into_owned(), std::fs::read_to_string(e.path()).ok()?)))
         .take(50)
         .collect();
     out.sort();
@@ -472,28 +411,14 @@ fn save_user_ships(handle: AppHandle, json: String) -> Result<(), String> {
 /// Puts a profile's keyboard binds in the game's Control Profiles list.
 #[tauri::command]
 fn install_profile_binds(app: State<'_, App>, xml: String) -> Result<String, String> {
-    let channel = app
-        .channel
-        .lock()
-        .unwrap()
-        .clone()
-        .ok_or("Star Citizen not found")?;
-    game::install_profile_binds(&channel, &xml)
-        .map(|p| p.to_string_lossy().into_owned())
-        .map_err(|e| e.to_string())
+    let channel = app.channel.lock().unwrap().clone().ok_or("Star Citizen not found")?;
+    game::install_profile_binds(&channel, &xml).map(|p| p.to_string_lossy().into_owned()).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 fn install_binds(app: State<'_, App>) -> Result<String, String> {
-    let channel = app
-        .channel
-        .lock()
-        .unwrap()
-        .clone()
-        .ok_or("Star Citizen not found")?;
-    game::install_binds(&channel)
-        .map(|p| p.to_string_lossy().into_owned())
-        .map_err(|e| e.to_string())
+    let channel = app.channel.lock().unwrap().clone().ok_or("Star Citizen not found")?;
+    game::install_binds(&channel).map(|p| p.to_string_lossy().into_owned()).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -590,10 +515,7 @@ fn wake_screen(handle: AppHandle) {
 /// "Screen off now" in settings: dark until a touch, the tray or the game wakes it.
 #[tauri::command]
 fn sleep_screen(handle: AppHandle) {
-    handle
-        .state::<App>()
-        .wake_gen
-        .fetch_add(1, Ordering::SeqCst);
+    handle.state::<App>().wake_gen.fetch_add(1, Ordering::SeqCst);
     show_panel(&handle, true);
     set_dark(&handle, true);
 }
@@ -629,9 +551,7 @@ fn idle(handle: &AppHandle) {
 }
 
 fn show_panel(handle: &AppHandle, on: bool) {
-    let Some(w) = handle.get_webview_window("main") else {
-        return;
-    };
+    let Some(w) = handle.get_webview_window("main") else { return };
     if on == w.is_visible().unwrap_or(!on) {
         return;
     }
@@ -649,11 +569,7 @@ fn show_panel(handle: &AppHandle, on: bool) {
         let _ = w.hide();
     }
     if let Some(item) = handle.try_state::<TrayToggle>() {
-        let _ = item.0.set_text(if on {
-            "Hide the console"
-        } else {
-            "Show the console"
-        });
+        let _ = item.0.set_text(if on { "Hide the console" } else { "Show the console" });
     }
 }
 
@@ -662,16 +578,10 @@ struct TrayToggle(MenuItem<tauri::Wry>);
 
 /// Tray and left click: hide the console if it shows, otherwise show it.
 fn toggle_panel(handle: &AppHandle) {
-    let visible = handle
-        .get_webview_window("main")
-        .and_then(|w| w.is_visible().ok())
-        .unwrap_or(false);
+    let visible = handle.get_webview_window("main").and_then(|w| w.is_visible().ok()).unwrap_or(false);
     let dark = handle.state::<App>().dark.load(Ordering::SeqCst);
     if visible && !dark {
-        handle
-            .state::<App>()
-            .wake_gen
-            .fetch_add(1, Ordering::SeqCst);
+        handle.state::<App>().wake_gen.fetch_add(1, Ordering::SeqCst);
         show_panel(handle, false);
     } else {
         wake(handle);
@@ -685,17 +595,12 @@ fn set_dark(handle: &AppHandle, dark: bool) {
     }
     release_all(&app);
     let _ = handle.emit("screen", dark);
-    app.phones
-        .broadcast("screen", serde_json::Value::Bool(dark));
+    app.phones.broadcast("screen", serde_json::Value::Bool(dark));
     // DDC/CI takes tens of milliseconds a call, so it runs off the UI thread.
     let h = handle.clone();
     std::thread::spawn(move || {
-        let Some(w) = h.get_webview_window("main") else {
-            return;
-        };
-        let Some((x, y, wd, ht)) = edge_rect(&w) else {
-            return;
-        };
+        let Some(w) = h.get_webview_window("main") else { return };
+        let Some((x, y, wd, ht)) = edge_rect(&w) else { return };
         let app = h.state::<App>();
         #[cfg(windows)]
         {
@@ -743,11 +648,7 @@ fn game_started(handle: &AppHandle, pid: u32) {
             win::forget_game();
         }
         let app = h.state::<App>();
-        if app
-            .game
-            .compare_exchange(pid, 0, Ordering::SeqCst, Ordering::SeqCst)
-            .is_ok()
-        {
+        if app.game.compare_exchange(pid, 0, Ordering::SeqCst, Ordering::SeqCst).is_ok() {
             app.rescan.store(true, Ordering::SeqCst);
             idle(&h);
         }
@@ -764,17 +665,9 @@ struct UpdateInfo {
 /// Asks GitHub whether a newer release exists. The UI calls this at start and rarely after,
 /// never while the game runs.
 #[tauri::command]
-async fn check_update(
-    handle: AppHandle,
-    app: State<'_, App>,
-) -> Result<Option<UpdateInfo>, String> {
+async fn check_update(handle: AppHandle, app: State<'_, App>) -> Result<Option<UpdateInfo>, String> {
     use tauri_plugin_updater::UpdaterExt;
-    let found = handle
-        .updater()
-        .map_err(|e| e.to_string())?
-        .check()
-        .await
-        .map_err(|e| e.to_string())?;
+    let found = handle.updater().map_err(|e| e.to_string())?.check().await.map_err(|e| e.to_string())?;
     let info = found.as_ref().map(|u| UpdateInfo {
         version: u.version.clone(),
         notes: u.body.clone().unwrap_or_default(),
@@ -787,11 +680,7 @@ async fn check_update(
 /// Commodity prices for the World page: fresh every 30 minutes, else the last ones saved, marked offline.
 #[tauri::command]
 async fn world_prices(handle: AppHandle, app: State<'_, App>) -> Result<world::Market, String> {
-    let file = handle
-        .path()
-        .app_local_data_dir()
-        .ok()
-        .map(|d| d.join("world-prices.json"));
+    let file = handle.path().app_local_data_dir().ok().map(|d| d.join("world-prices.json"));
     world::prices(&app.world, file).await
 }
 
@@ -806,10 +695,7 @@ async fn world_status(app: State<'_, App>) -> Result<world::Status, String> {
 async fn install_update(handle: AppHandle, app: State<'_, App>) -> Result<(), String> {
     let update = app.update.lock().unwrap().take().ok_or("no update")?;
     release_all(&app);
-    update
-        .download_and_install(|_, _| {}, || {})
-        .await
-        .map_err(|e| e.to_string())?;
+    update.download_and_install(|_, _| {}, || {}).await.map_err(|e| e.to_string())?;
     handle.restart();
 }
 
@@ -849,13 +735,7 @@ fn display_list(w: &WebviewWindow) -> Vec<Disp> {
         let _ = w;
         win::displays()
             .into_iter()
-            .map(|d| Disp {
-                id: d.id,
-                name: d.name,
-                rect: d.rect,
-                primary: d.primary,
-                touch: d.touch,
-            })
+            .map(|d| Disp { id: d.id, name: d.name, rect: d.rect, primary: d.primary, touch: d.touch })
             .collect()
     }
     #[cfg(not(windows))]
@@ -869,15 +749,8 @@ fn display_list(w: &WebviewWindow) -> Vec<Disp> {
                 Disp {
                     name: id.clone(),
                     id,
-                    rect: (
-                        m.position().x,
-                        m.position().y,
-                        m.size().width as i32,
-                        m.size().height as i32,
-                    ),
-                    primary: primary
-                        .as_ref()
-                        .is_some_and(|p| p.position() == m.position()),
+                    rect: (m.position().x, m.position().y, m.size().width as i32, m.size().height as i32),
+                    primary: primary.as_ref().is_some_and(|p| p.position() == m.position()),
                     touch: false,
                 }
             })
@@ -887,11 +760,7 @@ fn display_list(w: &WebviewWindow) -> Vec<Disp> {
 
 fn pick_display<'a>(list: &'a [Disp], picked: Option<&str>) -> Option<&'a Disp> {
     if let Some(p) = picked {
-        if let Some(d) = list
-            .iter()
-            .find(|d| d.id == p)
-            .or_else(|| list.iter().find(|d| d.name == p))
-        {
+        if let Some(d) = list.iter().find(|d| d.id == p).or_else(|| list.iter().find(|d| d.name == p)) {
             return Some(d);
         }
     }
@@ -918,12 +787,7 @@ struct Displays {
 fn displays(handle: AppHandle, app: State<'_, App>) -> Displays {
     let picked = app.prefs.lock().unwrap().display.clone();
     let Some(w) = handle.get_webview_window("main") else {
-        return Displays {
-            list: vec![],
-            picked,
-            current: None,
-            touch_ok: true,
-        };
+        return Displays { list: vec![], picked, current: None, touch_ok: true };
     };
     let list = display_list(&w);
     let cur = pick_display(&list, picked.as_deref()).cloned();
@@ -931,14 +795,7 @@ fn displays(handle: AppHandle, app: State<'_, App>) -> Displays {
     Displays {
         list: list
             .iter()
-            .map(|d| DisplayView {
-                id: d.id.clone(),
-                name: d.name.clone(),
-                width: d.rect.2,
-                height: d.rect.3,
-                primary: d.primary,
-                touch: d.touch,
-            })
+            .map(|d| DisplayView { id: d.id.clone(), name: d.name.clone(), width: d.rect.2, height: d.rect.3, primary: d.primary, touch: d.touch })
             .collect(),
         current: cur.map(|c| c.id),
         picked,
@@ -991,10 +848,7 @@ fn place(w: &WebviewWindow) {
 
 /// Game.log lines for the console, and for phones (who also get them later, on connecting).
 fn emit_log(handle: &AppHandle, batch: LogBatch) {
-    handle
-        .state::<App>()
-        .phones
-        .log_batch(&batch.lines, batch.live, batch.reset);
+    handle.state::<App>().phones.log_batch(&batch.lines, batch.live, batch.reset);
     let _ = handle.emit("game-log", batch);
 }
 
@@ -1008,11 +862,7 @@ fn watch_game(handle: AppHandle) {
             // Look for the channel every few seconds (less often once found), preferring the
             // one the running game is in.
             let asked = handle.state::<App>().rescan.swap(false, Ordering::SeqCst);
-            let every = if tail.is_some() {
-                Duration::from_secs(15)
-            } else {
-                Duration::from_secs(5)
-            };
+            let every = if tail.is_some() { Duration::from_secs(15) } else { Duration::from_secs(5) };
             if asked || since_scan >= every {
                 since_scan = Duration::ZERO;
                 #[cfg(windows)]
@@ -1027,14 +877,7 @@ fn watch_game(handle: AppHandle) {
                     let _ = game::install_binds(&c);
                     let mut t = game::Tail::new(c.join("Game.log"));
                     let lines = t.poll();
-                    emit_log(
-                        &handle,
-                        LogBatch {
-                            lines,
-                            live: false,
-                            reset: true,
-                        },
-                    );
+                    emit_log(&handle, LogBatch { lines, live: false, reset: true });
                     tail = Some(t);
                     *ch = Some(c);
                 }
@@ -1044,34 +887,16 @@ fn watch_game(handle: AppHandle) {
                 if std::mem::take(&mut t.restarted) {
                     // The game started over: the console starts over too, as on first load.
                     quiet = Duration::ZERO;
-                    emit_log(
-                        &handle,
-                        LogBatch {
-                            lines,
-                            live: false,
-                            reset: true,
-                        },
-                    );
+                    emit_log(&handle, LogBatch { lines, live: false, reset: true });
                 } else if lines.is_empty() {
                     quiet = quiet.saturating_add(game::POLL);
                 } else {
                     quiet = Duration::ZERO;
-                    emit_log(
-                        &handle,
-                        LogBatch {
-                            lines,
-                            live: true,
-                            reset: false,
-                        },
-                    );
+                    emit_log(&handle, LogBatch { lines, live: true, reset: false });
                 }
             }
             // Quick while the log is busy, and slower once nothing has happened for a while.
-            let wait = if quiet > Duration::from_secs(30) {
-                game::POLL_IDLE
-            } else {
-                game::POLL
-            };
+            let wait = if quiet > Duration::from_secs(30) { game::POLL_IDLE } else { game::POLL };
             std::thread::sleep(wait);
             since_scan = since_scan.saturating_add(wait);
             if quiet > Duration::from_secs(30) {
@@ -1107,13 +932,7 @@ fn phones_enable(handle: AppHandle, app: State<'_, App>, on: bool) {
 
 /// A phone's plate (swipe, status, power, role, flight or gear) and mode (copy or move).
 #[tauri::command]
-fn phones_set(
-    handle: AppHandle,
-    app: State<'_, App>,
-    id: String,
-    plate: Option<String>,
-    mode: Option<String>,
-) {
+fn phones_set(handle: AppHandle, app: State<'_, App>, id: String, plate: Option<String>, mode: Option<String>) {
     app.phones.configure(&id, plate.as_deref(), mode.as_deref());
     let _ = handle.emit("phones", ());
 }
@@ -1143,14 +962,7 @@ impl phone::Host for PhoneHost {
         Some((a.bytes().to_vec(), a.mime_type().to_string()))
     }
 
-    fn call(
-        &self,
-        cmd: &str,
-        args: &serde_json::Value,
-        held: &mut HashSet<String>,
-    ) -> std::pin::Pin<
-        Box<dyn std::future::Future<Output = Result<serde_json::Value, String>> + Send + '_>,
-    > {
+    fn call(&self, cmd: &str, args: &serde_json::Value, held: &mut HashSet<String>) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<serde_json::Value, String>> + Send + '_>> {
         use serde_json::{to_value, Value};
         let cmd = cmd.to_string();
         let args = args.clone();
@@ -1158,38 +970,18 @@ impl phone::Host for PhoneHost {
         let mode = args["mode"].as_str().unwrap_or("tap").to_string();
         // Hold keys this phone has down, so they can be let go if it drops.
         match (spec.as_deref(), mode.as_str()) {
-            (Some(s), "down") if cmd == "key" => {
-                held.insert(s.to_string());
-            }
-            (Some(s), "up") if cmd == "key" => {
-                held.remove(s);
-            }
+            (Some(s), "down") if cmd == "key" => { held.insert(s.to_string()); }
+            (Some(s), "up") if cmd == "key" => { held.remove(s); }
             _ => {}
         }
-        let mine: Vec<String> = if cmd == "release_keys" {
-            held.drain().collect()
-        } else {
-            Vec::new()
-        };
+        let mine: Vec<String> = if cmd == "release_keys" { held.drain().collect() } else { Vec::new() };
         Box::pin(async move {
             let h = &self.0;
             let app = h.state::<App>();
             let anywhere = args["anywhere"].as_bool().unwrap_or(false);
             match cmd.as_str() {
-                "key" => send_key(
-                    &app,
-                    spec.ok_or("no key")?,
-                    mode,
-                    args["ms"].as_u64(),
-                    anywhere,
-                )
-                .await
-                .map(|_| Value::Null),
-                "wheel" => wheel(
-                    args["clicks"].as_i64().unwrap_or(0).clamp(-50, 50) as i32,
-                    anywhere,
-                )
-                .map(|_| Value::Null),
+                "key" => send_key(&app, spec.ok_or("no key")?, mode, args["ms"].as_u64(), anywhere).await.map(|_| Value::Null),
+                "wheel" => wheel(args["clicks"].as_i64().unwrap_or(0).clamp(-50, 50) as i32, anywhere).map(|_| Value::Null),
                 "release_keys" => {
                     self.release(mine.into_iter().collect());
                     Ok(Value::Null)
@@ -1198,9 +990,7 @@ impl phone::Host for PhoneHost {
                 "read_binds" => to_value(read_binds(app)).map_err(|e| e.to_string()),
                 "user_ships" => to_value(user_ships(h.clone())).map_err(|e| e.to_string()),
                 "get_prefs" => to_value(get_prefs(h.clone(), app)).map_err(|e| e.to_string()),
-                "world_prices" => {
-                    to_value(world_prices(h.clone(), app).await?).map_err(|e| e.to_string())
-                }
+                "world_prices" => to_value(world_prices(h.clone(), app).await?).map_err(|e| e.to_string()),
                 "world_status" => to_value(world_status(app).await?).map_err(|e| e.to_string()),
                 "wake_screen" => {
                     let h2 = h.clone();
@@ -1234,60 +1024,27 @@ impl phone::Host for PhoneHost {
 }
 
 fn tray(handle: &AppHandle) -> tauri::Result<()> {
-    let version = MenuItem::with_id(
-        handle,
-        "version",
-        format!("Edge Cockpit {}", handle.package_info().version),
-        false,
-        None::<&str>,
-    )?;
+    let version = MenuItem::with_id(handle, "version", format!("Edge Cockpit {}", handle.package_info().version), false, None::<&str>)?;
     let toggle = MenuItem::with_id(handle, "toggle", "Hide the console", true, None::<&str>)?;
     let settings = MenuItem::with_id(handle, "settings", "Settings", true, None::<&str>)?;
     let setup = MenuItem::with_id(handle, "setup", "Setup check", true, None::<&str>)?;
     let on = handle.state::<App>().prefs.lock().unwrap().autostart;
-    let autostart = CheckMenuItem::with_id(
-        handle,
-        "autostart",
-        "Start with Windows",
-        true,
-        on,
-        None::<&str>,
-    )?;
+    let autostart = CheckMenuItem::with_id(handle, "autostart", "Start with Windows", true, on, None::<&str>)?;
     let update = MenuItem::with_id(handle, "update", "Check for updates", true, None::<&str>)?;
     let quit_item = MenuItem::with_id(handle, "quit", "Quit", true, None::<&str>)?;
     let sep = || PredefinedMenuItem::separator(handle);
-    let items: [&dyn tauri::menu::IsMenuItem<tauri::Wry>; 10] = [
-        &version,
-        &sep()?,
-        &toggle,
-        &settings,
-        &setup,
-        &sep()?,
-        &autostart,
-        &update,
-        &sep()?,
-        &quit_item,
-    ];
+    let items: [&dyn tauri::menu::IsMenuItem<tauri::Wry>; 10] =
+        [&version, &sep()?, &toggle, &settings, &setup, &sep()?, &autostart, &update, &sep()?, &quit_item];
     let menu = Menu::with_items(handle, &items)?;
     handle.manage(TrayToggle(toggle));
     handle.manage(TrayAutostart(autostart));
     TrayIconBuilder::with_id("tray")
-        .icon(
-            handle
-                .default_window_icon()
-                .cloned()
-                .ok_or(tauri::Error::InvalidIcon(std::io::Error::other("no icon")))?,
-        )
+        .icon(handle.default_window_icon().cloned().ok_or(tauri::Error::InvalidIcon(std::io::Error::other("no icon")))?)
         .tooltip("Edge Cockpit")
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_tray_icon_event(|tray, ev| {
-            if let tauri::tray::TrayIconEvent::Click {
-                button: tauri::tray::MouseButton::Left,
-                button_state: tauri::tray::MouseButtonState::Up,
-                ..
-            } = ev
-            {
+            if let tauri::tray::TrayIconEvent::Click { button: tauri::tray::MouseButton::Left, button_state: tauri::tray::MouseButtonState::Up, .. } = ev {
                 toggle_panel(tray.app_handle());
             }
         })
@@ -1309,40 +1066,11 @@ fn main() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(App::default())
         .invoke_handler(tauri::generate_handler![
-            key,
-            wheel,
-            ui_ready,
-            user_ships,
-            release_keys,
-            game_info,
-            read_binds,
-            install_binds,
-            run_as_admin,
-            quit,
-            save_profile,
-            load_profile,
-            save_user_ships,
-            install_profile_binds,
-            save_page,
-            page_files,
-            get_prefs,
-            set_pref,
-            wake_screen,
-            sleep_screen,
-            check_update,
-            install_update,
-            perf,
-            displays,
-            set_display,
-            fix_touch,
-            report_issue,
-            world_prices,
-            world_status,
-            phones_view,
-            phones_enable,
-            phones_set,
-            phones_forget,
-            share
+            key, wheel, ui_ready, user_ships, release_keys, game_info, read_binds, install_binds, run_as_admin, quit,
+            save_profile, load_profile, save_user_ships, install_profile_binds, save_page, page_files,
+            get_prefs, set_pref, wake_screen, sleep_screen, check_update, install_update, perf,
+            displays, set_display, fix_touch, report_issue, world_prices, world_status,
+            phones_view, phones_enable, phones_set, phones_forget, share
         ])
         .setup(|app| {
             let handle = app.handle().clone();
@@ -1358,9 +1086,7 @@ fn main() {
             let phones_on = prefs.phones;
             *app.state::<App>().prefs.lock().unwrap() = prefs;
             if let Ok(dir) = handle.path().app_config_dir() {
-                app.state::<App>()
-                    .phones
-                    .load(dir.join("phones.json"), phones_on);
+                app.state::<App>().phones.load(dir.join("phones.json"), phones_on);
             }
             if phones_on {
                 phone::start(std::sync::Arc::new(PhoneHost(handle.clone())));
@@ -1426,13 +1152,7 @@ mod tests {
     use super::{pick_display, Disp};
 
     fn d(id: &str, name: &str, w: i32, h: i32, primary: bool, touch: bool) -> Disp {
-        Disp {
-            id: id.into(),
-            name: name.into(),
-            rect: (0, 0, w, h),
-            primary,
-            touch,
-        }
+        Disp { id: id.into(), name: name.into(), rect: (0, 0, w, h), primary, touch }
     }
 
     #[test]
@@ -1445,10 +1165,7 @@ mod tests {
 
     #[test]
     fn encodes_issue_text_for_a_url() {
-        assert_eq!(
-            super::url_part("Log lines missing: 4.10 & más", 100),
-            "Log%20lines%20missing%3A%204.10%20%26%20m%C3%A1s"
-        );
+        assert_eq!(super::url_part("Log lines missing: 4.10 & más", 100), "Log%20lines%20missing%3A%204.10%20%26%20m%C3%A1s");
         assert_eq!(super::url_part("abcdef", 3), "abc");
     }
 
@@ -1458,29 +1175,14 @@ mod tests {
         let edge = d("2", "XENEON EDGE", 2560, 720, false, true);
         let side = d("3", "LG", 1920, 1080, false, false);
         let id = |l: &[Disp], p: Option<&str>| pick_display(l, p).map(|x| x.id.clone());
-        assert_eq!(
-            id(&[main.clone(), side.clone(), edge.clone()], None).as_deref(),
-            Some("2")
-        );
+        assert_eq!(id(&[main.clone(), side.clone(), edge.clone()], None).as_deref(), Some("2"));
         let edge_no_touch = d("2", "XENEON EDGE", 2560, 720, false, false);
-        assert_eq!(
-            id(&[main.clone(), side.clone(), edge_no_touch], None).as_deref(),
-            Some("2")
-        );
-        assert_eq!(
-            id(&[main.clone(), side.clone()], None).as_deref(),
-            Some("3")
-        );
+        assert_eq!(id(&[main.clone(), side.clone(), edge_no_touch], None).as_deref(), Some("2"));
+        assert_eq!(id(&[main.clone(), side.clone()], None).as_deref(), Some("3"));
         assert_eq!(id(std::slice::from_ref(&main), None), None);
         // A picked display wins, by GDI name or monitor name, and is ignored once it's gone.
-        assert_eq!(
-            id(&[main.clone(), side.clone(), edge.clone()], Some("LG")).as_deref(),
-            Some("3")
-        );
-        assert_eq!(
-            id(&[main.clone(), side.clone(), edge.clone()], Some("1")).as_deref(),
-            Some("1")
-        );
+        assert_eq!(id(&[main.clone(), side.clone(), edge.clone()], Some("LG")).as_deref(), Some("3"));
+        assert_eq!(id(&[main.clone(), side.clone(), edge.clone()], Some("1")).as_deref(), Some("1"));
         assert_eq!(id(&[main, side, edge], Some("gone")).as_deref(), Some("2"));
     }
 }

@@ -95,10 +95,7 @@ struct Inner {
 pub struct Phones(Mutex<Inner>);
 
 fn now_s() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(0)
+    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0)
 }
 
 fn random_hex(n: usize) -> String {
@@ -115,10 +112,7 @@ fn unhex(s: &str) -> Option<Vec<u8>> {
     if !s.len().is_multiple_of(2) {
         return None;
     }
-    (0..s.len())
-        .step_by(2)
-        .map(|i| u8::from_str_radix(s.get(i..i + 2)?, 16).ok())
-        .collect()
+    (0..s.len()).step_by(2).map(|i| u8::from_str_radix(s.get(i..i + 2)?, 16).ok()).collect()
 }
 
 /// HMAC-SHA256 (RFC 2104).
@@ -130,15 +124,8 @@ pub fn hmac(key: &[u8], msg: &[u8]) -> [u8; 32] {
         k[..key.len()].copy_from_slice(key);
     }
     let pad = |b: u8| k.iter().map(|x| x ^ b).collect::<Vec<_>>();
-    let inner = Sha256::new()
-        .chain_update(pad(0x36))
-        .chain_update(msg)
-        .finalize();
-    Sha256::new()
-        .chain_update(pad(0x5c))
-        .chain_update(inner)
-        .finalize()
-        .into()
+    let inner = Sha256::new().chain_update(pad(0x36)).chain_update(msg).finalize();
+    Sha256::new().chain_update(pad(0x5c)).chain_update(inner).finalize().into()
 }
 
 /// Compares in constant time.
@@ -154,9 +141,7 @@ pub fn private(ip: IpAddr) -> bool {
             if let Some(v4) = v.to_ipv4_mapped() {
                 return private(IpAddr::V4(v4));
             }
-            v.is_loopback()
-                || (v.segments()[0] & 0xfe00) == 0xfc00
-                || (v.segments()[0] & 0xffc0) == 0xfe80
+            v.is_loopback() || (v.segments()[0] & 0xfe00) == 0xfc00 || (v.segments()[0] & 0xffc0) == 0xfe80
         }
     }
 }
@@ -174,11 +159,7 @@ pub fn host_ok(host: &str) -> bool {
         return private(ip);
     }
     let lower = bare.to_ascii_lowercase();
-    lower.len() > 6
-        && lower.ends_with(".local")
-        && lower
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '.')
+    lower.len() > 6 && lower.ends_with(".local") && lower.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '.')
 }
 
 /// The address other devices reach this PC on: the one the default route uses.
@@ -197,11 +178,7 @@ pub fn device_name(ua: &str) -> String {
     } else if ua.contains("iPad") || (ua.contains("Macintosh") && ua.contains("Mobile")) {
         "iPad"
     } else if ua.contains("Android") {
-        if ua.contains("Mobile") {
-            "Android"
-        } else {
-            "Android tablet"
-        }
+        if ua.contains("Mobile") { "Android" } else { "Android tablet" }
     } else if ua.contains("CrOS") {
         "Chromebook"
     } else if ua.contains("Windows") {
@@ -219,10 +196,7 @@ pub fn device_name(ua: &str) -> String {
 impl Phones {
     pub fn load(&self, file: PathBuf, enabled: bool) {
         let mut g = self.0.lock().unwrap();
-        g.list = std::fs::read_to_string(&file)
-            .ok()
-            .and_then(|s| serde_json::from_str(&s).ok())
-            .unwrap_or_default();
+        g.list = std::fs::read_to_string(&file).ok().and_then(|s| serde_json::from_str(&s).ok()).unwrap_or_default();
         g.file = Some(file);
         g.enabled = enabled;
     }
@@ -248,13 +222,10 @@ impl Phones {
 
     pub fn view(&self) -> View {
         let mut g = self.0.lock().unwrap();
-        let url = (g.enabled && g.running)
-            .then(lan_ip)
-            .flatten()
-            .map(|ip| match ip {
-                IpAddr::V6(v) => format!("http://[{v}]:{PORT}/"),
-                IpAddr::V4(v) => format!("http://{v}:{PORT}/"),
-            });
+        let url = (g.enabled && g.running).then(lan_ip).flatten().map(|ip| match ip {
+            IpAddr::V6(v) => format!("http://[{v}]:{PORT}/"),
+            IpAddr::V4(v) => format!("http://{v}:{PORT}/"),
+        });
         if g.enabled && g.code_at.is_none_or(|t| t.elapsed() >= CODE_TTL) {
             Self::fresh_code(&mut g);
         }
@@ -262,33 +233,17 @@ impl Phones {
         let list: Vec<PhoneView> = g
             .list
             .iter()
-            .map(|p| PhoneView {
-                id: p.id.clone(),
-                name: p.name.clone(),
-                plate: p.plate.clone(),
-                mode: p.mode.clone(),
-                online: online.contains(p.id.as_str()),
-                seen: p.seen,
-            })
+            .map(|p| PhoneView { id: p.id.clone(), name: p.name.clone(), plate: p.plate.clone(), mode: p.mode.clone(), online: online.contains(p.id.as_str()), seen: p.seen })
             .collect();
-        let moved = list
-            .iter()
-            .filter(|p| p.online && p.mode == "move" && p.plate != "swipe" && p.plate != "status")
-            .map(|p| p.plate.clone())
-            .collect();
+        let moved = list.iter().filter(|p| p.online && p.mode == "move" && p.plate != "swipe" && p.plate != "status").map(|p| p.plate.clone()).collect();
         View {
             enabled: g.enabled,
             // The QR also carries the code (after #, so it never reaches the server as a path):
             // a scan pairs at once. It is on the same screen as the code, and expires with it.
-            qr: url
-                .as_deref()
-                .map(|u| qr_svg(&format!("{u}#pair={}", g.code))),
+            qr: url.as_deref().map(|u| qr_svg(&format!("{u}#pair={}", g.code))),
             url,
             code: g.enabled.then(|| g.code.clone()),
-            ttl: g
-                .code_at
-                .map(|t| CODE_TTL.saturating_sub(t.elapsed()).as_secs())
-                .unwrap_or(0),
+            ttl: g.code_at.map(|t| CODE_TTL.saturating_sub(t.elapsed()).as_secs()).unwrap_or(0),
             list,
             moved,
         }
@@ -306,9 +261,7 @@ impl Phones {
     /// Changes a phone's plate and mode. Returns the connections to tell.
     pub fn configure(&self, id: &str, plate: Option<&str>, mode: Option<&str>) -> bool {
         let mut g = self.0.lock().unwrap();
-        let Some(p) = g.list.iter_mut().find(|p| p.id == id) else {
-            return false;
-        };
+        let Some(p) = g.list.iter_mut().find(|p| p.id == id) else { return false };
         if let Some(pl) = plate.filter(|pl| PLATES.contains(pl)) {
             p.plate = pl.to_string();
         }
@@ -371,6 +324,7 @@ impl Phones {
             }
         }
     }
+
 }
 
 /// Shared state merges one level deep: an object updates the entries it names (null removes
@@ -401,14 +355,7 @@ pub fn merge(into: &mut serde_json::Map<String, Value>, s: &serde_json::Map<Stri
 pub fn qr_svg(url: &str) -> String {
     use qrcode::render::svg;
     qrcode::QrCode::new(url.as_bytes())
-        .map(|c| {
-            c.render::<svg::Color>()
-                .min_dimensions(160, 160)
-                .quiet_zone(true)
-                .dark_color(svg::Color("#000000"))
-                .light_color(svg::Color("#ffffff"))
-                .build()
-        })
+        .map(|c| c.render::<svg::Color>().min_dimensions(160, 160).quiet_zone(true).dark_color(svg::Color("#000000")).light_color(svg::Color("#ffffff")).build())
         .unwrap_or_default()
 }
 
@@ -419,12 +366,7 @@ pub trait Host: Send + Sync + 'static {
     fn phones(&self) -> &Phones;
     fn asset(&self, path: &str) -> Option<(Vec<u8>, String)>;
     /// Runs a console command for a phone. `held` tracks hold keys this phone has down.
-    fn call(
-        &self,
-        cmd: &str,
-        args: &Value,
-        held: &mut HashSet<String>,
-    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Value, String>> + Send + '_>>;
+    fn call(&self, cmd: &str, args: &Value, held: &mut HashSet<String>) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Value, String>> + Send + '_>>;
     /// The phone list changed (paired, connected, dropped): tell this PC's console.
     fn changed(&self);
     /// Releases keys a dropped phone was holding.
@@ -438,20 +380,12 @@ pub const LOCAL_NAME: &str = "edge-cockpit.local";
 /// Announces LOCAL_NAME (and an HTTP service) at the LAN address while devices are on, and
 /// follows the address when it changes. Off, nothing is announced.
 fn announce<H: Host>(host: std::sync::Arc<H>) {
-    announce_at(move || {
-        if host.phones().enabled() {
-            lan_ip()
-        } else {
-            None
-        }
-    });
+    announce_at(move || if host.phones().enabled() { lan_ip() } else { None });
 }
 
 fn announce_at(at: impl Fn() -> Option<IpAddr> + Send + 'static) {
     std::thread::spawn(move || {
-        let Ok(daemon) = mdns_sd::ServiceDaemon::new() else {
-            return;
-        };
+        let Ok(daemon) = mdns_sd::ServiceDaemon::new() else { return };
         let full = "edge-cockpit._http._tcp.local.";
         let mut now: Option<IpAddr> = None;
         loop {
@@ -462,14 +396,7 @@ fn announce_at(at: impl Fn() -> Option<IpAddr> + Send + 'static) {
                 }
                 if let Some(ip) = want {
                     let props: &[(&str, &str)] = &[("path", "/")];
-                    if let Ok(info) = mdns_sd::ServiceInfo::new(
-                        "_http._tcp.local.",
-                        "edge-cockpit",
-                        &format!("{LOCAL_NAME}."),
-                        ip,
-                        PORT,
-                        props,
-                    ) {
+                    if let Ok(info) = mdns_sd::ServiceInfo::new("_http._tcp.local.", "edge-cockpit", &format!("{LOCAL_NAME}."), ip, PORT, props) {
                         let _ = daemon.register(info);
                     }
                 }
@@ -499,18 +426,14 @@ pub fn start<H: Host>(host: std::sync::Arc<H>) {
             }
         };
         loop {
-            let Ok((stream, peer)) = listener.accept().await else {
-                continue;
-            };
+            let Ok((stream, peer)) = listener.accept().await else { continue };
             if !private(peer.ip()) || !host.phones().enabled() {
                 continue;
             }
             let _ = stream.set_nodelay(true);
             let h = host.clone();
             tauri::async_runtime::spawn(async move {
-                let _ =
-                    tokio::time::timeout(Duration::from_secs(60 * 60 * 24), serve(h, stream, peer))
-                        .await;
+                let _ = tokio::time::timeout(Duration::from_secs(60 * 60 * 24), serve(h, stream, peer)).await;
             });
         }
     });
@@ -533,9 +456,7 @@ fn parse_head(head: &str) -> Option<Request> {
     let path = first.next()?.to_string();
     let (mut host, mut origin, mut upgrade, mut ua) = (String::new(), None, false, String::new());
     for l in lines {
-        let Some((k, v)) = l.split_once(':') else {
-            continue;
-        };
+        let Some((k, v)) = l.split_once(':') else { continue };
         let v = v.trim();
         match k.trim().to_ascii_lowercase().as_str() {
             "host" => host = v.to_string(),
@@ -545,26 +466,14 @@ fn parse_head(head: &str) -> Option<Request> {
             _ => {}
         }
     }
-    Some(Request {
-        path,
-        host,
-        origin,
-        upgrade,
-        ua,
-    })
+    Some(Request { path, host, origin, upgrade, ua })
 }
 
-async fn serve<H: Host>(
-    host: std::sync::Arc<H>,
-    stream: tokio::net::TcpStream,
-    _peer: SocketAddr,
-) -> std::io::Result<()> {
+async fn serve<H: Host>(host: std::sync::Arc<H>, stream: tokio::net::TcpStream, _peer: SocketAddr) -> std::io::Result<()> {
     // Read the request head without taking it, so a WebSocket handshake can still read it.
     let mut buf = vec![0u8; 8192];
     let head = loop {
-        let n = tokio::time::timeout(Duration::from_secs(10), stream.peek(&mut buf))
-            .await
-            .map_err(|_| std::io::ErrorKind::TimedOut)??;
+        let n = tokio::time::timeout(Duration::from_secs(10), stream.peek(&mut buf)).await.map_err(|_| std::io::ErrorKind::TimedOut)??;
         if n == 0 {
             return Ok(());
         }
@@ -576,18 +485,9 @@ async fn serve<H: Host>(
         }
         tokio::time::sleep(Duration::from_millis(5)).await;
     };
-    let Some(req) = parse_head(&head) else {
-        return reply(stream, 405, "text/plain", b"GET only".to_vec(), "").await;
-    };
+    let Some(req) = parse_head(&head) else { return reply(stream, 405, "text/plain", b"GET only".to_vec(), "").await };
     if !host_ok(&req.host) {
-        return reply(
-            stream,
-            421,
-            "text/plain",
-            b"Use the address from Settings".to_vec(),
-            "",
-        )
-        .await;
+        return reply(stream, 421, "text/plain", b"Use the address from Settings".to_vec(), "").await;
     }
     let route = req.path.split(['?', '#']).next().unwrap_or("/").to_string();
     if route == "/link" && req.upgrade {
@@ -610,11 +510,7 @@ async fn serve<H: Host>(
         let mut sink = vec![0u8; head.len() + 4];
         let _ = stream.read_exact(&mut sink).await;
     }
-    let file = if route == "/" {
-        "/index.html".to_string()
-    } else {
-        route
-    };
+    let file = if route == "/" { "/index.html".to_string() } else { route };
     if file.contains("..") {
         return reply(stream, 404, "text/plain", b"Not found".to_vec(), "").await;
     }
@@ -631,13 +527,7 @@ async fn serve<H: Host>(
     Ok(())
 }
 
-async fn reply(
-    mut stream: tokio::net::TcpStream,
-    code: u16,
-    mime: &str,
-    body: Vec<u8>,
-    csp: &str,
-) -> std::io::Result<()> {
+async fn reply(mut stream: tokio::net::TcpStream, code: u16, mime: &str, body: Vec<u8>, csp: &str) -> std::io::Result<()> {
     use tokio::io::AsyncWriteExt;
     let reason = match code {
         200 => "OK",
@@ -666,13 +556,7 @@ async fn link<H: Host>(host: std::sync::Arc<H>, ws: Ws, ua: String) {
     use tokio_tungstenite::tungstenite::Message;
     let (mut out, mut inp) = ws.split();
     let nonce = random_hex(32);
-    if out
-        .send(Message::text(
-            json!({ "t": "hello", "nonce": nonce, "v": 1 }).to_string(),
-        ))
-        .await
-        .is_err()
-    {
+    if out.send(Message::text(json!({ "t": "hello", "nonce": nonce, "v": 1 }).to_string())).await.is_err() {
         return;
     }
     // The first message pairs or proves the phone.
@@ -689,24 +573,9 @@ async fn link<H: Host>(host: std::sync::Arc<H>, ws: Ws, ua: String) {
             g.tries += 1;
             if fresh && same(code.as_bytes(), g.code.as_bytes()) {
                 let base = device_name(&ua);
-                let n = g
-                    .list
-                    .iter()
-                    .filter(|p| p.name == base || p.name.starts_with(&format!("{base} ")))
-                    .count();
-                let name = if n == 0 {
-                    base
-                } else {
-                    format!("{base} {}", n + 1)
-                };
-                let p = Phone {
-                    id: random_hex(8),
-                    name,
-                    token: random_hex(32),
-                    plate: "swipe".into(),
-                    mode: "copy".into(),
-                    seen: now_s(),
-                };
+                let n = g.list.iter().filter(|p| p.name == base || p.name.starts_with(&format!("{base} "))).count();
+                let name = if n == 0 { base } else { format!("{base} {}", n + 1) };
+                let p = Phone { id: random_hex(8), name, token: random_hex(32), plate: "swipe".into(), mode: "copy".into(), seen: now_s() };
                 g.list.push(p.clone());
                 Phones::save(&g);
                 // A used code is spent.
@@ -741,11 +610,7 @@ async fn link<H: Host>(host: std::sync::Arc<H>, ws: Ws, ua: String) {
     let (phone, token) = match who {
         Ok(w) => w,
         Err(why) => {
-            let _ = out
-                .send(Message::text(
-                    json!({ "t": "denied", "why": why }).to_string(),
-                ))
-                .await;
+            let _ = out.send(Message::text(json!({ "t": "denied", "why": why }).to_string())).await;
             host.changed();
             return;
         }
@@ -759,14 +624,7 @@ async fn link<H: Host>(host: std::sync::Arc<H>, ws: Ws, ua: String) {
         Phones::save(&g);
         g.next += 1;
         let n = g.next;
-        g.live.insert(
-            n,
-            Conn {
-                phone: phone.id.clone(),
-                tx: tx.clone(),
-                held: HashSet::new(),
-            },
-        );
+        g.live.insert(n, Conn { phone: phone.id.clone(), tx: tx.clone(), held: HashSet::new() });
         n
     };
     let mut welcome = json!({ "t": "ok", "id": phone.id, "name": phone.name, "plate": phone.plate, "mode": phone.mode });
@@ -791,9 +649,7 @@ async fn link<H: Host>(host: std::sync::Arc<H>, ws: Ws, ua: String) {
             Message::Ping(_) | Message::Pong(_) => continue,
             _ => break,
         };
-        let Ok(v) = serde_json::from_str::<Value>(&text) else {
-            continue;
-        };
+        let Ok(v) = serde_json::from_str::<Value>(&text) else { continue };
         // Still allowed? Forgetting a phone or turning phones off drops it.
         if !phones.0.lock().unwrap().live.contains_key(&conn) {
             break;
@@ -813,16 +669,13 @@ async fn link<H: Host>(host: std::sync::Arc<H>, ws: Ws, ua: String) {
                             (g.log.clone(), g.shared.clone())
                         };
                         let _ = tx.send(json!({ "t": "ev", "name": "game-log", "p": { "lines": log, "live": false, "reset": true } }).to_string());
-                        let _ = tx
-                            .send(json!({ "t": "ev", "name": "shared", "p": shared }).to_string());
+                        let _ = tx.send(json!({ "t": "ev", "name": "shared", "p": shared }).to_string());
                         Ok(Value::Null)
                     }
                     "share" => {
                         if let Some(s) = args["s"].as_object() {
                             phones.share(s, Some(conn));
-                            host.call("share_local", &args, &mut held)
-                                .await
-                                .map(|_| Value::Null)
+                            host.call("share_local", &args, &mut held).await.map(|_| Value::Null)
                         } else {
                             Err("bad".into())
                         }
@@ -861,10 +714,7 @@ mod tests {
     fn hmac_matches_rfc_4231() {
         // Test case 2.
         let mac = hmac(b"Jefe", b"what do ya want for nothing?");
-        assert_eq!(
-            hex(&mac),
-            "5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843"
-        );
+        assert_eq!(hex(&mac), "5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843");
     }
 
     #[test]
@@ -885,42 +735,19 @@ mod tests {
         let mut m = serde_json::Map::new();
         let a = json!({ "st": { "gear": "down", "lights": "on" }, "page": "mining" });
         merge(&mut m, a.as_object().unwrap());
-        merge(
-            &mut m,
-            json!({ "st": { "lights": null, "vtol": "on" } })
-                .as_object()
-                .unwrap(),
-        );
-        assert_eq!(
-            Value::Object(m.clone()),
-            json!({ "st": { "gear": "down", "vtol": "on" }, "page": "mining" })
-        );
+        merge(&mut m, json!({ "st": { "lights": null, "vtol": "on" } }).as_object().unwrap());
+        assert_eq!(Value::Object(m.clone()), json!({ "st": { "gear": "down", "vtol": "on" }, "page": "mining" }));
         merge(&mut m, json!({ "st": null }).as_object().unwrap());
         assert_eq!(Value::Object(m), json!({ "page": "mining" }));
     }
 
     #[test]
     fn names_devices() {
-        assert_eq!(
-            device_name("Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X)"),
-            "iPhone"
-        );
-        assert_eq!(
-            device_name("Mozilla/5.0 (Linux; Android 15; Pixel 8) Mobile Safari/537.36"),
-            "Android"
-        );
-        assert_eq!(
-            device_name("Mozilla/5.0 (Linux; Android 15; SM-X710) Safari/537.36"),
-            "Android tablet"
-        );
-        assert_eq!(
-            device_name("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/142.0"),
-            "Windows PC"
-        );
-        assert_eq!(
-            device_name("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"),
-            "Mac"
-        );
+        assert_eq!(device_name("Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X)"), "iPhone");
+        assert_eq!(device_name("Mozilla/5.0 (Linux; Android 15; Pixel 8) Mobile Safari/537.36"), "Android");
+        assert_eq!(device_name("Mozilla/5.0 (Linux; Android 15; SM-X710) Safari/537.36"), "Android tablet");
+        assert_eq!(device_name("Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/142.0"), "Windows PC");
+        assert_eq!(device_name("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15"), "Mac");
     }
     struct Fake {
         phones: Phones,
@@ -933,13 +760,7 @@ mod tests {
         fn asset(&self, path: &str) -> Option<(Vec<u8>, String)> {
             (path == "/index.html").then(|| (b"<!doctype html>".to_vec(), "text/html".into()))
         }
-        fn call(
-            &self,
-            cmd: &str,
-            _args: &Value,
-            held: &mut HashSet<String>,
-        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Value, String>> + Send + '_>>
-        {
+        fn call(&self, cmd: &str, _args: &Value, held: &mut HashSet<String>) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<Value, String>> + Send + '_>> {
             self.calls.lock().unwrap().push(cmd.to_string());
             if cmd == "key" {
                 held.insert("F".into());
@@ -956,12 +777,8 @@ mod tests {
 
     async fn get(host: &str) -> String {
         use tokio::io::{AsyncReadExt, AsyncWriteExt};
-        let mut s = tokio::net::TcpStream::connect(("127.0.0.1", PORT))
-            .await
-            .unwrap();
-        s.write_all(format!("GET / HTTP/1.1\r\nHost: {host}\r\n\r\n").as_bytes())
-            .await
-            .unwrap();
+        let mut s = tokio::net::TcpStream::connect(("127.0.0.1", PORT)).await.unwrap();
+        s.write_all(format!("GET / HTTP/1.1\r\nHost: {host}\r\n\r\n").as_bytes()).await.unwrap();
         let mut out = String::new();
         s.read_to_string(&mut out).await.unwrap();
         out
@@ -970,34 +787,20 @@ mod tests {
     type Client = tokio_tungstenite::WebSocketStream<tokio::net::TcpStream>;
     async fn open(origin: &str) -> Result<Client, String> {
         use tokio_tungstenite::tungstenite::client::IntoClientRequest;
-        let mut req = format!("ws://127.0.0.1:{PORT}/link")
-            .into_client_request()
-            .unwrap();
+        let mut req = format!("ws://127.0.0.1:{PORT}/link").into_client_request().unwrap();
         req.headers_mut().insert("origin", origin.parse().unwrap());
-        let s = tokio::net::TcpStream::connect(("127.0.0.1", PORT))
-            .await
-            .unwrap();
-        tokio_tungstenite::client_async(req, s)
-            .await
-            .map(|(ws, _)| ws)
-            .map_err(|e| e.to_string())
+        let s = tokio::net::TcpStream::connect(("127.0.0.1", PORT)).await.unwrap();
+        tokio_tungstenite::client_async(req, s).await.map(|(ws, _)| ws).map_err(|e| e.to_string())
     }
     async fn send(ws: &mut Client, v: Value) {
         use futures_util::SinkExt;
-        ws.send(tokio_tungstenite::tungstenite::Message::text(v.to_string()))
-            .await
-            .unwrap();
+        ws.send(tokio_tungstenite::tungstenite::Message::text(v.to_string())).await.unwrap();
     }
     async fn next(ws: &mut Client) -> Value {
         use futures_util::StreamExt;
         loop {
-            match tokio::time::timeout(Duration::from_secs(5), ws.next())
-                .await
-                .expect("a reply in time")
-            {
-                Some(Ok(tokio_tungstenite::tungstenite::Message::Text(t))) => {
-                    return serde_json::from_str(&t).unwrap()
-                }
+            match tokio::time::timeout(Duration::from_secs(5), ws.next()).await.expect("a reply in time") {
+                Some(Ok(tokio_tungstenite::tungstenite::Message::Text(t))) => return serde_json::from_str(&t).unwrap(),
                 Some(Ok(_)) => continue,
                 _ => return Value::Null,
             }
@@ -1011,9 +814,7 @@ mod tests {
         let ip: IpAddr = std::env::var("WAN_IP").expect("WAN_IP").parse().unwrap();
         announce_at(move || Some(ip));
         let d = mdns_sd::ServiceDaemon::new().unwrap();
-        let rx = d
-            .resolve_hostname(&format!("{LOCAL_NAME}."), Some(5000))
-            .unwrap();
+        let rx = d.resolve_hostname(&format!("{LOCAL_NAME}."), Some(5000)).unwrap();
         let mut found = false;
         while let Ok(ev) = rx.recv() {
             match ev {
@@ -1031,17 +832,12 @@ mod tests {
     /// The whole link on a real socket: files, the Host and Origin checks, pairing, proving, a call, and keys let go on a drop.
     #[test]
     fn pairs_and_proves_over_the_link() {
-        let host = std::sync::Arc::new(Fake {
-            phones: Phones::default(),
-            calls: Mutex::new(vec![]),
-        });
+        let host = std::sync::Arc::new(Fake { phones: Phones::default(), calls: Mutex::new(vec![]) });
         host.phones.set_enabled(true);
         start(host.clone());
         tauri::async_runtime::block_on(async {
             tokio::time::sleep(Duration::from_millis(200)).await;
-            assert!(get(&format!("127.0.0.1:{PORT}"))
-                .await
-                .starts_with("HTTP/1.1 200"));
+            assert!(get(&format!("127.0.0.1:{PORT}")).await.starts_with("HTTP/1.1 200"));
             assert!(get("evil.example.com").await.starts_with("HTTP/1.1 421"));
             let me = format!("http://127.0.0.1:{PORT}");
             assert!(open("http://evil.example.com").await.is_err());
@@ -1057,10 +853,7 @@ mod tests {
             send(&mut ws, json!({ "t": "pair", "code": code })).await;
             let ok = next(&mut ws).await;
             assert_eq!(ok["t"], "ok");
-            let (id, token) = (
-                ok["id"].as_str().unwrap().to_string(),
-                ok["token"].as_str().unwrap().to_string(),
-            );
+            let (id, token) = (ok["id"].as_str().unwrap().to_string(), ok["token"].as_str().unwrap().to_string());
             drop(ws);
 
             // Later the phone proves itself with the token, which never travels again.
@@ -1079,22 +872,12 @@ mod tests {
             assert!(host.phones.view().list[0].online);
 
             // A call runs on the PC and answers; the key it holds is let go when the phone drops.
-            send(
-                &mut ws2,
-                json!({ "t": "call", "n": 7, "cmd": "key", "args": {} }),
-            )
-            .await;
+            send(&mut ws2, json!({ "t": "call", "n": 7, "cmd": "key", "args": {} })).await;
             let ret = next(&mut ws2).await;
-            assert_eq!(
-                (ret["t"].as_str(), ret["n"].as_u64(), ret["ok"].as_bool()),
-                (Some("ret"), Some(7), Some(true))
-            );
+            assert_eq!((ret["t"].as_str(), ret["n"].as_u64(), ret["ok"].as_bool()), (Some("ret"), Some(7), Some(true)));
             drop(ws2);
             tokio::time::sleep(Duration::from_millis(200)).await;
-            assert_eq!(
-                *host.calls.lock().unwrap(),
-                vec!["key".to_string(), "release F".to_string()]
-            );
+            assert_eq!(*host.calls.lock().unwrap(), vec!["key".to_string(), "release F".to_string()]);
             assert!(!host.phones.view().list[0].online);
         });
     }

@@ -26,16 +26,7 @@ mod tests {
     #[test]
     fn family_takes_children_and_grandchildren_once() {
         // 1 -> 2 -> 4, 1 -> 3; 5 is someone else's; 6 claims itself as parent; 7 <-> 8 loop.
-        let pairs = [
-            (2, 1),
-            (3, 1),
-            (4, 2),
-            (5, 9),
-            (6, 6),
-            (7, 8),
-            (8, 7),
-            (1, 7),
-        ];
+        let pairs = [(2, 1), (3, 1), (4, 2), (5, 9), (6, 6), (7, 8), (8, 7), (1, 7)];
         let mut got = family(1, &pairs);
         got.sort();
         assert_eq!(got, vec![1, 2, 3, 4]);

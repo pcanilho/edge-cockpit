@@ -21,10 +21,7 @@ pub const BINDS_NAME: &str = "layout_edge_cockpit_exported.xml";
 /// The last part of a path, split on either separator, so Windows paths read the same in
 /// tests on any system.
 fn last_part(p: &str) -> &str {
-    p.trim_end_matches(['\\', '/'])
-        .rsplit(['\\', '/'])
-        .next()
-        .unwrap_or("")
+    p.trim_end_matches(['\\', '/']).rsplit(['\\', '/']).next().unwrap_or("")
 }
 
 /// The path without its last part, or None at the top.
@@ -107,10 +104,7 @@ pub const PROFILE_BINDS_NAME: &str = "layout_edge_cockpit_profile_exported.xml";
 pub fn install_profile_binds(channel: &Path, xml: &str) -> std::io::Result<PathBuf> {
     let head = xml.trim_start();
     if !head.starts_with("<ActionMaps") || xml.len() > 1_000_000 {
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::InvalidData,
-            "Not a Star Citizen control profile",
-        ));
+        return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Not a Star Citizen control profile"));
     }
     let dir = mappings_dir(channel);
     fs::create_dir_all(&dir)?;
@@ -132,24 +126,14 @@ pub struct Tail {
 
 impl Tail {
     pub fn new(path: PathBuf) -> Self {
-        Self {
-            path,
-            offset: 0,
-            rest: String::new(),
-            born: None,
-            restarted: false,
-        }
+        Self { path, offset: 0, rest: String::new(), born: None, restarted: false }
     }
 
     /// New complete lines since the last call. A new Game.log (the game restarted: the file
     /// is shorter, or was created again) is read from the start and sets `restarted`.
     pub fn poll(&mut self) -> Vec<String> {
-        let Ok(mut f) = File::open(&self.path) else {
-            return vec![];
-        };
-        let Ok(meta) = f.metadata() else {
-            return vec![];
-        };
+        let Ok(mut f) = File::open(&self.path) else { return vec![] };
+        let Ok(meta) = f.metadata() else { return vec![] };
         let size = meta.len();
         let born = meta.created().ok();
         let renewed = self.offset > 0 && born.is_some() && self.born.is_some() && born != self.born;
@@ -163,20 +147,13 @@ impl Tail {
             return vec![];
         }
         let mut buf = Vec::with_capacity((size - self.offset) as usize);
-        let Ok(n) = f.take(size - self.offset).read_to_end(&mut buf) else {
-            return vec![];
-        };
+        let Ok(n) = f.take(size - self.offset).read_to_end(&mut buf) else { return vec![] };
         self.offset += n as u64;
         self.rest.push_str(&String::from_utf8_lossy(&buf));
         let rest = std::mem::take(&mut self.rest);
         let mut parts = rest.split('\n').collect::<Vec<_>>();
         self.rest = parts.pop().unwrap_or_default().to_string();
-        parts
-            .into_iter()
-            .map(|l| l.trim_end_matches('\r'))
-            .filter(|l| relevant(l))
-            .map(str::to_string)
-            .collect()
+        parts.into_iter().map(|l| l.trim_end_matches('\r')).filter(|l| relevant(l)).map(str::to_string).collect()
     }
 }
 
@@ -188,45 +165,15 @@ pub const POLL_IDLE: Duration = Duration::from_millis(1500);
 /// pattern has one). Everything
 /// else, which is nearly all of Game.log, never leaves Rust.
 const MARKERS: &[&str] = &[
-    "SetDriver",
-    "ClearDriver",
-    "Armistice Zone",
-    "as their destination",
-    "Join PU",
-    "Context Establisher Done",
-    "Loading screen for",
-    "FastShutdown",
-    "Disconnecting from",
-    "SystemQuit",
-    "AccountLoginCharacterStatus_Character",
-    "Emergency Services",
-    "Logged an incap",
-    "[ActorState] Dead",
-    "<Actor Death>",
-    "Recv Unbind Batch Add Player",
-    "<Spawn Flow>",
-    "\"Contract ",
-    "Objective",
-    "Jurisdiction",
-    "Monitored Space",
-    "CrimeStat",
-    "Branch:",
-    "Changelist:",
-    "<Vehicle Destruction>",
-    "RequestLocationInventory",
+    "SetDriver", "ClearDriver", "Armistice Zone", "as their destination", "Join PU", "Context Establisher Done",
+    "Loading screen for", "FastShutdown", "Disconnecting from", "SystemQuit", "AccountLoginCharacterStatus_Character",
+    "Emergency Services", "Logged an incap", "[ActorState] Dead", "<Actor Death>", "Recv Unbind Batch Add Player",
+    "<Spawn Flow>", "\"Contract ", "Objective", "Jurisdiction", "Monitored Space", "CrimeStat",
+    "Branch:", "Changelist:", "<Vehicle Destruction>", "RequestLocationInventory",
     // 4.10 boarding, navigation and quantum, hangars, and the Log page.
-    "You have joined",
-    "You have left",
-    "CSCItemNavigation::",
-    "SetVehicleSpawningInformations",
-    "[Team_GameServices][ASOP]",
-    "Hangar Request Completed",
-    "OnLoadingPlatformStateChanged",
-    "<Actor stall>",
-    "<Changing Solar System>",
-    "Refinery Work Order",
-    "DoesLocationContainHospital",
-    "STOWING ON UNREGISTER",
+    "You have joined", "You have left", "CSCItemNavigation::", "SetVehicleSpawningInformations", "[Team_GameServices][ASOP]",
+    "Hangar Request Completed", "OnLoadingPlatformStateChanged", "<Actor stall>", "<Changing Solar System>",
+    "Refinery Work Order", "DoesLocationContainHospital", "STOWING ON UNREGISTER",
 ];
 
 pub fn relevant(line: &str) -> bool {
@@ -255,12 +202,7 @@ mod tests {
         fs::write(&p, "noise\r\nEntering Armistice Zone\r\nLeaving Armi").unwrap();
         let mut t = Tail::new(p.clone());
         assert_eq!(t.poll(), vec!["Entering Armistice Zone"]);
-        fs::OpenOptions::new()
-            .append(true)
-            .open(&p)
-            .unwrap()
-            .write_all(b"stice Zone\nmore noise\n")
-            .unwrap();
+        fs::OpenOptions::new().append(true).open(&p).unwrap().write_all(b"stice Zone\nmore noise\n").unwrap();
         assert_eq!(t.poll(), vec!["Leaving Armistice Zone"]);
         fs::write(&p, "<Join PU>\n").unwrap();
         assert_eq!(t.poll(), vec!["<Join PU>"]);
@@ -282,9 +224,7 @@ mod tests {
         ] {
             assert!(relevant(l), "{l}");
         }
-        assert!(!relevant(
-            "<2026-11-17> [Notice] <CEntityComponentPhysics> nothing to see"
-        ));
+        assert!(!relevant("<2026-11-17> [Notice] <CEntityComponentPhysics> nothing to see"));
     }
 
     /// A whole 4.10 session (test/fixtures/game-4.10.log: the game's own line formats, with
@@ -303,12 +243,7 @@ mod tests {
         let mut t = Tail::new(p.clone());
         let mut got = vec![];
         for part in log.chunks(log.len() / 3 + 1) {
-            fs::OpenOptions::new()
-                .append(true)
-                .open(&p)
-                .unwrap()
-                .write_all(part)
-                .unwrap();
+            fs::OpenOptions::new().append(true).open(&p).unwrap().write_all(part).unwrap();
             got.extend(t.poll());
         }
         fs::remove_dir_all(dir).ok();
@@ -317,19 +252,13 @@ mod tests {
         if std::env::var_os("UPDATE_REPLAY").is_some() {
             fs::write(&expected, &text).unwrap();
         }
-        assert_eq!(
-            text,
-            fs::read_to_string(&expected).unwrap().replace("\r\n", "\n")
-        );
+        assert_eq!(text, fs::read_to_string(&expected).unwrap().replace("\r\n", "\n"));
         assert!(got.len() < 80, "the filter let {} lines through", got.len());
     }
 
     #[test]
     fn candidates_under_a_game_dir() {
-        assert_eq!(
-            candidates(Some(Path::new(r"D:\SC\LIVE"))),
-            vec![PathBuf::from(r"D:\SC\LIVE")]
-        );
+        assert_eq!(candidates(Some(Path::new(r"D:\SC\LIVE"))), vec![PathBuf::from(r"D:\SC\LIVE")]);
         assert_eq!(candidates(Some(Path::new(r"D:\SC"))).len(), CHANNELS.len());
     }
 }
@@ -340,18 +269,14 @@ mod binds_tests {
 
     #[test]
     fn every_action_without_a_default_key_gets_one() {
-        let layout: serde_json::Value =
-            serde_json::from_str(include_str!("../../../layouts/star-citizen.json")).unwrap();
+        let layout: serde_json::Value = serde_json::from_str(include_str!("../../../layouts/star-citizen.json")).unwrap();
         let mut stack = vec![&layout];
         while let Some(o) = stack.pop() {
             match o {
                 serde_json::Value::Object(m) => {
                     if m.get("needsKeyboardBind") == Some(&serde_json::Value::Bool(true)) {
                         let action = m["action"].as_str().unwrap();
-                        assert!(
-                            BINDS_XML.contains(&format!("<action name=\"{action}\">")),
-                            "{action} has no key in the binds file"
-                        );
+                        assert!(BINDS_XML.contains(&format!("<action name=\"{action}\">")), "{action} has no key in the binds file");
                     }
                     stack.extend(m.values());
                 }

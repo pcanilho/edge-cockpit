@@ -20,10 +20,7 @@ const REPORT_MAX_AGE_S: u64 = 7 * 86_400;
 pub const SYSTEMS: [&str; 3] = ["Stanton", "Pyro", "Nyx"];
 
 pub fn now_ms() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_millis() as u64)
-        .unwrap_or(0)
+    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
 }
 
 /// A place with trade terminals: a station, city or outpost, and the names it goes by.
@@ -154,83 +151,35 @@ fn or_zero<'de, D: serde::Deserializer<'de>>(d: D) -> Result<f64, D::Error> {
 pub fn market(rows: &[PriceRow], terminals: &[Terminal], now_s: u64) -> (Vec<Place>, Vec<Quote>) {
     let mut places: Vec<Place> = Vec::new();
     let mut at: HashMap<u64, usize> = HashMap::new();
-    for t in terminals
-        .iter()
-        .filter(|t| t.is_available_live == 1 && t.is_visible == 1)
-    {
-        let Some(sys) = t
-            .star_system_name
-            .as_deref()
-            .filter(|s| SYSTEMS.contains(s))
-        else {
-            continue;
-        };
-        let display = t
-            .displayname
-            .as_deref()
-            .or(t.name.as_deref())
-            .filter(|n| !n.is_empty());
-        let Some(name) = [&t.space_station_name, &t.city_name, &t.outpost_name]
-            .into_iter()
-            .flatten()
-            .map(String::as_str)
-            .find(|n| !n.is_empty())
-            .or(display)
-        else {
-            continue;
-        };
-        let i = match places
-            .iter()
-            .position(|p| p.name == name && p.system == sys)
-        {
+    for t in terminals.iter().filter(|t| t.is_available_live == 1 && t.is_visible == 1) {
+        let Some(sys) = t.star_system_name.as_deref().filter(|s| SYSTEMS.contains(s)) else { continue };
+        let display = t.displayname.as_deref().or(t.name.as_deref()).filter(|n| !n.is_empty());
+        let Some(name) = [&t.space_station_name, &t.city_name, &t.outpost_name].into_iter().flatten().map(String::as_str)
+            .find(|n| !n.is_empty()).or(display) else { continue };
+        let i = match places.iter().position(|p| p.name == name && p.system == sys) {
             Some(i) => i,
             None => {
-                places.push(Place {
-                    name: name.into(),
-                    system: sys.into(),
-                    planet: t.planet_name.clone(),
-                    moon: t.moon_name.clone(),
-                    orbit: t.orbit_name.clone(),
-                    aliases: vec![],
-                });
+                places.push(Place { name: name.into(), system: sys.into(), planet: t.planet_name.clone(), moon: t.moon_name.clone(), orbit: t.orbit_name.clone(), aliases: vec![] });
                 places.len() - 1
             }
         };
-        if let Some(d) = display.filter(|d| *d != name && !places[i].aliases.iter().any(|a| a == d))
-        {
+        if let Some(d) = display.filter(|d| *d != name && !places[i].aliases.iter().any(|a| a == d)) {
             places[i].aliases.push(d.into());
         }
         at.insert(t.id, i);
     }
     let mut quotes: HashMap<(usize, &str), Quote> = HashMap::new();
     for r in rows {
-        let (Some(name), Some(&place)) = (r.commodity_name.as_deref(), at.get(&r.id_terminal))
-        else {
-            continue;
-        };
+        let (Some(name), Some(&place)) = (r.commodity_name.as_deref(), at.get(&r.id_terminal)) else { continue };
         if r.date_modified + REPORT_MAX_AGE_S < now_s {
             continue;
         }
-        let q = quotes.entry((place, name)).or_insert_with(|| Quote {
-            place,
-            name: name.into(),
-            buy: 0.0,
-            buy_at: 0,
-            sell: 0.0,
-            sell_at: 0,
-            buy_scu: 0,
-            sell_status: 0,
-        });
+        let q = quotes.entry((place, name)).or_insert_with(|| Quote { place, name: name.into(), buy: 0.0, buy_at: 0, sell: 0.0, sell_at: 0, buy_scu: 0, sell_status: 0 });
         if r.price_buy > 0.0 && (q.buy == 0.0 || r.price_buy < q.buy) {
-            (q.buy, q.buy_at, q.buy_scu) =
-                (r.price_buy, r.date_modified, r.scu_buy.max(0.0) as u64);
+            (q.buy, q.buy_at, q.buy_scu) = (r.price_buy, r.date_modified, r.scu_buy.max(0.0) as u64);
         }
         if r.price_sell > 0.0 && r.price_sell > q.sell {
-            (q.sell, q.sell_at, q.sell_status) = (
-                r.price_sell,
-                r.date_modified,
-                r.status_sell.clamp(0.0, 7.0) as u8,
-            );
+            (q.sell, q.sell_at, q.sell_status) = (r.price_sell, r.date_modified, r.status_sell.clamp(0.0, 7.0) as u8);
         }
     }
     // Only places with a price, numbered afresh.
@@ -238,19 +187,10 @@ pub fn market(rows: &[PriceRow], terminals: &[Terminal], now_s: u64) -> (Vec<Pla
     used.sort_unstable();
     used.dedup();
     let renumber: HashMap<usize, usize> = used.iter().enumerate().map(|(n, &i)| (i, n)).collect();
-    let mut quotes: Vec<Quote> = quotes
-        .into_values()
-        .filter(|q| q.buy > 0.0 || q.sell > 0.0)
-        .map(|q| Quote {
-            place: renumber[&q.place],
-            ..q
-        })
-        .collect();
+    let mut quotes: Vec<Quote> = quotes.into_values().filter(|q| q.buy > 0.0 || q.sell > 0.0)
+        .map(|q| Quote { place: renumber[&q.place], ..q }).collect();
     quotes.sort_by(|a, b| (a.place, &a.name).cmp(&(b.place, &b.name)));
-    (
-        used.into_iter().map(|i| places[i].clone()).collect(),
-        quotes,
-    )
+    (used.into_iter().map(|i| places[i].clone()).collect(), quotes)
 }
 
 #[derive(Deserialize)]
@@ -263,11 +203,7 @@ struct RsiIndex {
 
 pub fn parse_status(json: &[u8], now: u64) -> Result<Status, String> {
     let ix: RsiIndex = serde_json::from_slice(json).map_err(|e| format!("status page: {e}"))?;
-    Ok(Status {
-        fetched: now,
-        summary: ix.summary,
-        services: ix.systems,
-    })
+    Ok(Status { fetched: now, summary: ix.summary, services: ix.systems })
 }
 
 fn parse_uex<T: for<'de> Deserialize<'de>>(json: &[u8], what: &str) -> Result<Vec<T>, String> {
@@ -298,11 +234,7 @@ fn client() -> &'static reqwest::Client {
     static C: OnceLock<reqwest::Client> = OnceLock::new();
     C.get_or_init(|| {
         reqwest::Client::builder()
-            .user_agent(concat!(
-                "EdgeCockpit/",
-                env!("CARGO_PKG_VERSION"),
-                " (+https://github.com/pcanilho/edge-cockpit)"
-            ))
+            .user_agent(concat!("EdgeCockpit/", env!("CARGO_PKG_VERSION"), " (+https://github.com/pcanilho/edge-cockpit)"))
             .timeout(Duration::from_secs(25))
             .build()
             .unwrap_or_default()
@@ -314,66 +246,36 @@ async fn get(url: &str) -> Result<Vec<u8>, String> {
     if !r.status().is_success() {
         return Err(format!("{url}: HTTP {}", r.status().as_u16()));
     }
-    r.bytes()
-        .await
-        .map(|b| b.to_vec())
-        .map_err(|e| e.to_string())
+    r.bytes().await.map(|b| b.to_vec()).map_err(|e| e.to_string())
 }
 
 async fn fetch_market(cache: &Cache) -> Result<Market, String> {
     let now = now_ms();
-    let held = cache
-        .lists
-        .lock()
-        .unwrap()
-        .clone()
-        .filter(|l| now - l.at < LISTS_EVERY_MS);
+    let held = cache.lists.lock().unwrap().clone().filter(|l| now - l.at < LISTS_EVERY_MS);
     let lists = match held {
         Some(l) => l,
         None => {
-            let terminals: Vec<Terminal> =
-                parse_uex(&get(&format!("{UEX}/terminals")).await?, "terminals")?;
-            let commodities: Vec<CommodityRow> =
-                parse_uex(&get(&format!("{UEX}/commodities")).await?, "commodities")?;
-            let l = Lists {
-                at: now,
-                terminals,
-                commodities,
-            };
+            let terminals: Vec<Terminal> = parse_uex(&get(&format!("{UEX}/terminals")).await?, "terminals")?;
+            let commodities: Vec<CommodityRow> = parse_uex(&get(&format!("{UEX}/commodities")).await?, "commodities")?;
+            let l = Lists { at: now, terminals, commodities };
             *cache.lists.lock().unwrap() = Some(l.clone());
             l
         }
     };
-    let rows: Vec<PriceRow> = parse_uex(
-        &get(&format!("{UEX}/commodities_prices_all")).await?,
-        "prices",
-    )?;
+    let rows: Vec<PriceRow> = parse_uex(&get(&format!("{UEX}/commodities_prices_all")).await?, "prices")?;
     let (places, quotes) = market(&rows, &lists.terminals, now / 1000);
     if quotes.is_empty() {
         return Err("UEX sent no prices for the live game".into());
     }
-    let kinds = lists
-        .commodities
-        .into_iter()
-        .filter_map(|c| Some((c.name, c.kind?)))
-        .collect();
-    Ok(Market {
-        fetched: now,
-        offline: false,
-        places,
-        quotes,
-        kinds,
-    })
+    let kinds = lists.commodities.into_iter().filter_map(|c| Some((c.name, c.kind?))).collect();
+    Ok(Market { fetched: now, offline: false, places, quotes, kinds })
 }
 
 /// Fresh prices when the last ones are 30 minutes old; on a network failure the last
 /// prices we had (from memory or the file), marked offline.
 pub async fn prices(cache: &Cache, file: Option<PathBuf>) -> Result<Market, String> {
     let held = cache.prices.lock().unwrap().clone();
-    if let Some(p) = held
-        .as_ref()
-        .filter(|p| !p.offline && now_ms() - p.fetched < PRICES_EVERY_MS)
-    {
+    if let Some(p) = held.as_ref().filter(|p| !p.offline && now_ms() - p.fetched < PRICES_EVERY_MS) {
         return Ok(p.clone());
     }
     match fetch_market(cache).await {
@@ -388,10 +290,7 @@ pub async fn prices(cache: &Cache, file: Option<PathBuf>) -> Result<Market, Stri
             Ok(p)
         }
         Err(e) => {
-            let saved = held.or_else(|| {
-                file.and_then(|f| std::fs::read(f).ok())
-                    .and_then(|b| serde_json::from_slice::<Market>(&b).ok())
-            });
+            let saved = held.or_else(|| file.and_then(|f| std::fs::read(f).ok()).and_then(|b| serde_json::from_slice::<Market>(&b).ok()));
             match saved {
                 Some(mut p) => {
                     p.offline = true;
@@ -406,13 +305,7 @@ pub async fn prices(cache: &Cache, file: Option<PathBuf>) -> Result<Market, Stri
 
 /// The RSI status page, at most every 5 minutes. A failure is an error: an old status is not shown.
 pub async fn status(cache: &Cache) -> Result<Status, String> {
-    if let Some(s) = cache
-        .status
-        .lock()
-        .unwrap()
-        .clone()
-        .filter(|s| now_ms() - s.fetched < STATUS_EVERY_MS)
-    {
+    if let Some(s) = cache.status.lock().unwrap().clone().filter(|s| now_ms() - s.fetched < STATUS_EVERY_MS) {
         return Ok(s);
     }
     let s = parse_status(&get(RSI_STATUS).await?, now_ms())?;
@@ -451,19 +344,9 @@ mod tests {
         let t: Vec<Terminal> = parse_uex(TERMINALS.as_bytes(), "terminals").unwrap();
         let (places, quotes) = market(&rows(), &t, NOW);
         let name = |q: &Quote| places[q.place].name.as_str();
-        let q: Vec<_> = quotes
-            .iter()
-            .map(|q| (name(q), q.name.as_str(), q.buy, q.sell))
-            .collect();
+        let q: Vec<_> = quotes.iter().map(|q| (name(q), q.name.as_str(), q.buy, q.sell)).collect();
         // Area18's two terminals make one place: the lowest buy and the highest sell of both.
-        assert_eq!(
-            q,
-            [
-                ("Area 18", "Gold", 26000.0, 31000.0),
-                ("HDMS-Anderson", "Gold", 24360.0, 29000.0),
-                ("Ruin Station", "Scrap", 0.0, 3700.0)
-            ]
-        );
+        assert_eq!(q, [("Area 18", "Gold", 26000.0, 31000.0), ("HDMS-Anderson", "Gold", 24360.0, 29000.0), ("Ruin Station", "Scrap", 0.0, 3700.0)]);
         assert_eq!(quotes[0].sell_at, NOW - 5 * 3600);
         // Stock as reported with each best price: Area18's full terminal pays most, the other sells 12 SCU.
         assert_eq!((quotes[0].buy_scu, quotes[0].sell_status), (12, 7));
@@ -471,19 +354,12 @@ mod tests {
         // Not in the live game, outside the systems offered, or only a week-old report: left out.
         assert_eq!(places.len(), 3);
         assert_eq!(places[0].aliases, ["Area18", "Area 18 TDD"]);
-        assert_eq!(
-            (places[1].planet.as_deref(), places[1].moon.as_deref()),
-            (Some("Hurston"), Some("Aberdeen"))
-        );
+        assert_eq!((places[1].planet.as_deref(), places[1].moon.as_deref()), (Some("Hurston"), Some("Aberdeen")));
     }
 
     #[test]
     fn uex_errors_are_errors() {
-        assert!(parse_uex::<Terminal>(
-            br#"{"status":"requests_limit_reached","data":[]}"#,
-            "terminals"
-        )
-        .is_err());
+        assert!(parse_uex::<Terminal>(br#"{"status":"requests_limit_reached","data":[]}"#, "terminals").is_err());
         assert!(parse_uex::<Terminal>(b"<html>", "terminals").is_err());
     }
 
@@ -491,23 +367,15 @@ mod tests {
     fn reads_the_status_page() {
         let s = parse_status(br#"{"summaryStatus":"disrupted","systems":[{"name":"Platform","status":"operational","category":"x"},{"name":"Persistent Universe","status":"degraded"}]}"#, 7).unwrap();
         assert_eq!(s.summary, "disrupted");
-        assert_eq!(
-            s.services
-                .iter()
-                .map(|x| (x.name.as_str(), x.status.as_str()))
-                .collect::<Vec<_>>(),
-            [
-                ("Platform", "operational"),
-                ("Persistent Universe", "degraded")
-            ]
-        );
+        assert_eq!(s.services.iter().map(|x| (x.name.as_str(), x.status.as_str())).collect::<Vec<_>>(),
+            [("Platform", "operational"), ("Persistent Universe", "degraded")]);
     }
 
     /// Against the live services: cargo test -- --ignored live_
     #[test]
     #[ignore]
     fn live_prices_and_status() {
-        let cache = Cache::default();
+                let cache = Cache::default();
         let p = tauri::async_runtime::block_on(prices(&cache, None)).unwrap();
         for sys in SYSTEMS {
             let n = p.places.iter().filter(|x| x.system == sys).count();
@@ -516,11 +384,7 @@ mod tests {
         }
         let a18 = p.places.iter().position(|x| x.name == "Area 18").unwrap();
         let gold = p.quotes.iter().find(|q| q.place == a18 && q.name == "Gold");
-        eprintln!(
-            "{} quotes, {} kinds; Gold at Area 18: {gold:?}",
-            p.quotes.len(),
-            p.kinds.len()
-        );
+        eprintln!("{} quotes, {} kinds; Gold at Area 18: {gold:?}", p.quotes.len(), p.kinds.len());
         eprintln!("{} bytes as JSON", serde_json::to_vec(&p).unwrap().len());
         // WORLD_DUMP=path keeps what the console would get, for UI previews.
         if let Ok(path) = std::env::var("WORLD_DUMP") {
