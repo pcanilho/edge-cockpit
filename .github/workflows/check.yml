@@ -38,8 +38,10 @@ jobs:
           for f in app/scripts/*.mjs app/test/*.mjs app/ui/*.js app/ui/lib/*.js; do node --check "$f"; done
       - run: npm ci
         working-directory: app
-      - name: Site builds
-        run: python site/build.py "$RUNNER_TEMP/site"
+      - name: Site builds, with the live demo
+        run: |
+          node app/scripts/sync.mjs
+          python site/build.py "$RUNNER_TEMP/site"
       - name: Game.log reader, role pages and ship lookup
         working-directory: app
         run: npm test
