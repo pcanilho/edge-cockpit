@@ -532,8 +532,9 @@ function paintDigits() {
 
 const PLATE_OPTS = [['swipe', 'All'], ['status', 'Status'], ['power', 'Power'], ['role', 'Role'], ['flight', 'Flight'], ['gear', 'Gear']];
 let sheet = null;
+const ONOFF = [['on', 'On'], ['off', 'Off']];
 /** This phone's own settings: its plate, Copy or Move, touch feedback, unpair. */
-export function openSettings({ set, opts, setOpt }) {
+export function openSettings({ set, opts, setOpt, vibrates }) {
   if (!sheet) {
     sheet = document.createElement('div');
     sheet.className = 'ph-sheet';
@@ -546,14 +547,17 @@ export function openSettings({ set, opts, setOpt }) {
     <p class="note">All shows every plate: the whole console when the screen is big enough, otherwise one at a time with the rail. A plate keeps this device on it.</p>
     <h4>On the PC's screen</h4>${seg('mode', [['copy', 'Copy'], ['move', 'Move']], me.mode)}
     <p class="note">Move takes the plate off the PC's screen while this device is connected.</p>
-    <h4>Touch feedback</h4>${seg('sound', [['on', 'Sound on'], ['off', 'Off']], opts.sound ? 'on' : 'off')}
+    <h4>Touch feedback</h4>
+    <div class="fb-row"><span>Sound</span>${seg('sound', ONOFF, opts.sound ? 'on' : 'off')}</div>
+    ${vibrates ? `<div class="fb-row"><span>Vibration</span>${seg('vibrate', ONOFF, opts.vibrate ? 'on' : 'off')}</div>
+    <p class="note">A short buzz under your finger on every press. On iPhone, one light tick when you lift your finger.</p>` : ''}
     <div class="row"><button class="act" id="ph-unpair">Unpair this device</button></div></div>`;
   sheet.hidden = false;
   sheet.querySelector('.close').addEventListener('click', () => { sheet.hidden = true; });
   sheet.querySelectorAll('.seg').forEach(sg => sg.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
     sg.querySelectorAll('button').forEach(x => x.classList.toggle('cur', x === b));
     const name = sg.dataset.seg, v = b.dataset.v;
-    if (name === 'sound') setOpt('sound', v === 'on');
+    if (name === 'sound' || name === 'vibrate') setOpt(name, v === 'on');
     else set(name === 'plate' ? v : null, name === 'mode' ? v : null);
   })));
   sheet.querySelector('.seg[data-seg=mode]').classList.toggle('off', me.plate === 'swipe' || me.plate === 'status');
