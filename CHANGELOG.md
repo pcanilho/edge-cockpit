@@ -1,8 +1,9 @@
 # Changelog
 
-## 0.10.0
+## 0.9.1
 
 - Installer in the cockpit look: Edge Cockpit art on the welcome and finish pages and in the header, with dark welcome, finish and header areas.
+- Security: url updated to 2.5.9.
 
 ## 0.9.0
 
