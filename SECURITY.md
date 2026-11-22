@@ -22,6 +22,7 @@ Only the latest release gets fixes. Edge Cockpit updates itself, so most people 
 - Reads Star Citizen's `Game.log` and `actionmaps.xml`, and writes one keybind profile into the game's folder.
 - Reads `Documents\Edge Cockpit\ships.json` if you create it, and keeps its own settings in your user profile.
 - Keeps copies of `actionmaps.xml` in `Documents\Edge Cockpit\Binds` (the last 5), and on Restore writes one into the game's keybind folder as a second profile.
+- Report a problem writes `Documents\Edge Cockpit\report.txt` and opens a GitHub issue page in your browser. The app sends nothing itself.
 - Adds itself to Windows sign-in (HKCU Run) when "Start with Windows" is on.
 - Talks to the network only to fetch ship outlines from FleetYards.net, to check GitHub releases for updates, and, while the World page shows, to read commodity prices from UEX (api.uexcorp.space) and server status from status.robertsspaceindustries.com. Updates are signed and checked against a key built into the app before they install.
 - The console's web view has a strict content security policy and only the app's own commands. It loads no remote code.

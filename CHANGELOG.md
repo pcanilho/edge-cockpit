@@ -22,6 +22,7 @@
 - HUD notices that run over several lines in Game.log now reach the console whole.
 - Status chips that would run off the status screen give way, the least pressing first, so Follow game stays in sight.
 - Binds copies: each time the game saves your binds, the console keeps a copy in `Documents\Edge Cockpit\Binds` (the last 5 per game channel). If a game update or a deleted USER folder wipes them, Settings > Keybinds and a Binds reset chip say so. Restore adds the copy to the game's Control Profiles as edge-cockpit-backup, with every device and its options; Keep them as they are stops the warning.
+- Report a problem (Settings > About, and the Log lines missing chip): saves `Documents\Edge Cockpit\report.txt` with the app, Windows, WebView2 and game versions, your screens and their scale, the keybind check, your settings and the last 300 Game.log lines the console read, with your handle, other players' names, ID numbers and addresses taken out. Explorer shows the file and the bug form opens filled in. Nothing is sent unless you post it.
 
 ## 0.9.2
 

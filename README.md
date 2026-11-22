@@ -92,7 +92,7 @@ Phones, tablets and other PCs on your network join as extra screens: **Settings 
 
 ## Feedback
 
-[Bug report](../../issues/new?template=bug.yml) · [Feature request](../../issues/new?template=feature.yml) · [Contributing](CONTRIBUTING.md)
+[Bug report](../../issues/new?template=bug.yml) (**Settings > About > Report a problem** fills it in and saves a report file to attach) · [Feature request](../../issues/new?template=feature.yml) · [Contributing](CONTRIBUTING.md)
 
 ## Support
 
