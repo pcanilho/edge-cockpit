@@ -4,6 +4,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod family;
+#[cfg_attr(not(windows), allow(dead_code))]
+mod fit;
 mod game;
 mod keys;
 mod phone;

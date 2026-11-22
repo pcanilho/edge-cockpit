@@ -21,9 +21,9 @@ use windows::Win32::Graphics::Dwm::{
 };
 use windows::Win32::UI::Shell::{DefSubclassProc, IsUserAnAdmin, SetWindowSubclass, ShellExecuteW};
 use windows::Win32::UI::WindowsAndMessaging::{
-    GetForegroundWindow, GetWindowLongPtrW, GetWindowThreadProcessId, IsWindow, SetForegroundWindow,
+    GetForegroundWindow, GetWindowLongPtrW, GetWindowRect, GetWindowThreadProcessId, IsWindow, SetForegroundWindow,
     SetWindowLongPtrW, SetWindowPos, ShowWindow, EVENT_SYSTEM_FOREGROUND, GWL_EXSTYLE, HWND_TOPMOST,
-    SWP_FRAMECHANGED, SWP_NOACTIVATE, SW_HIDE, SW_SHOWNOACTIVATE, SW_SHOWNORMAL, WINEVENT_OUTOFCONTEXT,
+    SET_WINDOW_POS_FLAGS, SWP_FRAMECHANGED, SWP_NOACTIVATE, SW_HIDE, SW_SHOWNOACTIVATE, SW_SHOWNORMAL, WINEVENT_OUTOFCONTEXT,
     WS_EX_APPWINDOW, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST,
 };
 
@@ -78,7 +78,7 @@ pub fn setup_panel(raw: isize, x: i32, y: i32, w: i32, h: i32) {
         let ex = GetWindowLongPtrW(win, GWL_EXSTYLE) as u32;
         let ex = (ex | WS_EX_NOACTIVATE.0 | WS_EX_TOOLWINDOW.0 | WS_EX_TOPMOST.0) & !WS_EX_APPWINDOW.0;
         SetWindowLongPtrW(win, GWL_EXSTYLE, ex as isize);
-        let _ = SetWindowPos(win, Some(HWND_TOPMOST), x, y, w, h, SWP_NOACTIVATE | SWP_FRAMECHANGED);
+        move_to(win, (x, y, w, h), SWP_NOACTIVATE | SWP_FRAMECHANGED);
         // No frame at all: Windows 11 rounds corners and draws a 1px border on top-level
         // windows, even borderless ones, unless told not to.
         let no_round = DWMWCP_DONOTROUND;
@@ -245,10 +245,19 @@ pub fn on_display_change(f: impl Fn() + Send + Sync + 'static) {
 pub fn place(x: i32, y: i32, w: i32, h: i32) {
     let raw = PANEL.load(Ordering::SeqCst);
     if raw != 0 {
-        unsafe {
-            let _ = SetWindowPos(hwnd(raw), Some(HWND_TOPMOST), x, y, w, h, SWP_NOACTIVATE);
-        }
+        move_to(hwnd(raw), (x, y, w, h), SWP_NOACTIVATE);
     }
+}
+
+/// Moves the panel, top-most, to exactly `r`, also when that means another display scale
+/// (see fit.rs).
+fn move_to(win: HWND, r: crate::fit::Rect, flags: SET_WINDOW_POS_FLAGS) {
+    crate::fit::settle(r, |(x, y, w, h)| unsafe {
+        let _ = SetWindowPos(win, Some(HWND_TOPMOST), x, y, w, h, flags);
+        let mut got = windows::Win32::Foundation::RECT::default();
+        let _ = GetWindowRect(win, &mut got);
+        (got.left, got.top, got.right - got.left, got.bottom - got.top)
+    });
 }
 
 const WM_MOUSEACTIVATE: u32 = 0x0021;
