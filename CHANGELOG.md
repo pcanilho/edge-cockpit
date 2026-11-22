@@ -19,6 +19,7 @@
 - Settings > Feedback (was Touch feedback): Shapes for colour (amber marks are triangles, red diamonds, green rings, and the red frame is dashed) and Reduce motion (no flashing, blinking or sliding).
 - HUD notices that run over several lines in Game.log now reach the console whole.
 - Status chips that would run off the status screen give way, the least pressing first, so Follow game stays in sight.
+- Binds copies: each time the game saves your binds, the console keeps a copy in `Documents\Edge Cockpit\Binds` (the last 5 per game channel). If a game update or a deleted USER folder wipes them, Settings > Keybinds and a Binds reset chip say so. Restore adds the copy to the game's Control Profiles as edge-cockpit-backup, with every device and its options; Keep them as they are stops the warning.
 
 ## 0.9.2
 

@@ -98,17 +98,19 @@ pub fn install_binds(channel: &Path) -> std::io::Result<PathBuf> {
 }
 
 pub const PROFILE_BINDS_NAME: &str = "layout_edge_cockpit_profile_exported.xml";
+/// A copy of the player's own binds, put back after a game update wiped them.
+pub const BACKUP_BINDS_NAME: &str = "layout_edge_cockpit_backup_exported.xml";
 
-/// Puts keyboard binds from an imported profile in the game's Control Profiles list,
-/// next to ours. Only a control profile is accepted. Returns the path.
-pub fn install_profile_binds(channel: &Path, xml: &str) -> std::io::Result<PathBuf> {
+/// Puts binds from an imported profile (or a binds copy) in the game's Control Profiles
+/// list, next to ours, as `name`. Only a control profile is accepted. Returns the path.
+pub fn install_profile_binds(channel: &Path, xml: &str, name: &str) -> std::io::Result<PathBuf> {
     let head = xml.trim_start();
     if !head.starts_with("<ActionMaps") || xml.len() > 1_000_000 {
         return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, "Not a Star Citizen control profile"));
     }
     let dir = mappings_dir(channel);
     fs::create_dir_all(&dir)?;
-    let path = dir.join(PROFILE_BINDS_NAME);
+    let path = dir.join(name);
     fs::write(&path, xml)?;
     Ok(path)
 }
