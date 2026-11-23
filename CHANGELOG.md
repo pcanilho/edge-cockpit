@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Status screen: a mission, place, quantum and route together no longer run off the bottom, on the Edge or a phone. The ship picture shrinks, then gives way, so everything and Follow game stay in sight.
+- Quantum to a mission marker reads its place (Quantum to Kaboos), not the marker's ID.
+
 ## 0.10.1
 
 - How the keys work: a card that shows each kind of key as it looks on the console (hold ring, LONG and 2×, macro corner, ON/OFF, GUARD, cover, your swapped keys, colours, empty slots) and what it does. It follows the setup check on the first start, then opens from the ? next to the clock or Settings > General.
