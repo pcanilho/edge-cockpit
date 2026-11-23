@@ -520,6 +520,42 @@ if (shots) await page.screenshot({ path: join(shots, 'perf.png') });
 await page.evaluate(() => window.xfd.perf(false));
 report.push(`overlay: ${perfRows.join(' | ')}`);
 
+// A busy status: mission, place, quantum and route all fit on the screen, on the Edge and a small phone.
+const BUSY = ['<Context Establisher Done>', 'Added notification "Entered Ungoverned Jurisdiction: " [1]',
+  '<RequestLocationInventory> Player[Argoneth] requested inventory for Location[AsteroidClusterBase_Nyx_Social_Keeger_001]',
+  "CVehicleMovementBase::SetDriver: Local client node [1] granted control token for 'ORIG_m80_123456' [123456]",
+  'Added notification "Contract Accepted: Retrieve Additional Smuggler Intel <EM4>[BP]</EM4> <EM4>[100 Rep]</EM4>: " [2]',
+  'Added notification "New Objective: Go to Location: " [3]',
+  'MissionObjectiveMarker_754[754] - Paired with NavPoint: MISSION_QT_Kaboos_928004668243[928004668243]',
+  'Player has selected point MISSION_QT_Kaboos_928004668243 as their destination'];
+const busyFits = pg => pg.evaluate(() => {
+  const s = document.getElementById('mfd').getBoundingClientRect(), out = [];
+  for (const id of ['mission', 'where', 'orrery', 'auto']) {
+    const e = document.getElementById(id), b = e.getBoundingClientRect();
+    if (e.hidden || e.hasAttribute('hidden') || !b.height) out.push(`${id} does not show`);
+    else if (b.bottom > s.bottom - 4) out.push(`${id} runs off the status screen`);
+  }
+  const qt = document.getElementById('qt-name').textContent;
+  if (qt !== 'Quantum to Kaboos') out.push(`quantum reads "${qt}"`);
+  return out;
+});
+for (const [W, H] of [[2560, 720], [360, 640], [393, 852]]) {
+  const phone = W < 1000;
+  const ctx = await browser.newContext({ viewport: { width: W, height: H }, hasTouch: phone, isMobile: phone });
+  const pg = await ctx.newPage();
+  pg.on('pageerror', e => errors.push(`busy status ${W}x${H}: ${e.message}`));
+  await pg.route(/fleetyards|fltyrd/, r => r.abort());
+  await pg.goto(base + (phone ? '?phone&demo=nyx' : '?demo=nyx'));
+  await pg.waitForSelector('body[data-ready]');
+  await pg.evaluate(() => document.fonts.ready);
+  await pg.waitForTimeout(200);
+  await pg.evaluate(l => window.xfd.feed(l), BUSY);
+  await pg.waitForTimeout(100);
+  for (const o of await busyFits(pg)) problems.push(`busy status ${W}x${H}: ${o}`);
+  if (!phone) await checkLabels('busy status', false, pg);
+  await ctx.close();
+}
+
 // Idle: nothing animates and no frames are asked for.
 for (const mood of ['ship', 'armistice', 'alert', 'downed']) {
   await page.goto(`${base}?demo=${mood}`);
