@@ -24,6 +24,8 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from xml.sax.saxutils import quoteattr
 
+import check_binds
+
 ROOT = Path(__file__).resolve().parent.parent
 PROFILE = 'edge-cockpit'
 NAV = ['insert', 'home', 'pgup', 'delete', 'end', 'pgdn']
@@ -31,14 +33,16 @@ NUMPAD = [f'np_{n}' for n in range(10)] + ['np_divide', 'np_multiply', 'np_subtr
 DIGITS = [str(n) for n in range(10)]
 LETTERS = list('abcdefghijklmnopqrstuvwxyz')
 # Right Ctrl with F1-F12 first, then more right Ctrl and right Ctrl + left Alt chords. Ctrl+Alt+Delete
-# is left alone, and Ctrl+Alt is never paired with letters, which other apps use for global hotkeys.
+# and Alt+F4 are left alone (check_binds.WINDOWS), and Ctrl+Alt is never paired with letters, which
+# other apps use for global hotkeys.
 # No Shift: the game reads a modifier on its own too, and right Shift alone is Lock rotation, so every
 # right Shift chord also locked the ship's pitch and yaw (the mouse stopped turning the ship).
 POOL = ([f'rctrl+f{n}' for n in range(1, 13)]
         + [f'rctrl+{k}' for k in NAV + NUMPAD]
         + [f'rctrl+lalt+{k}' for k in [f'f{n}' for n in range(1, 13)] + NAV + NUMPAD if k != 'delete']
         + [f'rctrl+{k}' for k in DIGITS] + [f'rctrl+lalt+{k}' for k in DIGITS]
-        + [f'rctrl+{k}' for k in LETTERS])
+        + [f'rctrl+{k}' for k in LETTERS]
+        + [f'rctrl+{k}' for k in ['np_add', 'comma', 'period', 'slash', 'lbracket', 'rbracket']] + ['rctrl+lalt+np_add'])
 
 
 def combo(s):
@@ -59,15 +63,6 @@ def used_keys(default_profile):
 
 
 MOUSE_BUTTON = re.compile(r'(?:[lr](?:ctrl|shift|alt)\+)*mouse\d')
-
-
-MODIFIERS = {'lctrl', 'rctrl', 'lshift', 'rshift', 'lalt', 'ralt'}
-
-
-def lone_modifiers(default_profile):
-    """Modifiers the game binds on their own by default ('rshift' is Lock rotation). The game fires
-    those even when the modifier is held for a chord, so the pool never uses them."""
-    return {m for c in used_keys(default_profile) if len(c) == 1 for m in c & MODIFIERS}
 
 
 def mouse_defaults(default_profile):
@@ -130,8 +125,10 @@ def main():
         sys.exit(__doc__)
     used = used_keys(sys.argv[1])
     mouse = mouse_defaults(sys.argv[1])
-    lone = lone_modifiers(sys.argv[1])
-    free = [p for p in POOL if combo(p) not in used and not combo(p) & lone]
+    # Every step the game sees while the keys go down (RCtrl, RCtrl+LAlt, RCtrl+LAlt+F5) must be
+    # free too: the game fires a held key's own action (right Shift alone is Lock rotation).
+    steps = lambda p: [frozenset(p.split('+')[:i]) for i in range(1, p.count('+') + 2)]
+    free = [p for p in POOL if not any(st in used for st in steps(p)) and not any(w <= combo(p) for w in check_binds.WINDOWS)]
     actions = deck_actions()
     # Keep each action's key from the current file when it's still free.
     keep = {a: k for a, k in current_binds().items() if k in free and a in {x['action'] for x in actions}}

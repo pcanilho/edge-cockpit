@@ -48,6 +48,7 @@
  <!-- was: v_target_pin_selected rshift+pgup -->
  <!-- was: v_target_unpin_selected rshift+delete -->
  <!-- was: v_target_cycle_pinned_fwd rshift+end -->
+ <!-- was: emote_greet rctrl+lalt+f4 -->
  <actionmap name="spaceship_general">
   <!-- Doors -->
   <action name="v_toggle_all_doors">
@@ -384,7 +385,7 @@
   </action>
   <!-- Greet -->
   <action name="emote_greet">
-   <rebind input="kb1_rctrl+lalt+f4"/>
+   <rebind input="kb1_rctrl+np_add"/>
   </action>
   <!-- Threaten -->
   <action name="emote_threaten">
