@@ -112,7 +112,7 @@ const platesMode = v => (Array.isArray(v) && v.some(x => SHIP_PLATES.includes(x)
 // Night backlight in percent; 0 leaves the backlight alone.
 const nightLevel = v => [0, 10, 30, 50].includes(+v) ? +v : 30;
 const nightMode = v => (v === true ? 'on' : ['on', 'auto'].includes(v) ? v : 'off');
-const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), anywhere: store.get('anywhere', false), stack: store.get('stack', true), large: store.get('large', false), shapes: store.get('shapes', false), calm: store.get('calm', false), plates: platesMode(store.get('plates', null)), size: store.get('size', 'fit') === 'actual' ? 'actual' : 'fit', makerTheme: themeMode(store.get('makerTheme', 'auto')), vibrate: store.get('vibrate', true), nightLight: nightLevel(store.get('nightLight', 30)) };
+const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), mute: store.get('mute', false), anywhere: store.get('anywhere', false), stack: store.get('stack', true), large: store.get('large', false), shapes: store.get('shapes', false), calm: store.get('calm', false), plates: platesMode(store.get('plates', null)), size: store.get('size', 'fit') === 'actual' ? 'actual' : 'fit', makerTheme: themeMode(store.get('makerTheme', 'auto')), vibrate: store.get('vibrate', true), nightLight: nightLevel(store.get('nightLight', 30)) };
 // Vibration is for paired phones and tablets only; the Edge has no motor.
 if (onPhone) haptics.enable(opts.vibrate);
 stage.classList.toggle('large', opts.large);
@@ -276,7 +276,7 @@ const keyText = spec => (spec || '').split('+').map(p => ({ ralt: 'RAlt', lalt: 
 let audio;
 function tick(kind) {
   haptics.buzz(kind);
-  if (!opts.sound) return;
+  if (!opts.sound || opts.mute) return;
   try {
     audio ||= new AudioContext();
     const t = audio.currentTime, o = audio.createOscillator(), g = audio.createGain();
@@ -302,7 +302,7 @@ function raise({ text, tone }) {
   stage.classList.add(`flash-${tone}`);
   clearTimeout(bannerTimer);
   bannerTimer = setTimeout(() => { b.classList.remove('show'); stage.classList.remove(`flash-${tone}`); }, 4000);
-  if (opts.alertSound) alertTone(tone);
+  if (opts.alertSound && !opts.mute) alertTone(tone);
 }
 function alertTone(tone) {
   try {
@@ -904,6 +904,8 @@ function setOpt(name, v) {
   document.body.classList.toggle('shapes', !!opts.shapes);
   document.body.classList.toggle('calm', !!opts.calm);
   document.querySelectorAll('.opt[data-opt]').forEach(o => o.classList.toggle('on', !!opts[o.dataset.opt]));
+  // Mute all wins over the two sound switches, which stay as set for when sound comes back.
+  document.querySelectorAll('.opt[data-opt=sound], .opt[data-opt=alertSound]').forEach(o => o.classList.toggle('muted', !!opts.mute));
   $('auto').classList.toggle('on', opts.auto);
   if (name === 'anywhere') paintIdle();
   if (name === 'auto' && v) follow(true);
@@ -1074,7 +1076,7 @@ $('qt').querySelector('svg').innerHTML = GLYPHS.quantum;
 
 // ---------- profile: settings, plate order, ship roles and keyboard binds in one file ----------
 // Saved as Documents\Edge Cockpit\profile.json, to copy to another PC or keep as a backup.
-const PROFILE_OPTS = ['night', 'nightLight', 'sound', 'flash', 'auto', 'recap', 'alertSound', 'anywhere', 'stack', 'large', 'shapes', 'calm', 'makerTheme', 'plates', 'size', 'autostart', 'screen_off'];
+const PROFILE_OPTS = ['night', 'nightLight', 'sound', 'flash', 'auto', 'recap', 'alertSound', 'mute', 'anywhere', 'stack', 'large', 'shapes', 'calm', 'makerTheme', 'plates', 'size', 'autostart', 'screen_off'];
 const KEPT_AS_IS = new Set(['night', 'nightLight', 'makerTheme', 'plates', 'size']);
 /** The keyboard binds in an actionmaps.xml, as a Control Profile the game can load. */
 function bindsProfile(text) {

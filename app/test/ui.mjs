@@ -700,6 +700,61 @@ for (const kind of ['android', 'iphone']) {
   await ctx.close();
 }
 if (await page.evaluate(() => document.querySelectorAll('label.hx').length || document.body.classList.contains('hx-on'))) problems.push('the Edge got vibration labels');
+// Sound: click sounds and alert sound off means silence, on the PC's screen and on a paired device.
+for (const kind of ['edge', 'phone']) {
+  const ctx = await browser.newContext(kind === 'phone' ? { viewport: { width: 393, height: 852 }, hasTouch: true, isMobile: true } : { viewport: { width: 2560, height: 720 } });
+  const pg = await ctx.newPage();
+  pg.on('pageerror', e => errors.push(`sound ${kind}: ${e.message}`));
+  await pg.addInitScript(() => {
+    window.__tones = 0;
+    const make = AudioContext.prototype.createOscillator;
+    AudioContext.prototype.createOscillator = function () { window.__tones++; return make.call(this); };
+  });
+  await pg.route(/fleetyards|fltyrd/, r => r.abort());
+  await pg.goto(base + (kind === 'phone' ? '?phone&demo=ship' : '?demo=ship'));
+  await pg.waitForSelector('body[data-ready]');
+  await pg.evaluate(() => { window.xfd.show('flight'); [...document.querySelectorAll('#ph-rail button')].find(b => b.textContent === 'Power')?.click(); });
+  const noise = async () => {
+    await pg.evaluate(() => { window.__tones = 0; window.__keys = []; });
+    const b = await pg.evaluate(() => { const w = [...document.querySelectorAll('#console .well.key')].find(w => { const b = w.getBoundingClientRect(); return !w.querySelector('button') && b.width > 30 && w.contains(document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2)); }); const r = w?.getBoundingClientRect(); return r && { x: r.x, y: r.y, width: r.width, height: r.height }; });
+    if (!b) { problems.push(`sound ${kind}: no key to press`); return 0; }
+    if (kind === 'phone') await pg.touchscreen.tap(b.x + b.width / 2, b.y + b.height / 2); else await pg.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
+    await pg.evaluate(() => window.xfd.raise({ text: 'CrimeStat 1', tone: 'bad' }));
+    await pg.waitForTimeout(80);
+    return pg.evaluate(() => window.__tones);
+  };
+  if (!await noise()) problems.push(`sound ${kind}: no tone with sounds on, so the check below proves nothing`);
+  if (kind === 'phone') {
+    await pg.evaluate(() => document.getElementById('ph-gear').click());
+    for (const seg of ['sound', 'alertSound']) {
+      if (!await pg.evaluate(s => !!document.querySelector(`.ph-sheet .seg[data-seg=${s}]`), seg)) problems.push(`sound phone: no ${seg} switch in the device's settings`);
+      await pg.evaluate(s => document.querySelector(`.ph-sheet .seg[data-seg=${s}] button[data-v=off]`)?.click(), seg);
+    }
+    await pg.evaluate(() => { document.querySelector('.ph-sheet').hidden = true; });
+  } else {
+    if (await pg.evaluate(() => document.querySelector('.opt[data-opt=alertSound]')?.closest('.pane')?.dataset.sec) !== 'feedback') problems.push('sound edge: Alert sound is not next to Click sounds');
+    await pg.evaluate(() => { localStorage.setItem('xfd-sound', 'false'); localStorage.setItem('xfd-alertSound', 'false'); });
+    await pg.reload();
+    await pg.waitForSelector('body[data-ready]');
+    await pg.evaluate(() => window.xfd.show('flight'));
+  }
+  const left = await noise();
+  if (left) problems.push(`sound ${kind}: ${left} tones with click and alert sound off`);
+  // Mute all alone: click and alert sound back on, still silent.
+  if (kind === 'phone') {
+    await pg.evaluate(() => document.getElementById('ph-gear').click());
+    for (const [seg, v] of [['sound', 'on'], ['alertSound', 'on'], ['mute', 'on']]) await pg.evaluate(([s, v]) => document.querySelector(`.ph-sheet .seg[data-seg=${s}] button[data-v=${v}]`)?.click(), [seg, v]);
+    await pg.evaluate(() => { document.querySelector('.ph-sheet').hidden = true; });
+  } else {
+    await pg.evaluate(() => { localStorage.setItem('xfd-sound', 'true'); localStorage.setItem('xfd-alertSound', 'true'); localStorage.setItem('xfd-mute', 'true'); });
+    await pg.reload();
+    await pg.waitForSelector('body[data-ready]');
+    await pg.evaluate(() => window.xfd.show('flight'));
+  }
+  const muted = await noise();
+  if (muted) problems.push(`sound ${kind}: ${muted} tones with Mute all on`);
+  await ctx.close();
+}
 // Another computer or a tablet across: the whole console, not one plate at a time.
 for (const [W, H] of [[1920, 1080], [1180, 820]]) {
   const ctx = await browser.newContext({ viewport: { width: W, height: H } });

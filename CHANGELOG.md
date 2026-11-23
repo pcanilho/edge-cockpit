@@ -4,6 +4,7 @@
 
 - Status screen: a mission, place, quantum and route together no longer run off the bottom, on the Edge or a phone. The ship picture shrinks, then gives way, so everything and Follow game stay in sight.
 - Quantum to a mission marker reads its place (Quantum to Kaboos), not the marker's ID.
+- Sound: Mute all in Settings > Feedback silences clicks and alert tones together. Alert sound (armistice, CrimeStat, ship, hangar, party and timer tones) now sits next to Click sounds; it was under General, so turning clicks off left those tones on. Paired devices get Mute all and Alert sound in their own settings too; before, they could only turn clicks off.
 
 ## 0.10.1
 
