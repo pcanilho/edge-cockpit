@@ -2,6 +2,7 @@
  <CustomisationUIHeader label="edge-cockpit" description="Edge Cockpit: keys for console actions with no default keyboard bind" image="">
   <devices>
    <keyboard instance="1"/>
+   <mouse instance="1"/>
   </devices>
  </CustomisationUIHeader>
  <modifiers/>
@@ -161,6 +162,7 @@
   <!-- Quantum -->
   <action name="v_toggle_qdrive_engagement">
    <rebind input="kb1_rctrl+f6"/>
+   <rebind input="mo1_mouse1"/>
   </action>
  </actionmap>
  <actionmap name="spaceship_defensive">
@@ -207,12 +209,14 @@
   <!-- Laser type -->
   <action name="v_toggle_mining_laser_type">
    <rebind input="kb1_rshift+f7"/>
+   <rebind input="mo1_lalt+mouse1"/>
   </action>
  </actionmap>
  <actionmap name="seat_general">
   <!-- Operator mode -->
   <action name="v_operator_mode_cycle_forward">
    <rebind input="kb1_rshift+f9"/>
+   <rebind input="mo1_mouse3"/>
   </action>
   <!-- Light amp on -->
   <action name="v_light_amplification_on">

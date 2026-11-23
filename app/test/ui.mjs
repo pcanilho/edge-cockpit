@@ -361,6 +361,16 @@ if (health.missing.length) problems.push(`keys with no default keyboard bind: ${
 if (health.shared.length) problems.push(`default binds that collide: ${health.shared.join('; ')}`);
 report.push(`keybind check: ${health.total} keys, ${health.missing.length} missing, ${health.shared.length} shared`);
 
+// Our key takes quantum engage's Keyboard/Mouse slot (default: left mouse button), so the profile
+// puts the button on the mouse; binds loaded without it say quantum lost its button.
+if (health.mouse.length) problems.push(`default binds report lost mouse buttons: ${health.mouse.join(', ')}`);
+const qdrive = mo => `<ActionMaps><ActionProfiles profileName="default"><actionmap name="spaceship_quantum"><action name="v_toggle_qdrive_engagement"><rebind input="kb1_rctrl+f6"/>${mo}</action></actionmap></ActionProfiles></ActionMaps>`;
+for (const [mo, lost] of [['', true], ['<rebind input="mo1_mouse1"/>', false]]) {
+  const h = await page.evaluate(async xml => { window.xfdTestBinds = xml; await window.xfd.reloadBinds(); return window.xfd.bindHealth(); }, qdrive(mo));
+  if (lost !== h.mouse.some(m => m.startsWith('Quantum (left mouse button)'))) problems.push(`quantum's left mouse button ${lost ? 'not reported lost' : 'reported lost'} with ${mo || 'no mouse bind'}: ${h.mouse.join(', ')}`);
+}
+await page.evaluate(async () => { window.xfdTestBinds = null; await window.xfd.reloadBinds(); });
+
 // A profile carries the player's keyboard binds as a Control Profile the game can load.
 const profileXml = await page.evaluate(() => window.xfd.bindsProfile(`<ActionMaps><ActionProfiles profileName="default">
   <actionmap name="spaceship_movement"><action name="v_vtol_toggle"><rebind input="js1_button3"/><rebind input="kb1_n"/></action>

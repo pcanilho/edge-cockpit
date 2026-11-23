@@ -10,7 +10,11 @@ Usage:
 Then copy the file to
     StarCitizen\\LIVE\\USER\\Client\\0\\Controls\\Mappings
 and in game load it from Options > Keybindings > Advanced Controls Customization >
-Control Profiles, with only Keyboard ticked.
+Control Profiles, with Keyboard and Mouse ticked.
+
+The game keeps keyboard keys and mouse buttons in one Keyboard/Mouse slot. Some actions
+have a mouse button there by default (quantum engage is the left button), so our key would
+take its place. Those also get their mouse button back on the mouse device.
 """
 import json
 import re
@@ -47,6 +51,19 @@ def used_keys(default_profile):
                 if s.strip():
                     used.add(combo(s))
     return used
+
+
+MOUSE_BUTTON = re.compile(r'(?:[lr](?:ctrl|shift|alt)\+)*mouse\d')
+
+
+def mouse_defaults(default_profile):
+    """Actions whose default keyboard bind is a mouse button ('mouse1', 'lalt+mouse1')."""
+    out = {}
+    for el in ET.parse(default_profile).getroot().iter('action'):
+        kb = el.get('keyboard', '').strip().lower()
+        if MOUSE_BUTTON.fullmatch(kb):
+            out[el.get('name')] = kb
+    return out
 
 
 def sub_keys(k):
@@ -89,6 +106,7 @@ def main():
     if len(sys.argv) != 2:
         sys.exit(__doc__)
     used = used_keys(sys.argv[1])
+    mouse = mouse_defaults(sys.argv[1])
     free = [p for p in POOL if combo(p) not in used]
     actions = deck_actions()
     # Keep each action's key from the current file when it's still free.
@@ -108,6 +126,7 @@ def main():
         f' <CustomisationUIHeader label="{PROFILE}" description="Edge Cockpit: keys for console actions with no default keyboard bind" image="">',
         '  <devices>',
         '   <keyboard instance="1"/>',
+        *(['   <mouse instance="1"/>'] if any(k['action'] in mouse for k in actions) else []),
         '  </devices>',
         ' </CustomisationUIHeader>',
         ' <modifiers/>',
@@ -118,6 +137,9 @@ def main():
             out.append(f'  <!-- {k["label"]} -->')
             out.append(f'  <action name={quoteattr(k["action"])}>')
             out.append(f'   <rebind input="kb1_{key}"/>')
+            if k['action'] in mouse:
+                # Our key takes the Keyboard/Mouse slot; the button moves to the mouse device.
+                out.append(f'   <rebind input="mo1_{mouse[k["action"]]}"/>')
             out.append('  </action>')
         out.append(' </actionmap>')
     out.append('</ActionMaps>')
