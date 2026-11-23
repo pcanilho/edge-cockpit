@@ -1467,7 +1467,7 @@ function paintStatus() {
   const qtTo = game.qtTarget || game.qtRoute?.to, qtAt = !qtTo && game.qtArrived;
   $('qt').hidden = !qtTo && !qtAt;
   $('qt').classList.toggle('arrived', !!qtAt);
-  $('qt-name').textContent = qtTo ? `Quantum to ${qtTo.replace(/_/g, ' ')}` : qtAt ? `Arrived · ${qtAt.replace(/_/g, ' ')}` : '';
+  $('qt-name').textContent = qtTo ? `Quantum to ${navName(qtTo)}` : qtAt ? `Arrived · ${navName(qtAt)}` : '';
   // Server lag: the log names each stall of your client; the chip shows for a while after one.
   const lagOn = !!game.lag && game.lag.n !== lagSeen && liveLog;
   if (lagOn) { lagSeen = game.lag.n; clearTimeout(lagTimer); $('lag').hidden = false; lagTimer = setTimeout(() => { $('lag').hidden = true; }, LAG_MS); }
@@ -1514,6 +1514,13 @@ const CHIP_ORDER = ['kills', 'build', 'update', 'binds-chip', 'patch', 'touch-ch
 function fitChips() {
   const screen = $('auto').closest('.facts')?.parentElement, r = screen?.getBoundingClientRect();
   if (!r?.height) return;
+  // First the ship shrinks, then gives way, until the facts and Follow game fit; the other chips after.
+  CHIP_ORDER.forEach(id => $(id).classList.add('squeezed'));
+  for (const fit of ['', 'tight', 'tighter']) {
+    screen.classList.remove('tight', 'tighter');
+    if (fit) screen.classList.add(fit);
+    if ($('auto').getBoundingClientRect().bottom <= r.bottom - 10) break;
+  }
   CHIP_ORDER.forEach(id => $(id).classList.remove('squeezed'));
   for (const id of CHIP_ORDER) {
     if ($('auto').getBoundingClientRect().bottom <= r.bottom - 10) break;
@@ -1600,6 +1607,8 @@ const SYSTEMS_MAP = {
   Nyx: [['Nyx I'], ['Nyx II'], ['Glaciem', 'belt'], ['Nyx III'], ['Keeger', 'belt']],
 };
 let orreryFor = null;
+// A mission marker's nav point, MISSION_QT_Kaboos_928004668243, reads as Kaboos.
+const navName = n => n.replace(/^MISSION_(QT_)?/, '').replace(/_\d{6,}$/, '').replace(/_/g, ' ');
 function paintOrrery(at) {
   const svg = $('orrery'), sys = at?.system && SYSTEMS_MAP[at.system];
   svg.toggleAttribute('hidden', !sys || game.menu);

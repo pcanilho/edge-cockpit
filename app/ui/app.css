@@ -317,6 +317,11 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: ro
 .role { left: 20px; right: 16px; top: 258px; font: 700 10px/1.3 var(--hud); letter-spacing: .18em; text-transform: uppercase; color: var(--ship); }
 .facts { left: 20px; right: 16px; top: 284px; display: flex; flex-direction: column; gap: 11px; }
 .facts > * { position: static; }
+/* A busy status (mission, place, quantum, route) makes room by shrinking the ship, then dropping it. */
+#mfd.tight .hero { transform: scale(.68); transform-origin: 50% 0; }
+#mfd.tight .name { top: 166px; } #mfd.tight .role { top: 202px; } #mfd.tight .facts { top: 228px; }
+#mfd.tighter .hero { display: none; }
+#mfd.tighter .name { top: 52px; } #mfd.tighter .role { top: 88px; } #mfd.tighter .facts { top: 114px; }
 .where[hidden] { display: none; }
 .where small { display: block; font: 700 10px/1 var(--hud); letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
 .where b { display: block; margin-top: 6px; font: 600 17px/1.25 var(--hud); letter-spacing: .02em; color: var(--ink); }
