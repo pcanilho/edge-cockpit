@@ -6,6 +6,7 @@
   </devices>
  </CustomisationUIHeader>
  <modifiers/>
+ <!-- spare: rctrl+lalt+rshift+f7 rctrl+lalt+rshift+f8 rctrl+lalt+rshift+f9 rctrl+lalt+rshift+f10 rctrl+lalt+rshift+f11 rctrl+lalt+rshift+f12 -->
  <actionmap name="spaceship_general">
   <!-- Doors -->
   <action name="v_toggle_all_doors">

@@ -1,10 +1,16 @@
 //! Our keybind file, cut to what the player hasn't bound.
 //!
 //! The game keeps one Keyboard/Mouse slot per action, so a profile entry replaces whatever
-//! key or mouse button the player put there. The file we put in Control Profiles only
-//! carries actions the player has no keyboard key for, and keeps their mouse buttons.
+//! the player put there. The file we put in Control Profiles never touches a bind of theirs:
+//! - an action they set anything for on the keyboard (a key, a mouse button, or cleared) is
+//!   left out, and the console uses their key where it is one; our own key from an earlier
+//!   load of this profile isn't theirs, so it stays;
+//! - the game's default mouse button moves to the mouse device only when they have no
+//!   mouse bind there;
+//! - a key of ours they already use for something else is swapped for a spare one, or the
+//!   action is left out when none is free.
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
 /// (actionmap, action)
 type Slot = (String, String);
@@ -52,29 +58,29 @@ fn read(xml: &str) -> Binds {
     b
 }
 
-fn is_mouse(input: &str) -> bool {
-    ["mouse", "mwheel", "maxis"].iter().any(|m| input.contains(m))
+/// A key combination as a set, so "lalt+f5" and "f5+lalt" are the same key.
+fn combo(k: &str) -> BTreeSet<String> {
+    k.split('+').map(|p| p.trim().to_ascii_lowercase()).filter(|p| !p.is_empty()).collect()
 }
 
-/// What our file does with one action, given the player's binds: None drops it (the player
-/// has a keyboard key for it); otherwise the mouse input to put on the mouse device, if any.
-fn plan(slot: &Slot, ours: &Binds, theirs: &Binds) -> Option<Option<String>> {
-    let their_kb = theirs.kb.get(slot).map(String::as_str).unwrap_or("");
-    if !their_kb.is_empty() && !is_mouse(their_kb) {
-        return None;
-    }
-    if theirs.mouse.contains_key(slot) {
-        return Some(None);
-    }
-    // Their own mouse button from the Keyboard/Mouse slot, or the game's default one.
-    Some(if is_mouse(their_kb) { Some(their_kb.to_string()) } else { ours.mouse.get(slot).cloned() })
+/// The spare keys our file lists in its `<!-- spare: ... -->` line.
+fn spares(ours: &str) -> Vec<String> {
+    ours.lines()
+        .find_map(|l| l.trim().strip_prefix("<!-- spare:")?.strip_suffix("-->").map(|s| s.split_whitespace().map(str::to_string).collect()))
+        .unwrap_or_default()
 }
 
 /// `ours` (our generated binds file) cut to the player's `actionmaps` (see the module doc).
 /// Without an actionmaps.xml the player has the defaults, which our file was made for.
 pub fn tailor(ours: &str, actionmaps: Option<&str>) -> String {
     let Some(xml) = actionmaps else { return ours.to_string() };
-    let (mine, theirs) = (read(ours), read(xml));
+    let mut theirs = read(xml);
+    // Our key from an earlier load of this profile is ours, not theirs.
+    let mine = read(ours);
+    theirs.kb.retain(|slot, k| mine.kb.get(slot).is_none_or(|m| combo(m) != combo(k)));
+    // Keys the player uses anywhere; ours must not land on one of them.
+    let mut taken: Vec<BTreeSet<String>> = theirs.kb.values().map(|k| combo(k)).filter(|c| !c.is_empty()).collect();
+    let mut spare = spares(ours).into_iter();
     let mut out: Vec<String> = Vec::new();
     let mut map = String::new();
     let mut section: Vec<String> = Vec::new();
@@ -97,21 +103,36 @@ pub fn tailor(ours: &str, actionmaps: Option<&str>) -> String {
             block.push(line.to_string());
         } else {
             let action = block.iter().find(|l| l.trim().starts_with("<action ")).and_then(|l| attr(l.trim(), "name")).unwrap_or("").to_string();
-            if let Some(button) = plan(&(map.clone(), action), &mine, &theirs) {
-                for l in block.drain(..).filter(|l| !l.trim().starts_with("<rebind input=\"mo")) {
-                    let kb = l.trim().starts_with("<rebind input=\"kb");
-                    let indent = l[..l.len() - l.trim_start().len()].to_string();
-                    section.push(l);
-                    if let (true, Some(b)) = (kb, &button) {
-                        section.push(format!("{indent}<rebind input=\"mo1_{b}\"/>"));
-                    }
-                }
+            if keep(&mut block, &(map.clone(), action), &theirs, &mut taken, &mut spare) {
+                section.append(&mut block);
                 section.push(line.to_string());
             }
             block.clear();
         }
     }
     out.join("\n") + "\n"
+}
+
+/// Fits one action of ours to the player's binds; false when it must be left out.
+fn keep(block: &mut Vec<String>, slot: &Slot, theirs: &Binds, taken: &mut Vec<BTreeSet<String>>, spare: &mut impl Iterator<Item = String>) -> bool {
+    // Anything they set in the Keyboard/Mouse slot, a cleared one included, is theirs.
+    if theirs.kb.contains_key(slot) {
+        return false;
+    }
+    if theirs.mouse.contains_key(slot) {
+        block.retain(|l| !l.trim().starts_with("<rebind input=\"mo"));
+    }
+    for l in block.iter_mut() {
+        let Some(key) = attr(l.trim(), "input").and_then(|i| input(i, "kb")).map(str::to_string) else { continue };
+        let mut c = combo(&key);
+        if taken.contains(&c) {
+            let Some(s) = spare.find(|s| !taken.contains(&combo(s))) else { return false };
+            *l = l.replace(&format!("kb1_{key}\""), &format!("kb1_{s}\""));
+            c = combo(&s);
+        }
+        taken.push(c);
+    }
+    true
 }
 
 #[cfg(test)]
@@ -126,6 +147,7 @@ mod tests {
   </devices>
  </CustomisationUIHeader>
  <modifiers/>
+ <!-- spare: rctrl+lalt+f9 rctrl+lalt+f10 -->
  <actionmap name="spaceship_general">
   <!-- Open doors -->
   <action name="v_open_all_doors">
@@ -176,24 +198,38 @@ mod tests {
     }
 
     #[test]
-    fn their_mouse_button_moves_to_the_mouse() {
-        let t = tailor(OURS, Some(&player(r#"<actionmap name="spaceship_general"><action name="v_close_all_doors"><rebind input="kb1_mouse4"/></action></actionmap>
-          <actionmap name="spaceship_quantum"><action name="v_toggle_qdrive_engagement"><rebind input="kb1_lalt+mouse2"/></action></actionmap>"#)));
-        assert!(t.contains("<rebind input=\"kb1_rshift+f1\"/>\n   <rebind input=\"mo1_mouse4\"/>"), "{t}");
-        assert!(t.contains("<rebind input=\"kb1_rctrl+f6\"/>\n   <rebind input=\"mo1_lalt+mouse2\"/>"), "{t}");
-        assert!(!t.contains("mo1_mouse1"), "{t}");
+    fn a_mouse_button_or_cleared_slot_of_theirs_stays() {
+        let t = tailor(OURS, Some(&player(r#"<actionmap name="spaceship_general"><action name="v_close_all_doors"><rebind input="kb1_mouse4"/></action>
+          <action name="v_open_all_doors"><rebind input="kb1_ "/></action></actionmap>"#)));
+        assert!(!t.contains("v_close_all_doors") && !t.contains("v_open_all_doors") && !t.contains("spaceship_general"), "{t}");
+        assert!(t.contains("<rebind input=\"kb1_rctrl+f6\"/>\n   <rebind input=\"mo1_mouse1\"/>"), "{t}");
     }
 
     #[test]
-    fn a_cleared_slot_still_gets_our_key() {
-        let t = tailor(OURS, Some(&player(r#"<actionmap name="spaceship_general"><action name="v_open_all_doors"><rebind input="kb1_ "/></action></actionmap>"#)));
-        assert!(t.contains("<rebind input=\"kb1_rctrl+rshift+f4\"/>"), "{t}");
+    fn our_key_from_an_earlier_load_stays_and_gets_its_mouse_button_back() {
+        let t = tailor(OURS, Some(&player(r#"<actionmap name="spaceship_quantum"><action name="v_toggle_qdrive_engagement"><rebind input="kb1_rctrl+f6"/></action></actionmap>"#)));
+        assert!(t.contains("<rebind input=\"kb1_rctrl+f6\"/>\n   <rebind input=\"mo1_mouse1\"/>"), "{t}");
     }
 
     #[test]
     fn their_mouse_bind_is_left_alone() {
         let t = tailor(OURS, Some(&player(r#"<actionmap name="spaceship_quantum"><action name="v_toggle_qdrive_engagement"><rebind input="mo1_mouse5"/></action></actionmap>"#)));
-        assert!(t.contains("kb1_rctrl+f6") && !t.contains("mo1_"), "{t}");
+        assert!(t.contains("kb1_rctrl+f6") && !t.contains("<rebind input=\"mo1_"), "{t}");
+    }
+
+    #[test]
+    fn a_key_of_ours_they_use_elsewhere_is_swapped_for_a_spare() {
+        let t = tailor(OURS, Some(&player(r#"<actionmap name="spaceship_movement"><action name="v_ifcs_toggle_vector_decoupling"><rebind input="kb1_f6+rctrl"/></action>
+          <action name="v_autoland"><rebind input="kb1_rctrl+lalt+f9"/></action></actionmap>"#)));
+        assert!(t.contains("<rebind input=\"kb1_rctrl+lalt+f10\"/>") && !t.contains("kb1_rctrl+f6\""), "{t}");
+    }
+
+    #[test]
+    fn no_spare_left_leaves_the_action_out() {
+        let t = tailor(OURS, Some(&player(r#"<actionmap name="x"><action name="a"><rebind input="kb1_rctrl+f6"/></action>
+          <action name="b"><rebind input="kb1_rctrl+lalt+f9"/></action><action name="c"><rebind input="kb1_rctrl+lalt+f10"/></action></actionmap>"#)));
+        assert!(!t.contains("v_toggle_qdrive_engagement"), "{t}");
+        assert!(t.contains("v_open_all_doors") && t.contains("v_close_all_doors"), "{t}");
     }
 
     #[test]
