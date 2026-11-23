@@ -20,7 +20,7 @@ Unofficial fan project, not affiliated with Cloud Imperium Games.
 ## Install
 
 1. Run `Edge-Cockpit-<version>-setup.exe` from the [latest release](../../releases/latest). SmartScreen warns because the exe isn't code signed: **More info** > **Run anyway**. [How to verify a download](SECURITY.md#verifying-a-download).
-2. In game: **Options > Keybindings > Advanced Controls Customization > Control Profiles**, pick **edge-cockpit**, tick only **Keyboard**. This binds actions that have no default key. Your own binds stay. On first start a setup check shows what's ready, with a **Test a key** button.
+2. In game: **Options > Keybindings > Advanced Controls Customization > Control Profiles**, pick **edge-cockpit**, tick **Keyboard** and **Mouse**. This binds actions that have no default key, and keeps quantum engage on the left mouse button. Your own binds stay. On first start a setup check shows what's ready, with a **Test a key** button.
 
 It starts with Windows, wakes when Star Citizen starts and goes dark when you quit. Updates are offered only while you're not playing.
 

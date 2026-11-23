@@ -122,8 +122,8 @@ document.body.classList.toggle('calm', opts.calm);
 // ---------- binds: the player's actionmaps.xml, then our Xeneon profile, then the defaults ----------
 function parseActionmaps(text) {
   const doc = new DOMParser().parseFromString(text, 'application/xml');
-  const kb = {}, stick = {};
-  if (doc.querySelector('parsererror')) return { kb, stick };
+  const kb = {}, stick = {}, mouse = {};
+  if (doc.querySelector('parsererror')) return { kb, stick, mouse };
   doc.querySelectorAll('action').forEach(a => {
     const name = a.getAttribute('name');
     a.querySelectorAll('rebind').forEach(rb => {
@@ -132,12 +132,16 @@ function parseActionmaps(text) {
       if (m) kb[name] = m[1].trim() || null;
       const j = input.match(/^(js|gp)\d*_(.+)$/);
       if (j && j[2].trim()) stick[name] = input;
+      const mo = input.match(/^mo\d*_(.+)$/);
+      if (mo && mo[1].trim()) mouse[name] = mo[1].trim();
     });
   });
-  return { kb, stick };
+  return { kb, stick, mouse };
 }
-const consoleBinds = parseActionmaps(consoleXml).kb;
-let mine = { kb: {}, stick: {} };
+// The game keeps keys and mouse buttons in one Keyboard/Mouse slot, so where our key replaces a
+// default mouse button (quantum engage: left button) our profile puts the button on the mouse.
+const { kb: consoleBinds, mouse: consoleMouse } = parseActionmaps(consoleXml);
+let mine = { kb: {}, stick: {}, mouse: {} };
 function bindOf(k) {
   if (!k?.action) return null;
   if (Object.hasOwn(mine.kb, k.action)) {
@@ -148,7 +152,7 @@ function bindOf(k) {
 }
 async function reloadBinds() {
   const text = await bridge.readBinds().catch(() => null);
-  mine = text ? parseActionmaps(text) : { kb: {}, stick: {} };
+  mine = text ? parseActionmaps(text) : { kb: {}, stick: {}, mouse: {} };
   const n = Object.keys(mine.kb).length;
   $('binds-note').textContent = text ? `${n} keyboard binds from your actionmaps.xml` : 'Default binds (no actionmaps.xml yet)';
   cache.clear();
@@ -228,9 +232,12 @@ function bindHealth() {
   const byAction = new Map();
   const add = k => { if (k?.action && !byAction.has(k.action)) byAction.set(k.action, k); };
   for (const k of KEYS.values()) { add(k); k.steps?.forEach(st => add(st.key)); }
-  const missing = [], stick = [], shared = [], seen = new Map();
+  const missing = [], stick = [], shared = [], mouse = [], seen = new Map();
   for (const k of byAction.values()) {
     const spec = bindOf(k);
+    // Our key took the slot of a default mouse button and the button didn't move to the mouse.
+    const button = consoleMouse[k.action];
+    if (button && Object.hasOwn(mine.kb, k.action) && spec === consoleBinds[k.action] && !mine.mouse[k.action]) mouse.push(`${k.label} (${mouseText(button)})`);
     if (!spec) { (mine.stick[k.action] ? stick : missing).push(k.label); continue; }
     const id = `${k.actionmap || ''}|${k.activation || ''}|${spec}`;
     const other = seen.get(id);
@@ -238,14 +245,15 @@ function bindHealth() {
     if (other && !(spec === k.defaultKey && spec === other.defaultKey)) shared.push(`${other.label} and ${k.label} (${keyText(spec)})`);
     else seen.set(id, k);
   }
-  return { total: byAction.size, missing, stick, shared };
+  return { total: byAction.size, missing, stick, shared, mouse };
 }
+function mouseText(spec) { return spec.split('+').map(p => ({ mouse1: 'left mouse button', mouse2: 'right mouse button', mouse3: 'middle mouse button' }[p] || keyText(p))).join(' + '); }
 const listOf = (a, n = 4) => a.slice(0, n).join(', ') + (a.length > n ? ` and ${a.length - n} more` : '');
 function paintBindHealth() {
   const h = bindHealth();
   const bad = h.missing.length + h.stick.length;
   const row = $('bind-health');
-  row.className = `health ${bad ? 'warn' : h.shared.length ? 'info' : 'ok'}`;
+  row.className = `health ${bad || h.mouse.length ? 'warn' : h.shared.length ? 'info' : 'ok'}`;
   row.querySelector('b').textContent = bad
     ? `${bad} of ${h.total} keys can't be pressed from the console`
     : `All ${h.total} keys the console uses have a keyboard bind`;
@@ -253,7 +261,8 @@ function paintBindHealth() {
   if (h.missing.length) lines.push(`No keyboard key: ${listOf(h.missing)}.`);
   if (h.stick.length) lines.push(`Joystick only: ${listOf(h.stick)}.`);
   if (h.shared.length) lines.push(`Sharing a key: ${listOf(h.shared, 2)}.`);
-  if (bad) lines.push('Add the console\'s binds, then pick "edge-cockpit" in the game\'s Control Profiles.');
+  if (h.mouse.length) lines.push(`Lost their mouse button in game: ${listOf(h.mouse)}.`);
+  if (bad || h.mouse.length) lines.push('Add the console\'s binds, then pick "edge-cockpit" in the game\'s Control Profiles with Keyboard and Mouse ticked.');
   row.querySelector('p').textContent = lines.join('\n') || 'Checked when the console starts and whenever your binds change.';
   const chip = $('binds-chip'), lost = !!backups?.lost;
   chip.hidden = !bad && !lost;
@@ -993,7 +1002,7 @@ paintScreenOpts();
 controls.pressable($('sheet-close'), { up: () => openSheet(false) });
 controls.pressable($('auto'), { up: () => { tick('toggle'); setOpt('auto', !opts.auto); } });
 async function installBinds() {
-  try { await bridge.installBinds(); toast('Added. In game: Options, Keybindings, Control Profiles, pick "edge-cockpit", tick Keyboard only.'); }
+  try { await bridge.installBinds(); toast('Added. In game: Options, Keybindings, Control Profiles, pick "edge-cockpit", tick Keyboard and Mouse.'); }
   catch (e) { toast(String(e?.message || e)); }
 }
 // ---------- wipe lock: touches off for a while, to clean the screen ----------
@@ -1226,7 +1235,8 @@ async function paintSetup() {
       : ['ok', 'Touchscreen found', `${touch.name}, ${touch.width} × ${touch.height}. Touches map to it.`],
     !ch ? ['warn', 'Star Citizen not found yet', 'Start the game once. The console finds it from the running game.']
       : ['ok', 'Star Citizen found', `${ch}${game.build?.branch ? ' ' + version(game.build.branch) : ''} · ${info.log ? 'Game.log readable' : 'no Game.log yet'}`],
-    bad ? ['warn', 'Pick the edge-cockpit control profile', `In game: Options › Keybindings › Control Profiles › edge-cockpit, Keyboard only. ${bad} ${bad === 1 ? 'key waits' : 'keys wait'} on it.`, 'Add binds', installBinds]
+    bad ? ['warn', 'Pick the edge-cockpit control profile', `In game: Options › Keybindings › Control Profiles › edge-cockpit, Keyboard and Mouse. ${bad} ${bad === 1 ? 'key waits' : 'keys wait'} on it.`, 'Add binds', installBinds]
+      : h.mouse.length ? ['warn', 'Pick the edge-cockpit control profile again', `In game: Options › Keybindings › Control Profiles › edge-cockpit, Keyboard and Mouse. It gives back ${listOf(h.mouse)}.`, 'Add binds', installBinds]
       : ['ok', 'Every key has a bind', `All ${h.total} keys the console uses have a keyboard bind.`],
     info.game_elevated == null ? ['unknown', 'Admin rights', 'Checked while the game is in front.']
       : info.game_elevated && !info.elevated ? ['warn', 'The game runs as administrator', 'Windows drops keys from the console unless it does too.', 'Restart as admin', bridge.runAsAdmin]
@@ -2037,5 +2047,5 @@ window.xfd = {
     return CUSTOM.get(spec.id) || null;
   },
   deletePage: id => { putPage(id, null); pageGone(id); },
-  show, raise, setup: showSetup, legend: showLegend, feed: (lines, live = true) => onLog({ lines, live }), recap: t => { session = { ...NEW_TALLY, ...t }; showRecap(); }, perf: perf.toggle, showSection, bindHealth, bindsProfile, reportProblem, backupProfile, paintBackups, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
+  show, raise, setup: showSetup, legend: showLegend, feed: (lines, live = true) => onLog({ lines, live }), recap: t => { session = { ...NEW_TALLY, ...t }; showRecap(); }, perf: perf.toggle, showSection, bindHealth, reloadBinds, bindsProfile, reportProblem, backupProfile, paintBackups, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
 document.body.dataset.ready = '1';
