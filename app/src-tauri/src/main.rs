@@ -10,6 +10,7 @@ mod fit;
 mod game;
 mod keys;
 mod phone;
+mod tailor;
 mod world;
 #[cfg(windows)]
 mod win;
@@ -1155,6 +1156,10 @@ fn watch_game(handle: AppHandle) {
                     let dir = channel.as_deref().and_then(|c| backup_dir(&handle, c));
                     if let (Some(dir), Some(xml)) = (dir, path.as_ref().and_then(|p| std::fs::read_to_string(p).ok())) {
                         let _ = backup::keep(&dir, &xml, std::time::SystemTime::now());
+                    }
+                    // Our Control Profile follows the player's binds, so loading it adds only what's missing.
+                    if let Some(c) = channel.as_deref() {
+                        let _ = game::install_binds(c);
                     }
                 }
                 if binds_changed(&mut binds_seen, now) {

@@ -130,6 +130,8 @@ def main():
         '  </devices>',
         ' </CustomisationUIHeader>',
         ' <modifiers/>',
+        # Free keys the app swaps in when the player already uses one of ours elsewhere.
+        f' <!-- spare: {" ".join(free[len(todo):])} -->',
     ]
     for amap, items in maps.items():
         out.append(f' <actionmap name={quoteattr(amap)}>')
