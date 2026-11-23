@@ -6,6 +6,7 @@
   </devices>
  </CustomisationUIHeader>
  <modifiers/>
+ <!-- spare: rctrl+comma rctrl+period rctrl+slash rctrl+lbracket rctrl+rbracket rctrl+lalt+np_add -->
  <!-- was: v_toggle_all_doorlocks rshift+f6 -->
  <!-- was: v_open_all_doors rctrl+rshift+f4 -->
  <!-- was: v_close_all_doors rctrl+rshift+f5 -->

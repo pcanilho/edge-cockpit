@@ -44,23 +44,23 @@ def problems(defaults, xml):
     for amap, action, kb, mode in defaults['binds']:
         bound.setdefault(combo(kb), []).append(f'{amap}/{action} ({mode or "press"})')
     out, seen = [], {}
-    for a in ET.fromstring(xml).iter('action'):
-        for rb in a.iter('rebind'):
-            m = re.fullmatch(r'kb\d*_(.+)', rb.get('input', '').strip())
-            if not m:
-                continue
-            spec, name = m.group(1), a.get('name')
-            parts = [p.strip().lower() for p in spec.split('+')]
-            # Each step the game sees while the console presses the keys in order.
-            for i in range(1, len(parts) + 1):
-                step = frozenset(parts[:i])
-                for hit in bound.get(step, []):
-                    out.append(f'{name} {spec}: {"+".join(parts[:i])} is {hit}')
-            if any(w <= set(parts) for w in WINDOWS):
-                out.append(f'{name} {spec}: Windows acts on it')
-            if combo(spec) in seen:
-                out.append(f'{name} {spec}: also {seen[combo(spec)]}')
-            seen[combo(spec)] = name
+    keys = [(a.get('name'), m.group(1)) for a in ET.fromstring(xml).iter('action') for rb in a.iter('rebind')
+            if (m := re.fullmatch(r'kb\d*_(.+)', rb.get('input', '').strip()))]
+    # The spare keys the app swaps in follow the same rules.
+    spare = re.search(r'<!-- spare:(.*?)-->', xml)
+    keys += [('spare', k) for k in (spare.group(1).split() if spare else [])]
+    for name, spec in keys:
+        parts = [p.strip().lower() for p in spec.split('+')]
+        # Each step the game sees while the console presses the keys in order.
+        for i in range(1, len(parts) + 1):
+            step = frozenset(parts[:i])
+            for hit in bound.get(step, []):
+                out.append(f'{name} {spec}: {"+".join(parts[:i])} is {hit}')
+        if any(w <= set(parts) for w in WINDOWS):
+            out.append(f'{name} {spec}: Windows acts on it')
+        if combo(spec) in seen:
+            out.append(f'{name} {spec}: also {seen[combo(spec)]}')
+        seen[combo(spec)] = name
     return out
 
 

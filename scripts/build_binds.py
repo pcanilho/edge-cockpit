@@ -153,6 +153,8 @@ def main():
         '  </devices>',
         ' </CustomisationUIHeader>',
         ' <modifiers/>',
+        # Free keys the app swaps in when the player already uses one of ours elsewhere.
+        f' <!-- spare: {" ".join(free[len(todo):])} -->',
         *[f' <!-- was: {a} {k} -->' for a, k in was],
     ]
     for amap, items in maps.items():

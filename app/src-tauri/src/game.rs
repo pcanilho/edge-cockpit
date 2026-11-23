@@ -86,13 +86,16 @@ pub fn mappings_dir(channel: &Path) -> PathBuf {
     channel.join(r"user\client\0\controls\mappings")
 }
 
-/// Puts our keybind file where the game's Control Profiles list finds it. Returns the path.
+/// Puts our keybind file where the game's Control Profiles list finds it, cut to the actions
+/// the player has no keyboard key for. Returns the path.
 pub fn install_binds(channel: &Path) -> std::io::Result<PathBuf> {
     let dir = mappings_dir(channel);
     fs::create_dir_all(&dir)?;
     let path = dir.join(BINDS_NAME);
-    if fs::read_to_string(&path).ok().as_deref() != Some(BINDS_XML) {
-        fs::write(&path, BINDS_XML)?;
+    // Only what the player hasn't bound: loading it never replaces a bind of theirs.
+    let xml = crate::tailor::tailor(BINDS_XML, fs::read_to_string(actionmaps(channel)).ok().as_deref());
+    if fs::read_to_string(&path).ok() != Some(xml.clone()) {
+        fs::write(&path, xml)?;
     }
     Ok(path)
 }
