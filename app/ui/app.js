@@ -222,6 +222,8 @@ async function keepBinds() {
   toast('Kept. The next change to your binds is copied as usual.');
 }
 
+/** Modifiers the game also binds on their own, so a chord with one presses that action too. */
+const LONE_MODIFIERS = { rshift: 'locks rotation', lshift: 'boosts', lctrl: 'strafes down' };
 /**
  * The keybind check: every key the console can send, against the binds in use.
  * Missing: no keyboard key at all. Stick only: bound to a joystick, which the panel
@@ -232,20 +234,23 @@ function bindHealth() {
   const byAction = new Map();
   const add = k => { if (k?.action && !byAction.has(k.action)) byAction.set(k.action, k); };
   for (const k of KEYS.values()) { add(k); k.steps?.forEach(st => add(st.key)); }
-  const missing = [], stick = [], shared = [], mouse = [], seen = new Map();
+  const missing = [], stick = [], shared = [], mouse = [], held = [], seen = new Map();
   for (const k of byAction.values()) {
     const spec = bindOf(k);
     // Our key took the slot of a default mouse button and the button didn't move to the mouse.
     const button = consoleMouse[k.action];
     if (button && Object.hasOwn(mine.kb, k.action) && spec === consoleBinds[k.action] && !mine.mouse[k.action]) mouse.push(`${k.label} (${mouseText(button)})`);
     if (!spec) { (mine.stick[k.action] ? stick : missing).push(k.label); continue; }
+    // The game fires a modifier's own action even mid-chord: right Shift alone is Lock rotation.
+    const parts = spec.split('+'), lone = parts.find(p => Object.hasOwn(LONE_MODIFIERS, p));
+    if (parts.length > 1 && lone && spec !== k.defaultKey) held.push(`${k.label} (${keyText(spec)}, also ${LONE_MODIFIERS[lone]})`);
     const id = `${k.actionmap || ''}|${k.activation || ''}|${spec}`;
     const other = seen.get(id);
     // The game itself puts some actions on one key and picks by context (mining and salvage mode on M).
     if (other && !(spec === k.defaultKey && spec === other.defaultKey)) shared.push(`${other.label} and ${k.label} (${keyText(spec)})`);
     else seen.set(id, k);
   }
-  return { total: byAction.size, missing, stick, shared, mouse };
+  return { total: byAction.size, missing, stick, shared, mouse, held };
 }
 function mouseText(spec) { return spec.split('+').map(p => ({ mouse1: 'left mouse button', mouse2: 'right mouse button', mouse3: 'middle mouse button' }[p] || keyText(p))).join(' + '); }
 const listOf = (a, n = 4) => a.slice(0, n).join(', ') + (a.length > n ? ` and ${a.length - n} more` : '');
@@ -253,7 +258,8 @@ function paintBindHealth() {
   const h = bindHealth();
   const bad = h.missing.length + h.stick.length;
   const row = $('bind-health');
-  row.className = `health ${bad || h.mouse.length ? 'warn' : h.shared.length ? 'info' : 'ok'}`;
+  const odd = h.mouse.length + h.held.length;
+  row.className = `health ${bad || odd ? 'warn' : h.shared.length ? 'info' : 'ok'}`;
   row.querySelector('b').textContent = bad
     ? `${bad} of ${h.total} keys can't be pressed from the console`
     : `All ${h.total} keys the console uses have a keyboard bind`;
@@ -262,7 +268,8 @@ function paintBindHealth() {
   if (h.stick.length) lines.push(`Joystick only: ${listOf(h.stick)}.`);
   if (h.shared.length) lines.push(`Sharing a key: ${listOf(h.shared, 2)}.`);
   if (h.mouse.length) lines.push(`Lost their mouse button in game: ${listOf(h.mouse)}.`);
-  if (bad || h.mouse.length) lines.push('Add the console\'s binds, then pick "edge-cockpit" in the game\'s Control Profiles with Keyboard and Mouse ticked.');
+  if (h.held.length) lines.push(`Shift or left Ctrl in these keys also fires its own action in game: ${listOf(h.held, 2)}.`);
+  if (bad || odd) lines.push('Add the console\'s binds, then pick "edge-cockpit" in the game\'s Control Profiles with Keyboard and Mouse ticked.');
   row.querySelector('p').textContent = lines.join('\n') || 'Checked when the console starts and whenever your binds change.';
   const chip = $('binds-chip'), lost = !!backups?.lost;
   chip.hidden = !bad && !lost;
@@ -1239,6 +1246,7 @@ async function paintSetup() {
       : ['ok', 'Star Citizen found', `${ch}${game.build?.branch ? ' ' + version(game.build.branch) : ''} · ${info.log ? 'Game.log readable' : 'no Game.log yet'}`],
     bad ? ['warn', 'Pick the edge-cockpit control profile', `In game: Options › Keybindings › Control Profiles › edge-cockpit, Keyboard and Mouse. ${bad} ${bad === 1 ? 'key waits' : 'keys wait'} on it.`, 'Add binds', installBinds]
       : h.mouse.length ? ['warn', 'Pick the edge-cockpit control profile again', `In game: Options › Keybindings › Control Profiles › edge-cockpit, Keyboard and Mouse. It gives back ${listOf(h.mouse)}.`, 'Add binds', installBinds]
+      : h.held.length ? ['warn', 'Pick the edge-cockpit control profile again', `In game: Options › Keybindings › Control Profiles › edge-cockpit, Keyboard and Mouse. Some keys also fire another action: ${listOf(h.held, 2)}.`, 'Add binds', installBinds]
       : ['ok', 'Every key has a bind', `All ${h.total} keys the console uses have a keyboard bind.`],
     info.game_elevated == null ? ['unknown', 'Admin rights', 'Checked while the game is in front.']
       : info.game_elevated && !info.elevated ? ['warn', 'The game runs as administrator', 'Windows drops keys from the console unless it does too.', 'Restart as admin', bridge.runAsAdmin]

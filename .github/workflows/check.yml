@@ -32,6 +32,8 @@ jobs:
           cache-dependency-path: app/package-lock.json
       - name: Layout and glyphs agree
         run: python scripts/check_layout.py
+      - name: Profile keys press no game action
+        run: python scripts/check_binds.py
       - name: Scripts parse
         run: |
           python -m py_compile scripts/*.py

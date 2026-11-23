@@ -2,7 +2,8 @@
 
 The panel sends keyboard keys, so these actions need one.
 Each gets a free key from a pool that Star Citizen leaves unused by default
-(right Ctrl / right Shift with F1-F12), so nothing you already use is overwritten.
+(right Ctrl, or right Ctrl + left Alt, with F keys, the navigation block,
+the numpad, digits and letters; never Shift, see POOL), so nothing you already use is overwritten.
 
 Usage:
     python scripts/build_binds.py path/to/defaultProfile.xml > binds/layout_edge_cockpit_exported.xml
@@ -23,17 +24,25 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from xml.sax.saxutils import quoteattr
 
+import check_binds
+
 ROOT = Path(__file__).resolve().parent.parent
 PROFILE = 'edge-cockpit'
 NAV = ['insert', 'home', 'pgup', 'delete', 'end', 'pgdn']
 NUMPAD = [f'np_{n}' for n in range(10)] + ['np_divide', 'np_multiply', 'np_subtract', 'np_period']
-# Right Ctrl / right Shift with F1-F12 first, then more right Ctrl chords. Shift is never paired with the
-# numpad (it turns numpad keys into arrows), and Ctrl+Alt+Delete is left alone.
-POOL = ([f'{mods}+f{n}' for mods in ('rctrl', 'rshift', 'rctrl+rshift') for n in range(1, 13)]
-        + [f'rctrl+{k}' for k in NAV + NUMPAD] + [f'rctrl+rshift+{k}' for k in NAV]
+DIGITS = [str(n) for n in range(10)]
+LETTERS = list('abcdefghijklmnopqrstuvwxyz')
+# Right Ctrl with F1-F12 first, then more right Ctrl and right Ctrl + left Alt chords. Ctrl+Alt+Delete
+# and Alt+F4 are left alone (check_binds.WINDOWS), and Ctrl+Alt is never paired with letters, which
+# other apps use for global hotkeys.
+# No Shift: the game reads a modifier on its own too, and right Shift alone is Lock rotation, so every
+# right Shift chord also locked the ship's pitch and yaw (the mouse stopped turning the ship).
+POOL = ([f'rctrl+f{n}' for n in range(1, 13)]
+        + [f'rctrl+{k}' for k in NAV + NUMPAD]
         + [f'rctrl+lalt+{k}' for k in [f'f{n}' for n in range(1, 13)] + NAV + NUMPAD if k != 'delete']
-        + [f'rshift+{k}' for k in NAV]
-        + [f'rctrl+lalt+rshift+f{n}' for n in range(1, 13)])
+        + [f'rctrl+{k}' for k in DIGITS] + [f'rctrl+lalt+{k}' for k in DIGITS]
+        + [f'rctrl+{k}' for k in LETTERS]
+        + [f'rctrl+{k}' for k in ['np_add', 'comma', 'period', 'slash', 'lbracket', 'rbracket']] + ['rctrl+lalt+np_add'])
 
 
 def combo(s):
@@ -102,12 +111,24 @@ def current_binds():
     return out
 
 
+def earlier_binds():
+    """Keys earlier versions of the file gave, from its '<!-- was: action key -->' lines. The app
+    uses them to tell our old keys in a player's binds from keys the player chose."""
+    path = ROOT / 'binds/layout_edge_cockpit_exported.xml'
+    if not path.exists():
+        return []
+    return re.findall(r'<!-- was: (\S+) (\S+) -->', path.read_text(encoding='utf-8'))
+
+
 def main():
     if len(sys.argv) != 2:
         sys.exit(__doc__)
     used = used_keys(sys.argv[1])
     mouse = mouse_defaults(sys.argv[1])
-    free = [p for p in POOL if combo(p) not in used]
+    # Every step the game sees while the keys go down (RCtrl, RCtrl+LAlt, RCtrl+LAlt+F5) must be
+    # free too: the game fires a held key's own action (right Shift alone is Lock rotation).
+    steps = lambda p: [frozenset(p.split('+')[:i]) for i in range(1, p.count('+') + 2)]
+    free = [p for p in POOL if not any(st in used for st in steps(p)) and not any(w <= combo(p) for w in check_binds.WINDOWS)]
     actions = deck_actions()
     # Keep each action's key from the current file when it's still free.
     keep = {a: k for a, k in current_binds().items() if k in free and a in {x['action'] for x in actions}}
@@ -116,6 +137,8 @@ def main():
     if len(todo) > len(free):
         sys.exit(f'Need {len(todo)} more free keys but the pool has {len(free)}')
     assigned = dict(keep, **{k['action']: key for k, key in zip(todo, free)})
+    was = earlier_binds()
+    was += [(a, k) for a, k in current_binds().items() if assigned.get(a, k) != k and (a, k) not in was]
 
     maps = {}
     for k in actions:
@@ -132,6 +155,7 @@ def main():
         ' <modifiers/>',
         # Free keys the app swaps in when the player already uses one of ours elsewhere.
         f' <!-- spare: {" ".join(free[len(todo):])} -->',
+        *[f' <!-- was: {a} {k} -->' for a, k in was],
     ]
     for amap, items in maps.items():
         out.append(f' <actionmap name={quoteattr(amap)}>')
