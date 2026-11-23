@@ -234,7 +234,8 @@ mod tests {
 
     #[test]
     fn the_shipped_file_reads_whole() {
+        // A Windows checkout gives the file CRLF line ends; the output uses LF.
         let t = tailor(crate::game::BINDS_XML, Some(&player("")));
-        assert_eq!(t.trim_end(), crate::game::BINDS_XML.trim_end());
+        assert_eq!(t.trim_end(), crate::game::BINDS_XML.replace("\r\n", "\n").trim_end());
     }
 }
