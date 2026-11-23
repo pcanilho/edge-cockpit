@@ -70,6 +70,16 @@ fn spares(ours: &str) -> Vec<String> {
         .unwrap_or_default()
 }
 
+/// Keys earlier versions of our file gave, from its `<!-- was: action key -->` lines.
+fn was(ours: &str) -> Vec<(String, BTreeSet<String>)> {
+    ours.lines()
+        .filter_map(|l| {
+            let (action, key) = l.trim().strip_prefix("<!-- was:")?.strip_suffix("-->")?.trim().split_once(char::is_whitespace)?;
+            Some((action.to_string(), combo(key)))
+        })
+        .collect()
+}
+
 /// `ours` (our generated binds file) cut to the player's `actionmaps` (see the module doc).
 /// Without an actionmaps.xml the player has the defaults, which our file was made for.
 pub fn tailor(ours: &str, actionmaps: Option<&str>) -> String {
@@ -77,7 +87,12 @@ pub fn tailor(ours: &str, actionmaps: Option<&str>) -> String {
     let mut theirs = read(xml);
     // Our key from an earlier load of this profile is ours, not theirs.
     let mine = read(ours);
-    theirs.kb.retain(|slot, k| mine.kb.get(slot).is_none_or(|m| combo(m) != combo(k)));
+    // Keys an earlier version of our file gave are ours too; the new key replaces them.
+    let old = was(ours);
+    theirs.kb.retain(|slot, k| {
+        let c = combo(k);
+        mine.kb.get(slot).is_none_or(|m| combo(m) != c) && !old.iter().any(|(a, o)| *a == slot.1 && *o == c)
+    });
     // Keys the player uses anywhere; ours must not land on one of them.
     let mut taken: Vec<BTreeSet<String>> = theirs.kb.values().map(|k| combo(k)).filter(|c| !c.is_empty()).collect();
     let mut spare = spares(ours).into_iter();
@@ -209,6 +224,14 @@ mod tests {
     fn our_key_from_an_earlier_load_stays_and_gets_its_mouse_button_back() {
         let t = tailor(OURS, Some(&player(r#"<actionmap name="spaceship_quantum"><action name="v_toggle_qdrive_engagement"><rebind input="kb1_rctrl+f6"/></action></actionmap>"#)));
         assert!(t.contains("<rebind input=\"kb1_rctrl+f6\"/>\n   <rebind input=\"mo1_mouse1\"/>"), "{t}");
+    }
+
+    #[test]
+    fn a_key_an_earlier_file_gave_is_replaced() {
+        let ours = OURS.replace(" <modifiers/>\n", " <modifiers/>\n <!-- was: v_open_all_doors rshift+f4 -->\n");
+        let t = tailor(&ours, Some(&player(r#"<actionmap name="spaceship_general"><action name="v_open_all_doors"><rebind input="kb1_rshift+f4"/></action>
+          <action name="v_close_all_doors"><rebind input="kb1_rshift+f4"/></action></actionmap>"#)));
+        assert!(t.contains("<rebind input=\"kb1_rctrl+rshift+f4\"/>") && !t.contains("v_close_all_doors"), "{t}");
     }
 
     #[test]
