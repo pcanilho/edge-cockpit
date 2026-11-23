@@ -364,6 +364,11 @@ report.push(`keybind check: ${health.total} keys, ${health.missing.length} missi
 // Our key takes quantum engage's Keyboard/Mouse slot (default: left mouse button), so the profile
 // puts the button on the mouse; binds loaded without it say quantum lost its button.
 if (health.mouse.length) problems.push(`default binds report lost mouse buttons: ${health.mouse.join(', ')}`);
+// The game fires right Shift's own action (Lock rotation) mid-chord, so no console key may use it.
+if (health.held.length) problems.push(`console binds use a modifier the game binds on its own: ${health.held.join(', ')}`);
+const doors = `<ActionMaps><ActionProfiles profileName="default"><actionmap name="spaceship_general"><action name="v_open_all_doors"><rebind input="kb1_rctrl+rshift+f4"/></action></actionmap></ActionProfiles></ActionMaps>`;
+const oldDoors = await page.evaluate(async xml => { window.xfdTestBinds = xml; await window.xfd.reloadBinds(); return window.xfd.bindHealth(); }, doors);
+if (!oldDoors.held.some(m => /RShift F4, also locks rotation/.test(m))) problems.push(`a right Shift chord is not reported: ${oldDoors.held.join(', ')}`);
 const qdrive = mo => `<ActionMaps><ActionProfiles profileName="default"><actionmap name="spaceship_quantum"><action name="v_toggle_qdrive_engagement"><rebind input="kb1_rctrl+f6"/>${mo}</action></actionmap></ActionProfiles></ActionMaps>`;
 for (const [mo, lost] of [['', true], ['<rebind input="mo1_mouse1"/>', false]]) {
   const h = await page.evaluate(async xml => { window.xfdTestBinds = xml; await window.xfd.reloadBinds(); return window.xfd.bindHealth(); }, qdrive(mo));

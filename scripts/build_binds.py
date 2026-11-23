@@ -2,7 +2,8 @@
 
 The panel sends keyboard keys, so these actions need one.
 Each gets a free key from a pool that Star Citizen leaves unused by default
-(right Ctrl / right Shift with F1-F12), so nothing you already use is overwritten.
+(right Ctrl, or right Ctrl + left Alt, with F keys, the navigation block,
+the numpad, digits and letters; never Shift, see POOL), so nothing you already use is overwritten.
 
 Usage:
     python scripts/build_binds.py path/to/defaultProfile.xml > binds/layout_edge_cockpit_exported.xml
@@ -27,13 +28,17 @@ ROOT = Path(__file__).resolve().parent.parent
 PROFILE = 'edge-cockpit'
 NAV = ['insert', 'home', 'pgup', 'delete', 'end', 'pgdn']
 NUMPAD = [f'np_{n}' for n in range(10)] + ['np_divide', 'np_multiply', 'np_subtract', 'np_period']
-# Right Ctrl / right Shift with F1-F12 first, then more right Ctrl chords. Shift is never paired with the
-# numpad (it turns numpad keys into arrows), and Ctrl+Alt+Delete is left alone.
-POOL = ([f'{mods}+f{n}' for mods in ('rctrl', 'rshift', 'rctrl+rshift') for n in range(1, 13)]
-        + [f'rctrl+{k}' for k in NAV + NUMPAD] + [f'rctrl+rshift+{k}' for k in NAV]
+DIGITS = [str(n) for n in range(10)]
+LETTERS = list('abcdefghijklmnopqrstuvwxyz')
+# Right Ctrl with F1-F12 first, then more right Ctrl and right Ctrl + left Alt chords. Ctrl+Alt+Delete
+# is left alone, and Ctrl+Alt is never paired with letters, which other apps use for global hotkeys.
+# No Shift: the game reads a modifier on its own too, and right Shift alone is Lock rotation, so every
+# right Shift chord also locked the ship's pitch and yaw (the mouse stopped turning the ship).
+POOL = ([f'rctrl+f{n}' for n in range(1, 13)]
+        + [f'rctrl+{k}' for k in NAV + NUMPAD]
         + [f'rctrl+lalt+{k}' for k in [f'f{n}' for n in range(1, 13)] + NAV + NUMPAD if k != 'delete']
-        + [f'rshift+{k}' for k in NAV]
-        + [f'rctrl+lalt+rshift+f{n}' for n in range(1, 13)])
+        + [f'rctrl+{k}' for k in DIGITS] + [f'rctrl+lalt+{k}' for k in DIGITS]
+        + [f'rctrl+{k}' for k in LETTERS])
 
 
 def combo(s):
@@ -54,6 +59,15 @@ def used_keys(default_profile):
 
 
 MOUSE_BUTTON = re.compile(r'(?:[lr](?:ctrl|shift|alt)\+)*mouse\d')
+
+
+MODIFIERS = {'lctrl', 'rctrl', 'lshift', 'rshift', 'lalt', 'ralt'}
+
+
+def lone_modifiers(default_profile):
+    """Modifiers the game binds on their own by default ('rshift' is Lock rotation). The game fires
+    those even when the modifier is held for a chord, so the pool never uses them."""
+    return {m for c in used_keys(default_profile) if len(c) == 1 for m in c & MODIFIERS}
 
 
 def mouse_defaults(default_profile):
@@ -107,7 +121,8 @@ def main():
         sys.exit(__doc__)
     used = used_keys(sys.argv[1])
     mouse = mouse_defaults(sys.argv[1])
-    free = [p for p in POOL if combo(p) not in used]
+    lone = lone_modifiers(sys.argv[1])
+    free = [p for p in POOL if combo(p) not in used and not combo(p) & lone]
     actions = deck_actions()
     # Keep each action's key from the current file when it's still free.
     keep = {a: k for a, k in current_binds().items() if k in free and a in {x['action'] for x in actions}}

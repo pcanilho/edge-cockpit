@@ -13,31 +13,31 @@
   </action>
   <!-- Door locks -->
   <action name="v_toggle_all_doorlocks">
-   <rebind input="kb1_rshift+f6"/>
+   <rebind input="kb1_rctrl+lalt+5"/>
   </action>
   <!-- Open doors -->
   <action name="v_open_all_doors">
-   <rebind input="kb1_rctrl+rshift+f4"/>
+   <rebind input="kb1_rctrl+lalt+8"/>
   </action>
   <!-- Close doors -->
   <action name="v_close_all_doors">
-   <rebind input="kb1_rctrl+rshift+f5"/>
+   <rebind input="kb1_rctrl+lalt+9"/>
   </action>
   <!-- Door locks on -->
   <action name="v_lock_all_doors">
-   <rebind input="kb1_rshift+pgdn"/>
+   <rebind input="kb1_rctrl+r"/>
   </action>
   <!-- Door locks off -->
   <action name="v_unlock_all_doors">
-   <rebind input="kb1_rctrl+lalt+rshift+f1"/>
+   <rebind input="kb1_rctrl+s"/>
   </action>
   <!-- Port locks on -->
   <action name="v_lock_all_ports">
-   <rebind input="kb1_rctrl+lalt+rshift+f2"/>
+   <rebind input="kb1_rctrl+t"/>
   </action>
   <!-- Port locks off -->
   <action name="v_unlock_all_ports">
-   <rebind input="kb1_rctrl+lalt+rshift+f3"/>
+   <rebind input="kb1_rctrl+u"/>
   </action>
  </actionmap>
  <actionmap name="spaceship_movement">
@@ -47,7 +47,7 @@
   </action>
   <!-- Advanced HUD -->
   <action name="v_flight_advanced_hud_toggle">
-   <rebind input="kb1_rctrl+rshift+f3"/>
+   <rebind input="kb1_rctrl+7"/>
   </action>
   <!-- Auto precision on -->
   <action name="v_auto_precision_mode_on">
@@ -147,15 +147,15 @@
   </action>
   <!-- Set SCM -->
   <action name="v_master_mode_set_scm">
-   <rebind input="kb1_rctrl+rshift+insert"/>
+   <rebind input="kb1_rctrl+l"/>
   </action>
   <!-- Gear down -->
   <action name="v_deploy_landing_system">
-   <rebind input="kb1_rshift+insert"/>
+   <rebind input="kb1_rctrl+m"/>
   </action>
   <!-- Gear up -->
   <action name="v_retract_landing_system">
-   <rebind input="kb1_rshift+home"/>
+   <rebind input="kb1_rctrl+n"/>
   </action>
  </actionmap>
  <actionmap name="spaceship_quantum">
@@ -168,7 +168,7 @@
  <actionmap name="spaceship_defensive">
   <!-- Panic decoy -->
   <action name="v_weapon_countermeasure_decoy_launch_panic">
-   <rebind input="kb1_rctrl+rshift+home"/>
+   <rebind input="kb1_rctrl+0"/>
   </action>
  </actionmap>
  <actionmap name="spaceship_weapons">
@@ -190,11 +190,11 @@
   </action>
   <!-- EMP -->
   <action name="v_weapon_preset_emp">
-   <rebind input="kb1_rshift+f1"/>
+   <rebind input="kb1_rctrl+1"/>
   </action>
   <!-- QED -->
   <action name="v_weapon_preset_qid">
-   <rebind input="kb1_rshift+f2"/>
+   <rebind input="kb1_rctrl+2"/>
   </action>
   <!-- Staggered fire on -->
   <action name="v_weapon_staggered_fire_on">
@@ -208,14 +208,14 @@
  <actionmap name="spaceship_mining">
   <!-- Laser type -->
   <action name="v_toggle_mining_laser_type">
-   <rebind input="kb1_rshift+f7"/>
+   <rebind input="kb1_rctrl+3"/>
    <rebind input="mo1_lalt+mouse1"/>
   </action>
  </actionmap>
  <actionmap name="seat_general">
   <!-- Operator mode -->
   <action name="v_operator_mode_cycle_forward">
-   <rebind input="kb1_rshift+f9"/>
+   <rebind input="kb1_rctrl+4"/>
    <rebind input="mo1_mouse3"/>
   </action>
   <!-- Light amp on -->
@@ -232,25 +232,25 @@
   </action>
   <!-- Turret 1 -->
   <action name="v_enter_remote_turret_1">
-   <rebind input="kb1_rctrl+lalt+rshift+f4"/>
+   <rebind input="kb1_rctrl+v"/>
   </action>
   <!-- Turret 2 -->
   <action name="v_enter_remote_turret_2">
-   <rebind input="kb1_rctrl+lalt+rshift+f5"/>
+   <rebind input="kb1_rctrl+w"/>
   </action>
   <!-- Turret 3 -->
   <action name="v_enter_remote_turret_3">
-   <rebind input="kb1_rctrl+lalt+rshift+f6"/>
+   <rebind input="kb1_rctrl+z"/>
   </action>
  </actionmap>
  <actionmap name="player">
   <!-- Consume -->
   <action name="consume">
-   <rebind input="kb1_rshift+f10"/>
+   <rebind input="kb1_rctrl+5"/>
   </action>
   <!-- Heal target -->
   <action name="combathealtarget">
-   <rebind input="kb1_rshift+f11"/>
+   <rebind input="kb1_rctrl+6"/>
   </action>
  </actionmap>
  <actionmap name="vehicle_mfd">
@@ -302,31 +302,31 @@
   </action>
   <!-- Point -->
   <action name="emote_point">
-   <rebind input="kb1_rshift+f5"/>
+   <rebind input="kb1_rctrl+8"/>
   </action>
   <!-- Come -->
   <action name="emote_come">
-   <rebind input="kb1_rshift+f8"/>
+   <rebind input="kb1_rctrl+9"/>
   </action>
   <!-- Wait -->
   <action name="emote_wait">
-   <rebind input="kb1_rctrl+rshift+f2"/>
+   <rebind input="kb1_rctrl+lalt+0"/>
   </action>
   <!-- Agree -->
   <action name="emote_agree">
-   <rebind input="kb1_rctrl+rshift+pgup"/>
+   <rebind input="kb1_rctrl+lalt+1"/>
   </action>
   <!-- Disagree -->
   <action name="emote_disagree">
-   <rebind input="kb1_rctrl+rshift+delete"/>
+   <rebind input="kb1_rctrl+lalt+2"/>
   </action>
   <!-- Cheer -->
   <action name="emote_cheer">
-   <rebind input="kb1_rctrl+rshift+end"/>
+   <rebind input="kb1_rctrl+lalt+3"/>
   </action>
   <!-- Clap -->
   <action name="emote_clap">
-   <rebind input="kb1_rctrl+rshift+pgdn"/>
+   <rebind input="kb1_rctrl+lalt+4"/>
   </action>
   <!-- Laugh -->
   <action name="emote_laugh">
@@ -392,51 +392,51 @@
  <actionmap name="tractor_beam">
   <!-- Beam closer -->
   <action name="tractor_beam_decrease_distance">
-   <rebind input="kb1_rshift+f12"/>
+   <rebind input="kb1_rctrl+lalt+6"/>
   </action>
   <!-- Beam farther -->
   <action name="tractor_beam_increase_distance">
-   <rebind input="kb1_rctrl+rshift+f1"/>
+   <rebind input="kb1_rctrl+lalt+7"/>
   </action>
  </actionmap>
  <actionmap name="spaceship_power">
   <!-- Power on -->
   <action name="v_power_set_on">
-   <rebind input="kb1_rshift+f3"/>
+   <rebind input="kb1_rctrl+c"/>
   </action>
   <!-- Power off -->
   <action name="v_power_set_off">
-   <rebind input="kb1_rshift+f4"/>
+   <rebind input="kb1_rctrl+d"/>
   </action>
   <!-- Thrusters on -->
   <action name="v_power_set_thrusters_on">
-   <rebind input="kb1_rctrl+rshift+f6"/>
+   <rebind input="kb1_rctrl+e"/>
   </action>
   <!-- Thrusters off -->
   <action name="v_power_set_thrusters_off">
-   <rebind input="kb1_rctrl+rshift+f7"/>
+   <rebind input="kb1_rctrl+f"/>
   </action>
   <!-- Shields on -->
   <action name="v_power_set_shields_on">
-   <rebind input="kb1_rctrl+rshift+f8"/>
+   <rebind input="kb1_rctrl+g"/>
   </action>
   <!-- Shields off -->
   <action name="v_power_set_shields_off">
-   <rebind input="kb1_rctrl+rshift+f9"/>
+   <rebind input="kb1_rctrl+h"/>
   </action>
   <!-- Weapons on -->
   <action name="v_power_set_weapons_on">
-   <rebind input="kb1_rctrl+rshift+f10"/>
+   <rebind input="kb1_rctrl+i"/>
   </action>
   <!-- Weapons off -->
   <action name="v_power_set_weapons_off">
-   <rebind input="kb1_rctrl+rshift+f11"/>
+   <rebind input="kb1_rctrl+j"/>
   </action>
  </actionmap>
  <actionmap name="lights_controller">
   <!-- Lights on -->
   <action name="v_lights_on">
-   <rebind input="kb1_rctrl+rshift+f12"/>
+   <rebind input="kb1_rctrl+k"/>
   </action>
   <!-- Lights off -->
   <action name="v_lights_off">
@@ -446,17 +446,17 @@
  <actionmap name="spaceship_targeting">
   <!-- Pin target -->
   <action name="v_target_pin_selected">
-   <rebind input="kb1_rshift+pgup"/>
+   <rebind input="kb1_rctrl+o"/>
   </action>
   <!-- Unpin target -->
   <action name="v_target_unpin_selected">
-   <rebind input="kb1_rshift+delete"/>
+   <rebind input="kb1_rctrl+p"/>
   </action>
  </actionmap>
  <actionmap name="spaceship_targeting_advanced">
   <!-- Next pinned -->
   <action name="v_target_cycle_pinned_fwd">
-   <rebind input="kb1_rshift+end"/>
+   <rebind input="kb1_rctrl+q"/>
   </action>
  </actionmap>
 </ActionMaps>

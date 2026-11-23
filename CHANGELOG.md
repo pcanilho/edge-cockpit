@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- **Pick the edge-cockpit control profile again.** Keys that used right Shift (Open doors, Door locks and 40 more) also fired the game's Lock rotation, so the mouse stopped turning the ship until the key was pressed again. The profile uses right Ctrl and right Ctrl + left Alt only now, and Settings > Keybinds and the setup check say when a loaded bind still holds right Shift, left Shift or left Ctrl.
 - Status screen: a mission, place, quantum and route together no longer run off the bottom, on the Edge or a phone. The ship picture shrinks, then gives way, so everything and Follow game stay in sight.
 - Quantum to a mission marker reads its place (Quantum to Kaboos), not the marker's ID.
 - Sound: Mute all in Settings > Feedback silences clicks and alert tones together. Alert sound (armistice, CrimeStat, ship, hangar, party and timer tones) now sits next to Click sounds; it was under General, so turning clicks off left those tones on. Paired devices get Mute all and Alert sound in their own settings too; before, they could only turn clicks off.
