@@ -116,6 +116,15 @@ def current_binds():
     return out
 
 
+def earlier_binds():
+    """Keys earlier versions of the file gave, from its '<!-- was: action key -->' lines. The app
+    uses them to tell our old keys in a player's binds from keys the player chose."""
+    path = ROOT / 'binds/layout_edge_cockpit_exported.xml'
+    if not path.exists():
+        return []
+    return re.findall(r'<!-- was: (\S+) (\S+) -->', path.read_text(encoding='utf-8'))
+
+
 def main():
     if len(sys.argv) != 2:
         sys.exit(__doc__)
@@ -131,6 +140,8 @@ def main():
     if len(todo) > len(free):
         sys.exit(f'Need {len(todo)} more free keys but the pool has {len(free)}')
     assigned = dict(keep, **{k['action']: key for k, key in zip(todo, free)})
+    was = earlier_binds()
+    was += [(a, k) for a, k in current_binds().items() if assigned.get(a, k) != k and (a, k) not in was]
 
     maps = {}
     for k in actions:
@@ -145,6 +156,7 @@ def main():
         '  </devices>',
         ' </CustomisationUIHeader>',
         ' <modifiers/>',
+        *[f' <!-- was: {a} {k} -->' for a, k in was],
     ]
     for amap, items in maps.items():
         out.append(f' <actionmap name={quoteattr(amap)}>')

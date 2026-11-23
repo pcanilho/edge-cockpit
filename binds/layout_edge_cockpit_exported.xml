@@ -6,6 +6,48 @@
   </devices>
  </CustomisationUIHeader>
  <modifiers/>
+ <!-- was: v_toggle_all_doorlocks rshift+f6 -->
+ <!-- was: v_open_all_doors rctrl+rshift+f4 -->
+ <!-- was: v_close_all_doors rctrl+rshift+f5 -->
+ <!-- was: v_lock_all_doors rshift+pgdn -->
+ <!-- was: v_unlock_all_doors rctrl+lalt+rshift+f1 -->
+ <!-- was: v_lock_all_ports rctrl+lalt+rshift+f2 -->
+ <!-- was: v_unlock_all_ports rctrl+lalt+rshift+f3 -->
+ <!-- was: v_flight_advanced_hud_toggle rctrl+rshift+f3 -->
+ <!-- was: v_master_mode_set_scm rctrl+rshift+insert -->
+ <!-- was: v_deploy_landing_system rshift+insert -->
+ <!-- was: v_retract_landing_system rshift+home -->
+ <!-- was: v_weapon_countermeasure_decoy_launch_panic rctrl+rshift+home -->
+ <!-- was: v_weapon_preset_emp rshift+f1 -->
+ <!-- was: v_weapon_preset_qid rshift+f2 -->
+ <!-- was: v_toggle_mining_laser_type rshift+f7 -->
+ <!-- was: v_operator_mode_cycle_forward rshift+f9 -->
+ <!-- was: v_enter_remote_turret_1 rctrl+lalt+rshift+f4 -->
+ <!-- was: v_enter_remote_turret_2 rctrl+lalt+rshift+f5 -->
+ <!-- was: v_enter_remote_turret_3 rctrl+lalt+rshift+f6 -->
+ <!-- was: consume rshift+f10 -->
+ <!-- was: combathealtarget rshift+f11 -->
+ <!-- was: emote_point rshift+f5 -->
+ <!-- was: emote_come rshift+f8 -->
+ <!-- was: emote_wait rctrl+rshift+f2 -->
+ <!-- was: emote_agree rctrl+rshift+pgup -->
+ <!-- was: emote_disagree rctrl+rshift+delete -->
+ <!-- was: emote_cheer rctrl+rshift+end -->
+ <!-- was: emote_clap rctrl+rshift+pgdn -->
+ <!-- was: tractor_beam_decrease_distance rshift+f12 -->
+ <!-- was: tractor_beam_increase_distance rctrl+rshift+f1 -->
+ <!-- was: v_power_set_on rshift+f3 -->
+ <!-- was: v_power_set_off rshift+f4 -->
+ <!-- was: v_power_set_thrusters_on rctrl+rshift+f6 -->
+ <!-- was: v_power_set_thrusters_off rctrl+rshift+f7 -->
+ <!-- was: v_power_set_shields_on rctrl+rshift+f8 -->
+ <!-- was: v_power_set_shields_off rctrl+rshift+f9 -->
+ <!-- was: v_power_set_weapons_on rctrl+rshift+f10 -->
+ <!-- was: v_power_set_weapons_off rctrl+rshift+f11 -->
+ <!-- was: v_lights_on rctrl+rshift+f12 -->
+ <!-- was: v_target_pin_selected rshift+pgup -->
+ <!-- was: v_target_unpin_selected rshift+delete -->
+ <!-- was: v_target_cycle_pinned_fwd rshift+end -->
  <actionmap name="spaceship_general">
   <!-- Doors -->
   <action name="v_toggle_all_doors">
