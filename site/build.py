@@ -23,7 +23,7 @@ REPO = "https://github.com/pcanilho/edge-cockpit"
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
 FONTS = {"chakra-petch": [600, 700], "inter": [400, 500, 600], "jetbrains-mono": [500]}
-IMAGES = ["panel", "panel-armistice", "panel-mining", "panel-alert", "panel-settings", "panel-log", "panel-world", "panel-editor", "phone-flight", "phone-power", "phone-role", "social-preview"]
+IMAGES = ["panel", "panel-telemetry", "panel-armistice", "panel-mining", "panel-alert", "panel-settings", "panel-log", "panel-world", "panel-editor", "phone-flight", "phone-power", "phone-role", "social-preview"]
 
 
 def release_fields(path):

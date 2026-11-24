@@ -62,9 +62,19 @@ It reads your `actionmaps.xml`, so rebound keys just work. **Settings > Keybinds
 
 The game doesn't report most switch states, so nothing is guessed: ON/OFF switches stay unlit and the gear lever stays centred until you set them. **All systems on** sets them all. Toggle-only actions are push-buttons.
 
+## Game telemetry
+
+Star Citizen can share your ship's state with apps on your PC. **Settings > Game link > Turn telemetry on**, then restart the RSI Launcher and the game. While it's live:
+
+- Switches show the game's own state: power, thrusters, shields, weapons, gear, VTOL, lights, decoupled, speed limiter, G-safe, ESP, proximity assist, stability, gravity and wind compensation, advanced HUD, light amplification, SCM or NAV, gimbals, staggered fire. Toggles get a lamp.
+- The status display shows the ten warning lights, shields, hull, boost, speed, radar altitude and vertical speed; decoy and noise keys show what's left, the gun placard how many guns are ready. On foot or in EVA: your vitals.
+- On 5.0, a tap goes to the game directly when it takes the action. Anything it refuses goes out as your key. 4.10 only shares state.
+
+What the game doesn't send (door state, port locks, flashlight, the gun group) stays unclaimed. **Layout > Classic** keeps the console as it is without telemetry. **Record telemetry** saves ten minutes of it for a bug report. Details: [docs/telemetry.md](docs/telemetry.md).
+
 If a patch changes the log lines it reads, an amber **Log lines missing** chip says so, with a button to report it.
 
-No telemetry. Network calls: FleetYards for ship images (once per ship), GitHub for updates, and while the World page is open, UEX for prices (every 30 min) and RSI's status page (every 5 min).
+Nothing is sent about you. Network calls: FleetYards for ship images (once per ship), GitHub for updates, and while the World page is open, UEX for prices (every 30 min) and RSI's status page (every 5 min).
 
 ## If keys do nothing
 
