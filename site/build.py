@@ -113,6 +113,8 @@ def main():
         for w in weights:
             shutil.copy(fontsource / fam / "files" / f"{fam}-latin-{w}-normal.woff2", out / "fonts" / f"{fam}-{w}.woff2")
     build_demo(Path(args.demo), out / "demo")
+    # Real game-link recordings (Settings > Game link > Record telemetry) the demo plays.
+    shutil.copytree(SITE / "recordings", out / "tele")
     print(f"site built in {out} ({fields['VERSION']})")
 
 

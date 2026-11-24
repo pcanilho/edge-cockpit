@@ -25,7 +25,8 @@
     live.className = 'live';
     const frame = document.createElement('iframe');
     frame.title = 'Edge Cockpit live demo';
-    frame.src = 'demo/index.html?demo=ship';
+    const first = scenes.querySelector('[aria-pressed="true"]');
+    frame.src = `demo/index.html?${first.dataset.scene}`;
     live.append(frame);
     bezel.replaceChildren(live);
     const fit = () => { frame.style.transform = `scale(${live.clientWidth / 2560})`; };
@@ -38,8 +39,45 @@
     scenes.querySelectorAll('[data-scene]').forEach(b => b.addEventListener('click', () => {
       scenes.querySelectorAll('[data-scene]').forEach(o => o.setAttribute('aria-pressed', String(o === b)));
       frame.src = `demo/index.html?${b.dataset.scene}`;
+      play(frame, b);
     }));
+    play(frame, first);
   });
+
+  // A scene with data-tele plays a real recording of the game's telemetry into the demo, over and
+  // over, as the app gets it from the game: { log, actions, start, frames: [[ms, [[path, value]…]]…] }.
+  let run = 0;
+  async function play(frame, b) {
+    const me = ++run, name = b.dataset.tele;
+    if (!name) return;
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    const loaded = new Promise(r => frame.addEventListener('load', r, { once: true }));
+    let rec;
+    try { rec = await (await fetch(`tele/${name}.json`)).json(); } catch { return; }
+    await loaded;
+    // The console reads its own recorded log first; the recording's ship boards after that.
+    for (let i = 0; i < 100 && me === run && !frame.contentDocument?.body?.dataset.ready; i++) await wait(100);
+    await wait(800);
+    const x = frame.contentWindow?.xfd;
+    if (me !== run || !x) return;
+    x.feed(rec.log);
+    const set = (o, path, v) => { const ks = path.split('.'), last = ks.pop(); for (const k of ks) o = o[k]; o[last] = v; };
+    const send = live => x.telemetry({ link: 'live', port: 2942, actions: rec.actions, live: structuredClone(live) });
+    let shown = false;
+    while (me === run) {
+      const live = structuredClone(rec.start), t0 = performance.now();
+      send(live);
+      if (!shown && b.dataset.page) { await wait(1000); if (me !== run) return; x.show(b.dataset.page); shown = true; }
+      for (const [ms, changes] of rec.frames) {
+        const left = t0 + ms - performance.now();
+        if (left > 0) await wait(left);
+        if (me !== run) return;
+        for (const [path, v] of changes) set(live, path, v);
+        send(live);
+      }
+      await wait(1500);
+    }
+  }
 
   const built = document.documentElement.dataset.version || '';
   fetch('https://api.github.com/repos/pcanilho/edge-cockpit/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })

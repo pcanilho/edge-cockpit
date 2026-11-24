@@ -45,7 +45,7 @@
   <div class="hero-text">
     <p class="eyebrow">Star Citizen · Touch cockpit</p>
     <h1>Your ship's console, <span>on a touchscreen.</span></h1>
-    <p class="lead">A cockpit panel on a touchscreen. Presses your own keybinds, never takes focus from the game, and switches page as you board, step out or go down. Turn on the game's telemetry and its switches show what your ship is really doing.</p>
+    <p class="lead">Presses your own keybinds without taking focus from the game. With the game's telemetry on, every switch and gauge shows what your ship is really doing.</p>
     <div class="cta">
       <a class="key primary" href="{{SETUP_URL}}" data-rel="setup">
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -69,15 +69,14 @@
       Try it live
     </button>
     <div class="scenes" role="group" aria-label="Demo scenes" hidden>
-      <button class="key" type="button" data-scene="demo=ship" aria-pressed="true">Fighter</button>
-      <button class="key" type="button" data-scene="demo=ship&amp;page=mining" aria-pressed="false">Mining</button>
-      <button class="key" type="button" data-scene="demo=armistice" aria-pressed="false">Armistice</button>
-      <button class="key" type="button" data-scene="demo=alert" aria-pressed="false">Red alert</button>
-      <button class="key" type="button" data-scene="demo=downed" aria-pressed="false">Downed</button>
+      <button class="key" type="button" data-scene="demo=nyx" data-tele="titan-5.0" aria-pressed="true">Avenger Titan · 5.0</button>
+      <button class="key" type="button" data-scene="demo=nyx" data-tele="titan-5.0" data-page="tl-instruments" aria-pressed="false">Gauges</button>
+      <button class="key" type="button" data-scene="demo=nyx" data-tele="galaxy-4.10" data-page="tl-instruments" aria-pressed="false">Galaxy flight · 4.10</button>
+      <button class="key" type="button" data-scene="demo=ship" aria-pressed="false">Telemetry off</button>
       <button class="key" type="button" data-scene="demo=log" aria-pressed="false">Log</button>
     </div>
   </div>
-  <figcaption data-caption-live="Live demo: tap, swipe and hold it as on the Edge. It plays a recorded session and sends no keys.">Built for the Corsair Xeneon Edge (2560 × 720). Phones, tablets and other PCs on your network join as extra screens.</figcaption>
+  <figcaption data-caption-live="Telemetry scenes replay real recordings from the game. Tap and swipe as on the Edge. Sends no keys.">Built for the Corsair Xeneon Edge (2560 × 720). Phones, tablets and PCs join as extra screens.</figcaption>
 </figure>
 
 <section id="features" class="features">
@@ -85,30 +84,30 @@
 
   <article class="feat">
     <div class="feat-text">
-      <h3>Reads the game's telemetry</h3>
-      <p>Star Citizen can share your ship's state with apps on your PC. Turn it on in Settings and the switches show where the ship really is: power, thrusters, shields and weapons, gear, VTOL, lights, decoupled, speed limiter, G-safe, ESP, proximity assist, stability, gravity compensation, SCM or NAV, gimbals. The status display gets the game's ten warning lights, boost and speed, and on 5.0 shields, hull and radar altitude too; decoy and noise keys show what's left; on foot, your vitals. On 5.0 a press can go to the game directly instead of a key. What the game doesn't share, like door state or the flashlight, stays unclaimed. Telemetry off? The console runs from <code>Game.log</code> and your keys, as before.</p>
+      <h3>Live telemetry</h3>
+      <p>Turn on the game's telemetry in Settings and the switches show the ship's real state: power, shields, gear, lights, flight assists, SCM or NAV. The status display adds the ten warning lights, boost and speed, and on 5.0 shields, hull and radar altitude. What the game doesn't send stays blank. Telemetry off, it runs from <code>Game.log</code>.</p>
     </div>
     <a class="shot" href="img/panel-telemetry.png"><img src="img/panel-telemetry.png" width="2560" height="720" loading="lazy" alt="Prospector with live telemetry: warning lights, shields, hull, real switch positions"></a>
   </article>
   <article class="feat">
     <div class="feat-text">
-      <h3>Gauges from live data</h3>
-      <p>With telemetry live, a Gauges softkey opens eight instrument pages: Ship, Instruments, Approach, Systems, Combat, Suit, Quantum and Turret. Tapes, dials and lamps show only what the game sends; the rest reads Not sent, and pages the game can't fill stay out of the swipe. On 5.0, shields show how fast they're moving and when they'll be empty or full. The Ship page turns your ship's 3D model from FleetYards with a finger, wrapped in a shield bubble that glows with the shield level, with the paint of your choice. Guns the game names come with their rated stats from the Star Citizen Wiki. Your own pages can show live values as gauges too.</p>
+      <h3>Gauges</h3>
+      <p>Eight instrument pages: Ship, Instruments, Approach, Systems, Combat, Suit, Quantum and Turret. They show only what the game sends. The Ship page turns your ship's 3D model under your finger; guns the game names come with their rated stats.</p>
     </div>
     <a class="shot" href="img/panel-gauges.png"><img src="img/panel-gauges.png" width="2560" height="720" loading="lazy" alt="Instruments page from an RSI Galaxy in flight: speed tape, boost and G meters, hydrogen, the ten warning lights"></a>
   </article>
   <article class="feat">
     <div class="feat-text">
       <h3>Follows the game</h3>
-      <p>Reads <code>Game.log</code> as you play. Board a ship and its page opens with the ship's render, role and quantum target. Ships from nine makers get the maker's plates and trim. Step out for On foot. Go down and a revive button is waiting.</p>
+      <p>Board a ship and its page opens. Step out for On foot. Go down and a revive button is waiting.</p>
     </div>
     <a class="shot" href="img/panel-armistice.png"><img src="img/panel-armistice.png" width="2560" height="720" loading="lazy" alt="A Drake Cutlass Black in an armistice zone, with Drake plates"></a>
   </article>
 
   <article class="feat">
     <div class="feat-text">
-      <h3>Any screen in the house</h3>
-      <p>Turn on Devices in Settings and scan the code with a phone. No app to install. A phone shows one plate at a time, sized for a thumb, upright or sideways; a tablet or another PC shows the whole console. Give a device one plate, or move a plate off the Edge onto it.</p>
+      <h3>Any screen</h3>
+      <p>Turn on Devices and scan the code with a phone, tablet or PC on your network. No app to install. A phone shows one plate at a time, sized for a thumb.</p>
     </div>
     <div class="shot handsets"><a class="handset" href="img/phone-power.png"><img src="img/phone-power.png" width="786" height="1704" loading="lazy" alt="Power plate on a phone"></a><a class="handset wide" href="img/phone-role.png"><img src="img/phone-role.png" width="1704" height="786" loading="lazy" alt="Target wheel on a phone held sideways"></a></div>
   </article>
@@ -116,23 +115,23 @@
   <article class="feat">
     <div class="feat-text">
       <h3>A page for each role</h3>
-      <p>Target dial for fighters, laser power knob for mining, beam dial for salvage, tractor beam slider for cargo. Every ship page also has power, flight and gear plates and a Flight Ready button.</p>
+      <p>Target dial for fighters, laser power for mining, beam dial for salvage, tractor slider for cargo. Every ship page has power, flight and gear plates and Flight Ready.</p>
     </div>
     <a class="shot" href="img/panel-mining.png"><img src="img/panel-mining.png" width="2560" height="720" loading="lazy" alt="Mining page with laser power knob and mining modules"></a>
   </article>
 
   <article class="feat">
     <div class="feat-text">
-      <h3>Build your own pages</h3>
-      <p>Duplicate a ship page or start blank, then drag keys, switches, rockers, covers and displays onto the plates. The editor only offers what fits: a switch takes actions with set-on and set-off binds, an eject key needs a cover. A Sequence key sends up to six keys in turn. Link a page to your ships, preview it on a phone, share it as a file. The curated pages stay as they are.</p>
+      <h3>Your own pages</h3>
+      <p>Drag keys, switches, covers, displays and gauges onto a page. Link it to your ships, preview it on a phone, share it as a file.</p>
     </div>
     <a class="shot" href="img/panel-editor.png"><img src="img/panel-editor.png" width="2560" height="720" loading="lazy" alt="Page editor with the controls palette and a keycap's card"></a>
   </article>
 
   <article class="feat">
     <div class="feat-text">
-      <h3>Knows where you stand</h3>
-      <p>Location, mission objective and rewards, injuries and their tier, your place in the hangar queue, and why the game dropped you, on the status display. Restricted areas and party invites raise a banner. Weapons grey out in armistice zones. The frame turns red only for a CrimeStat or a disabled ship. No guessed state: without telemetry, switches stay unlit and the gear lever stays centred until you set them. If a patch changes the log lines it reads, an amber chip says so.</p>
+      <h3>Where you stand</h3>
+      <p>Location, mission, injuries and hangar queue on the status display. The frame turns red for a CrimeStat or a disabled ship. Nothing is guessed.</p>
     </div>
     <a class="shot" href="img/panel-alert.png"><img src="img/panel-alert.png" width="2560" height="720" loading="lazy" alt="Red alert frame with a CrimeStat"></a>
   </article>
@@ -140,7 +139,7 @@
   <article class="feat">
     <div class="feat-text">
       <h3>Session log</h3>
-      <p>Time played, injuries, times downed, missions and ships flown. Also who downed you last and with what, region and shard, last system jump, finished refinery jobs and a timeline. Past sessions come from the game's own log backups.</p>
+      <p>Time played, missions, ships flown, who downed you and with what, and a timeline. Past sessions come from the game's log backups.</p>
     </div>
     <a class="shot" href="img/panel-log.png"><img src="img/panel-log.png" width="2560" height="720" loading="lazy" alt="Log page with session stats and a timeline"></a>
   </article>
@@ -148,30 +147,26 @@
   <article class="feat">
     <div class="feat-text">
       <h3>The world around you</h3>
-      <p>Executive hangar cycle (sync it once at the lights), keycard printer and Ruin vault door timers, and RSI server status. Commodities start where you are: what this place buys and sells, the best place in the system for each, and reported stock. Prices are player reports from UEX, each with its age. If the console doesn't know where you are, Locate (on foot) opens your inventory for a moment so <code>Game.log</code> names the place.</p>
+      <p>Executive hangar cycle, vault and printer timers, server status, and commodity prices from UEX where you are.</p>
     </div>
     <a class="shot" href="img/panel-world.png"><img src="img/panel-world.png" width="2560" height="720" loading="lazy" alt="World page with the executive hangar lights, timers, server status and commodity prices at Area 18"></a>
   </article>
 
   <article class="feat">
     <div class="feat-text">
-      <h3>Your keys, not new ones</h3>
-      <p>Reads your <code>actionmaps.xml</code>, so rebound keys just work, and keeps copies to restore after a patch wipes them. The game keeps focus while you tap. A setup check on first start shows what's ready; Settings lists any key it can't press. Large labels for glare or distance.</p>
+      <h3>Your keys</h3>
+      <p>Reads your <code>actionmaps.xml</code>, so rebound keys just work. The game keeps focus while you tap.</p>
     </div>
     <a class="shot" href="img/panel-settings.png"><img src="img/panel-settings.png" width="2560" height="720" loading="lazy" alt="Screen settings with the maker theme"></a>
   </article>
 
   <ul class="grid">
-    <li><b>Out of the way</b><span>Starts with Windows, sits in the tray. The screen goes dark when you quit and wakes when the game starts.</span></li>
-    <li><b>Your layout</b><span>Long-press a plate's title to move it, swap the role module or build your own pages. Long-press a key to swap it.</span></li>
-    <li><b>Night mode</b><span>On, off, or auto from 20:00 to 07:00. Turns the screen's backlight down too.</span></li>
-    <li><b>Updates between sessions</b><span>New releases are offered with their notes, only while you're not playing.</span></li>
-    <li><b>Light</b><span>Under 2 MB to install. Nothing animates while idle.</span></li>
-    <li><b>When it goes wrong</b><span>A disabled ship swaps Flight Ready for Self repair and Emergency exit. An amber chip flags lag spikes.</span></li>
-    <li><b>MFD &amp; assists</b><span>A key per MFD screen, switches for light amplification, auto precision and wind compensation.</span></li>
-    <li><b>Fresh start</b><span>A new game session resets the console.</span></li>
-    <li><b>No accidents</b><span>Eject is a slide. Self-destruct sits under a red cover. Hold the clock to lock touches while you wipe the screen.</span></li>
-    <li><b>How the keys work</b><span>Tap the ? by the clock for a card that explains every key mark: hold ring, long press, macros, switches and covers.</span></li>
+    <li><b>Out of the way</b><span>Starts with Windows. Wakes with the game, dark when you quit.</span></li>
+    <li><b>Your layout</b><span>Long-press a key to swap it, a plate's title to move it.</span></li>
+    <li><b>Night mode</b><span>On, off or auto at night. Dims the backlight too.</span></li>
+    <li><b>Updates</b><span>Offered between sessions, never while you play.</span></li>
+    <li><b>No accidents</b><span>Eject is a slide. Self-destruct sits under a cover.</span></li>
+    <li><b>Key marks</b><span>The ? by the clock explains every mark on a key.</span></li>
   </ul>
 </section>
 
@@ -180,11 +175,11 @@
   <ol class="steps">
     <li>
       <b>Download and run the installer</b>
-      <span>SmartScreen warns because the app isn't code signed: <em>More info</em>, then <em>Run anyway</em>.</span>
+      <span>SmartScreen warns, as the app isn't code signed: <em>More info</em>, <em>Run anyway</em>.</span>
     </li>
     <li>
       <b>Pick the control profile</b>
-      <span>In game: <em>Options › Keybindings › Advanced Controls Customization › Control Profiles</em>. Pick <em>edge-cockpit</em>, tick <em>Keyboard</em> and <em>Mouse</em>. It only adds keys for actions you have not bound, and keeps your mouse buttons (quantum engage on the left button included).</span>
+      <span>In game: <em>Options › Keybindings › Advanced Controls Customization › Control Profiles</em>. Pick <em>edge-cockpit</em>, tick <em>Keyboard</em> and <em>Mouse</em>. It only binds actions you left unbound.</span>
     </li>
     <li>
       <b>Launch Star Citizen</b>
@@ -199,14 +194,14 @@
 
 <section id="safety" class="safety">
   <h2 class="plate-title">Safe to run</h2>
-  <p class="sub">Every release is built on GitHub Actions from the tagged source. Check what you download.</p>
+  <p class="sub">Built on GitHub Actions from the tagged source.</p>
   <ul class="trust">
-    <li><b>VirusTotal</b><span>Each exe is scanned at release. Reports are linked in the release notes.</span><a href="{{RELEASE_URL}}" data-rel="notes">Latest scan</a></li>
-    <li><b>Build provenance</b><span>GitHub attests each exe was built by this repository's workflow. Check with <code>gh attestation verify</code>.</span><a href="https://github.com/pcanilho/edge-cockpit/blob/main/SECURITY.md#verifying-a-download">How to verify</a></li>
-    <li><b>Checksums</b><span>SHA-256 for each exe, published with the release.</span><a href="{{SUMS_URL}}" data-rel="sums">SHA256SUMS.txt</a></li>
-    <li><b>OpenSSF Best Practices</b><span>Passing badge, plus an OpenSSF Scorecard.</span><a href="https://www.bestpractices.dev/projects/16854">Project 16854</a></li>
-    <li><b>Signed history</b><span>Every commit on main is signed and passes the security checks.</span><a href="https://github.com/pcanilho/edge-cockpit/commits/main">Commits</a></li>
-    <li><b>Open source</b><span>MIT licensed. Read it, build it, or send a fix.</span><a href="https://github.com/pcanilho/edge-cockpit">Source</a></li>
+    <li><b>VirusTotal</b><span>Each exe is scanned at release.</span><a href="{{RELEASE_URL}}" data-rel="notes">Latest scan</a></li>
+    <li><b>Build provenance</b><span>Check with <code>gh attestation verify</code>.</span><a href="https://github.com/pcanilho/edge-cockpit/blob/main/SECURITY.md#verifying-a-download">How to verify</a></li>
+    <li><b>Checksums</b><span>SHA-256 for each exe.</span><a href="{{SUMS_URL}}" data-rel="sums">SHA256SUMS.txt</a></li>
+    <li><b>OpenSSF Best Practices</b><span>Passing badge and Scorecard.</span><a href="https://www.bestpractices.dev/projects/16854">Project 16854</a></li>
+    <li><b>Signed history</b><span>Every commit on main is signed.</span><a href="https://github.com/pcanilho/edge-cockpit/commits/main">Commits</a></li>
+    <li><b>Open source</b><span>MIT licensed.</span><a href="https://github.com/pcanilho/edge-cockpit">Source</a></li>
   </ul>
   <p class="badges">
     <a href="https://www.bestpractices.dev/projects/16854"><img alt="OpenSSF Best Practices" src="https://www.bestpractices.dev/projects/16854/badge" height="20" loading="lazy"></a>
@@ -220,35 +215,35 @@
   <h2 class="plate-title">Questions</h2>
   <details>
     <summary>Do I need a Xeneon Edge?</summary>
-    <p>It's the only screen fully supported. On another touchscreen, Settings › Screen picks which plates it shows and Fit or Actual size, and you can build your own pages for it. Layouts for other sizes come on request: <a href="https://github.com/pcanilho/edge-cockpit/issues/new?template=device.yml">ask for your device</a>. Phones, tablets and other PCs on your network can join as extra screens from Settings › Devices.</p>
+    <p>It's the screen the layout is built for. Other touchscreens work with Fit or Actual size in Settings › Screen; <a href="https://github.com/pcanilho/edge-cockpit/issues/new?template=device.yml">ask for your device</a>. Phones, tablets and PCs join from Settings › Devices.</p>
   </details>
   <details>
     <summary>Can I change the pages?</summary>
-    <p>Yes. Long-press a key to swap it, or a plate's title to move plates and swap the role module. To build your own pages, duplicate a ship page or start blank. Back to stock undoes a change, and the curated pages never change. Profiles save all of it, and Share saves a page as a file for someone else to import.</p>
+    <p>Yes. Swap keys, move plates or build your own pages. Back to stock undoes it, and Share saves a page as a file.</p>
   </details>
   <details>
     <summary>Is it safe to use with the game?</summary>
-    <p>It works like a second keyboard: it sends key presses and reads <code>Game.log</code>, a text file the game writes. It doesn't read game memory, inject code or change game files. It only adds its keybind profile to the game's keybind folder.</p>
+    <p>It sends key presses like a second keyboard and reads the game's own log and telemetry. It doesn't read game memory, inject code or change game files, apart from adding its keybind profile and, if you turn telemetry on, one line in <code>user.cfg</code>.</p>
   </details>
   <details>
     <summary>Does it take focus from the game?</summary>
-    <p>No. The window never becomes active, so mouse and keyboard stay in the game.</p>
+    <p>No. Mouse and keyboard stay in the game.</p>
   </details>
   <details>
     <summary>Does it cost anything?</summary>
-    <p>No. Free, MIT licensed, no account, ads or tracking. Sponsoring is optional.</p>
+    <p>No. Free, MIT licensed, no account, ads or tracking.</p>
   </details>
   <details>
     <summary>What does it connect to?</summary>
-    <p>FleetYards.net, once per ship, for its outline and render, and on the Gauges Ship page its 3D model and paints (kept on your PC). The Star Citizen Wiki for the stats of guns the game names (every 12 h). GitHub, for updates. While the World page is open: UEX for prices (every 30 min) and RSI's status page (every 5 min). With Devices on, it serves the console on your home network (port 47823, private addresses only) and only paired devices can press keys. Nothing else.</p>
+    <p>FleetYards.net for ship outlines, renders, 3D models and paints (kept on your PC). The Star Citizen Wiki for gun stats (every 12 h). GitHub for updates. On the World page, UEX for prices (every 30 min) and RSI's status page (every 5 min). With Devices on, your home network on port 47823; only paired devices can press keys. Nothing else.</p>
   </details>
   <details>
     <summary>Which game version does it support?</summary>
-    <p>The current LIVE build. Each release notes the game build it was tested on.</p>
+    <p>The current LIVE build. Each release names the build it was tested on.</p>
   </details>
   <details>
     <summary>Something doesn't work. Where do I report it?</summary>
-    <p><a href="https://github.com/pcanilho/edge-cockpit/issues/new?template=bug.yml">Open a bug report</a>. The form asks for what's needed.</p>
+    <p><a href="https://github.com/pcanilho/edge-cockpit/issues/new?template=bug.yml">Open a bug report</a>.</p>
   </details>
 </section>
 
@@ -256,7 +251,7 @@
   <img src="img/logo.svg" alt="" width="64" height="64">
   <div>
     <h2>Keep it flying</h2>
-    <p>Made in spare time. Sponsoring pays for new pages, ships and game-patch fixes.</p>
+    <p>Made in spare time. Sponsoring pays for new pages and patch fixes.</p>
   </div>
   <div class="cta">
     <a class="key amber" href="https://github.com/sponsors/pcanilho"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M8 14.25.345 6.756A4.5 4.5 0 0 1 6.71.388L8 1.6 9.29.388a4.5 4.5 0 0 1 6.365 6.368Z"/></svg>Sponsor on GitHub</a>
