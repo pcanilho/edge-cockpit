@@ -1122,6 +1122,12 @@ for (const [W, H] of [[1920, 1080], [1180, 820]]) {
   await pg.evaluate(u => window.xfd.telemetry({ ...u, link: 'off', actions: [], live: { vehicle: null, weapons: null, actor: null } }), U);
   const dropped = await sw();
   if (Object.values(dropped).some(v => v !== '-') || await pg.$('#tlm')) problems.push(`telemetry: a dropped link left ${JSON.stringify(dropped)}`);
+  const chip = () => pg.evaluate(() => { const c = document.getElementById('tele-chip'); return c.hidden ? null : c.textContent.trim(); });
+  if (await chip()) problems.push(`telemetry: the link chip shows with telemetry off and not turned on: ${await chip()}`);
+  // The game answers before your character spawns: linked, with nothing claimed yet.
+  await pg.evaluate(u => window.xfd.telemetry({ ...u, link: 'linked', live: { vehicle: null, weapons: null, actor: null } }), U);
+  const linked = await sw();
+  if (await chip() !== 'Telemetry linked · waiting for spawn' || Object.values(linked).some(v => v !== '-')) problems.push(`telemetry: linked shows ${await chip()} ${JSON.stringify(linked)}`);
   await ctx.close();
 }
 

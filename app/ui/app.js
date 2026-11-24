@@ -651,10 +651,24 @@ function paintCounts() {
   for (const p of document.querySelectorAll('#console .guns-placard')) p.textContent = teleKeys.has('guns_ready') ? `Guns ${states.guns_ready} ready` : 'Gun groups';
 }
 let baseRole = '', teleShown = '';
+const teleSet = () => !!setupSeen && (setupSeen.env || setupSeen.channels.some(([, on]) => on));
+/**
+ * Whether the game link works, on the status screen: live, linked (the game answers but shares
+ * nothing until your character spawns), or no answer while the game runs with telemetry turned on.
+ * Nothing when it is off and not turned on, so the classic console looks as it did.
+ */
+function paintTeleChip() {
+  const c = $('tele-chip');
+  const st = link.link === 'live' ? ['ok', 'Telemetry live']
+    : link.link === 'linked' ? ['info', 'Telemetry linked · waiting for spawn']
+    : teleSet() && info.running ? ['warn', 'Telemetry: no answer'] : null;
+  c.hidden = !st;
+  if (st) { c.className = 'chip ' + st[0]; c.querySelector('span').textContent = st[1]; }
+}
 /** The status display's telemetry: the ship's instruments seated, your vitals on foot. */
 function paintTele() {
   const mfd = $('mfd'), facts = mfd.querySelector('.facts');
-  $('tele-chip').hidden = link.link !== 'live' || game.menu;
+  paintTeleChip();
   const on = teleOn() && !game.menu && !game.down;
   const v = on ? link.live.vehicle : null, body = on && !v ? tele.vitals(link.live) : null;
   const esc = controls.esc;
@@ -696,15 +710,17 @@ let setupSeen = null;
 async function paintLink(fresh) {
   if (onPhone) return;
   if (fresh) setupSeen = await bridge.telemetrySetup().catch(() => null);
-  const live = link.link === 'live', sends = live && link.actions.length > 0;
+  const live = link.link === 'live', linked = link.link === 'linked', sends = link.actions.length > 0;
   const state = $('link-state');
-  state.className = 'chip ' + (live ? 'ok' : 'warn');
-  state.querySelector('span').textContent = live ? 'Live' : 'Off';
+  state.className = 'chip ' + (live ? 'ok' : linked ? 'info' : 'warn');
+  state.querySelector('span').textContent = live ? 'Live' : linked ? 'Linked' : 'Off';
   $('link-note').textContent = live
     ? `Star Citizen on 127.0.0.1:${link.port}. ${sends ? 'Reading the ship and taking commands' : 'Reading the ship. This game version takes no commands'}`
+    : linked ? `Star Citizen answers on 127.0.0.1:${link.port}. It starts sharing once your character spawns`
+    : teleSet() && info.running ? `Turned on, but the game doesn't answer on 127.0.0.1:${link.port}. Restart the RSI Launcher and the game`
     : 'The game isn\'t sharing it. The console runs from Game.log and your keys, as before';
   document.querySelectorAll('#layout-seg button').forEach(b => b.classList.toggle('cur', b.dataset.v === opts.layout));
-  const set = setupSeen && (setupSeen.env || setupSeen.channels.some(([, on]) => on));
+  const set = teleSet();
   $('tele-act').textContent = set ? 'Turn telemetry off' : 'Turn telemetry on';
   $('tele-act-note').textContent = set
     ? `On for ${[setupSeen.env && '4.10', ...setupSeen.channels.filter(([, on]) => on).map(([c]) => c + ' (user.cfg)')].filter(Boolean).join(', ')}. The game reads it when it starts`
@@ -716,17 +732,18 @@ async function paintLink(fresh) {
   $('rec-note').textContent = recording ? 'Recording what the game sends. Saves to Documents\\Edge Cockpit' : live ? 'Saves up to ten minutes of what the game sends, for a bug report' : 'Works while the game shares telemetry';
 }
 async function toggleTelemetry() {
-  const set = setupSeen && (setupSeen.env || setupSeen.channels.some(([, on]) => on));
+  const set = teleSet();
   try {
     setupSeen = await bridge.telemetryEnable(!set);
     toast(set ? 'Telemetry off from the next game start' : 'Telemetry on. Restart the RSI Launcher and the game');
   } catch (e) { toast(`Not changed: ${e?.message || e}`); }
   paintLink();
+  paintTeleChip();
 }
 let recording = false;
 let lastPress = null;
 async function toggleRecord() {
-  if (!recording && link.link !== 'live') { toast('Start the game with telemetry on first'); return; }
+  if (!recording && link.link === 'off') { toast('Start the game with telemetry on first'); return; }
   try {
     const file = await bridge.telemetryRecord(!recording);
     recording = !recording;
@@ -1547,6 +1564,7 @@ async function installUpdate() {
 }
 controls.pressable($('update'), { up: () => { tick('tap'); openSheet(true, 'about'); } });
 controls.pressable($('binds-chip'), { up: () => { tick('tap'); openSheet(true, 'binds'); } });
+controls.pressable($('tele-chip'), { up: () => { tick('tap'); openSheet(true, 'link'); } });
 controls.pressable($('touch-chip'), { up: () => { tick('tap'); openSheet(true, 'screen'); } });
 $('touch-chip').querySelector('span').textContent = 'Touch on another display';
 controls.pressable($('fit-chip'), { up: () => { tick('tap'); refit(); } });
@@ -1984,6 +2002,8 @@ async function poll() {
   link.classList.toggle('running', info.running);
   link.classList.toggle('focused', info.focused);
   paintChannel();
+  // Turned on or off outside the console: read it again when the game starts.
+  if (info.running && !JSON.parse(was).running && !onPhone) setupSeen = await bridge.telemetrySetup().catch(() => setupSeen);
   $('act-admin').hidden = info.elevated;
   if (!info.running && !game.menu) { game = { ...EMPTY, me: game.me, dropped: game.dropped }; follow(false); showRecap(); }
   paintPrompt();
@@ -2265,7 +2285,8 @@ bridge.onTray?.(what => {
 bridge.onAutostart?.(on => { opts.autostart = on; document.querySelectorAll('.opt[data-opt="autostart"]').forEach(o => o.classList.toggle('on', on)); });
 setOpt('night', opts.night);
 bridge.onShared?.(shared);
-if (!onPhone) { bridge.onTelemetry?.(applyTelemetry); bridge.telemetryNow().then(u => u && applyTelemetry(u)).catch(() => {}); }
+if (!onPhone) { bridge.onTelemetry?.(applyTelemetry); bridge.telemetryNow().then(u => u && applyTelemetry(u)).catch(() => {});
+  bridge.telemetrySetup().then(s => { setupSeen = s; paintTeleChip(); }).catch(() => {}); }
 // The PC holds the pages of yours: every Device gets them, and no stale edit from a closed one.
 if (!onPhone) bridge.share({ pages: Object.fromEntries(storedPages().filter(p => p?.id).map(p => [p.id, p])), preview: null });
 if (onPhone) startPhone(); else startPhones();

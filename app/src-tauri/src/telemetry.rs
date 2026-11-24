@@ -348,7 +348,8 @@ pub struct Live {
 /// The link as the UI sees it.
 #[derive(Serialize, Clone, PartialEq, Debug)]
 pub struct Update {
-    /// "off" (nothing answers), "live" (streaming).
+    /// "off" (nothing answers), "linked" (the game answers but sends nothing yet, as in the
+    /// menu or before your character spawns), "live" (state arriving).
     pub link: &'static str,
     pub port: u16,
     /// Actions the game takes by name; empty on a game that only shares state (4.10).
@@ -578,6 +579,11 @@ pub fn cfg_on(cfg: &str) -> bool {
     cfg_value(cfg, CFG_KEY).is_some_and(|v| matches!(v.to_ascii_lowercase().as_str(), "1" | "true"))
 }
 
+/// "live" while any section is fresh, else "linked": the game answers but shares nothing yet.
+fn state_of(live: &Live) -> &'static str {
+    if live.vehicle.is_some() || live.weapons.is_some() || live.actor.is_some() { "live" } else { "linked" }
+}
+
 /// The channel folders next to `channel` (LIVE, PTU…) that exist.
 pub fn sibling_channels(channel: &Path) -> Vec<PathBuf> {
     let Some(root) = channel.parent() else { return vec![channel.to_path_buf()] };
@@ -641,7 +647,7 @@ async fn stream(link: &Link, client: Client, port: u16, send: &mut impl FnMut(Up
     let mut sections = Sections::default();
     let mut emitted = Instant::now() - EMIT_EVERY;
     let mut pending = false;
-    send(Update { link: "live", port, actions: actions.clone(), live: Live::default() });
+    send(Update { link: "linked", port, actions: actions.clone(), live: Live::default() });
     loop {
         // Wake at least every half second, so a section that stopped arriving goes stale.
         let next = tokio::time::timeout(Duration::from_millis(500), body.data()).await;
@@ -667,7 +673,8 @@ async fn stream(link: &Link, client: Client, port: u16, send: &mut impl FnMut(Up
         if pending && now.duration_since(emitted) >= EMIT_EVERY {
             pending = false;
             emitted = now;
-            send(Update { link: "live", port, actions: actions.clone(), live: sections.live(now) });
+            let live = sections.live(now);
+            send(Update { link: state_of(&live), port, actions: actions.clone(), live });
         }
     }
 }
@@ -854,9 +861,12 @@ mod tests {
         assert!(result.is_ok());
         assert!(link.stop().is_none());
         assert_eq!(status, Ok("filtered"));
-        assert_eq!(seen[0].link, "live");
+        // Linked as soon as the game answers, live once it sends state.
+        assert_eq!(seen[0].link, "linked");
+        assert!(seen.iter().any(|u| u.link == "live"));
         assert_eq!(seen[0].actions, vec!["v_lights".to_string()]);
         let last = seen.iter().rev().find(|u| u.live.vehicle.is_some()).expect("a ship");
+        assert_eq!(last.link, "live");
         assert_eq!(last.live.vehicle.as_ref().unwrap().class_name, "MISC_Prospector");
         assert_eq!(last.live.weapons.as_ref().unwrap().countermeasures[0].amount, 48);
     }
