@@ -1265,6 +1265,7 @@ body.calm .tlm .ann b.fl { animation: none; }
 .cap.glamp-on > .lvt { color: var(--ok); }
 /* Decoys and noise left. */
 .cap > .cnt { position: absolute; right: 9px; top: 7px; font: 600 15px/1 var(--mono); color: var(--ink); }
+.cm-big > .cap > .cnt { right: 18px; top: 14px; font-size: 44px; }
 
 /* ---------- Telemetry pages (telepages.js): the game's live values as instruments ---------- */
 .softkeys.with-gauges .well:nth-child(n+5) { grid-column: span 3; }
@@ -1297,6 +1298,9 @@ svg.gx { display: block; overflow: visible; }
 .tl-mc b.okl { --lc: #5fe0a0; }
 .tl-mc b.cau { color: #1a1104; background: linear-gradient(180deg, #ffcf7a, #f39a20); box-shadow: 0 0 26px #ffb547aa, inset 0 1px 0 #fff8, 0 4px 0 #6b4200; }
 .tl-mc b.war { color: #fff; background: linear-gradient(180deg, #ff6a5c, #d01e10); box-shadow: 0 0 26px #ff4232aa, 0 4px 0 #5a0a04; }
+.tl-mc b.calm { position: relative; color: #8f9ba7; }
+.tl-mc b.calm::before { content: ''; position: absolute; top: 12px; left: 50%; width: 34px; height: 4px; margin-left: -17px; border-radius: 2px; background: #5fe0a0; box-shadow: 0 0 8px #5fe0a0aa; }
+.tl-mc b.sel { color: var(--ok); box-shadow: inset 0 0 0 2px #5fe0a0aa, 0 0 14px #5fe0a033, 0 4px 0 #0d1013; }
 .tl-mc b.okl { color: #04140b; background: linear-gradient(180deg, #8ff0be, #3cc47e); box-shadow: 0 0 22px #5fe0a088, 0 4px 0 #0b4a28; }
 .tl-ann { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 16px; }
 .tl-ann.four { grid-template-columns: repeat(4, 1fr); }
@@ -1335,8 +1339,8 @@ svg.gx { display: block; overflow: visible; }
 .tl-ifcs b { height: 74px; border-radius: 7px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; background: #070b0e;
   box-shadow: inset 0 0 0 1px #ffffff12, inset 0 2px 6px #000; font: 700 12px/1.15 var(--hud); letter-spacing: .14em; color: var(--muted); text-align: center; text-transform: uppercase; }
 .tl-ifcs b em { font: 600 11px/1 var(--hud); font-style: normal; letter-spacing: .2em; padding: 3px 8px; border-radius: 3px; }
-.tl-ifcs b.on { color: var(--ink); } .tl-ifcs b.on em { color: #06120c; background: var(--ok); box-shadow: 0 0 10px #5fe0a088; }
-.tl-ifcs b.off em { color: var(--hold); box-shadow: inset 0 0 0 1px #ffb54766; }
+.tl-ifcs b.on { color: var(--ink); } .tl-ifcs b.on em { color: var(--ok); box-shadow: inset 0 0 0 1px #5fe0a066; }
+.tl-ifcs b.off { color: #8f9ba7; } .tl-ifcs b.off em { color: #8f9ba7; box-shadow: inset 0 0 0 1px #ffffff22; }
 .tl-ifcs b.na { color: #3a444e; } .tl-ifcs b.na em { color: #3a444e; box-shadow: inset 0 0 0 1px #ffffff14; }
 .tl-guns { display: flex; gap: 12px; }
 .tl-guns b { flex: 1; min-width: 0; height: 120px; border-radius: 8px; background: #070b0e; box-shadow: inset 0 0 0 1px #ffffff12, inset 0 2px 6px #000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;

@@ -56,6 +56,8 @@ const ANN_NAME = { pwr: 'Power', wpn: 'Weapons', thr: 'Thrusters', shld: 'Shield
 const lampCls = s => (s === 1 ? 'n' : s === 2 ? 'o' : s === 3 || s === 4 ? 'm' : s === 5 || s === 6 ? 'x' : '');
 const flashing = s => s === 3 || s === 5;
 const DEP = { 1: 'Up', 2: 'Lowering', 3: 'Down', 4: 'Raising' };
+// Down is green, moving is amber, up is dark: stowed gear is the normal state in flight.
+const depCls = v => (v === 3 ? 'on' : v === 1 ? '' : 'am');
 
 /** The flight values the pages draw, null where the game didn't send one. */
 export function flightOf(live) {
@@ -127,6 +129,7 @@ const ackable = el => {
   el.addEventListener('pointerup', e => { if (e.target.closest('[data-ack]')) { acknowledge(K.tele()); K.repaint(); } });
   return el;
 };
+const bigCount = el => { el.classList.add('cm-big'); return el; };
 const add = (p, ...els) => { for (const e of els) p.appendChild(e); return p; };
 /**
  * One big gauge drawn as separate instruments on one glass: the same picture on the console, while
@@ -179,7 +182,7 @@ export function scene(id) {
   ];
   if (id === 'tl-combat') return [
     add(head(382, 760, id), slot(24, 52, 712, 632, 'threat', false)),
-    add(plate(1148, 700, 'Defence'), slot(24, 44, 652, 400, 'defence'), keycap(24, 466, 314, 220, 'Decoy', { fs: 16, is: 30 }), keycap(362, 466, 314, 220, 'Noise', { fs: 16, is: 30 })),
+    add(plate(1148, 700, 'Defence'), slot(24, 44, 652, 400, 'defence'), bigCount(keycap(24, 466, 314, 220, 'Decoy', { fs: 16, is: 30 })), bigCount(keycap(362, 466, 314, 220, 'Noise', { fs: 16, is: 30 }))),
     add(plate(1854, 700, 'Guns'), slot(24, 44, 652, 640, 'guns')),
   ];
   if (id === 'tl-suit') return [
@@ -224,7 +227,7 @@ function modes(d) {
   const m = (on, n) => lamp(on ? 'on' : '', n);
   const na = n => lamp('na', n, 'Not sent');
   return `<div class="tl-lamps">${d.mode == null ? na('Mode') : m(d.mode === 2, 'SCM') + m(d.mode === 1, 'NAV') + lamp(d.spooled ? 'on' : 'am', d.spooled ? 'Spooled' : 'Spooling')}</div>
-    <div class="tl-lamps">${d.landed == null ? na('Landed') : m(d.landed, d.landed ? 'Landed' : 'Flying')}${d.gear == null ? na('Gear') : lamp(d.gear === 3 ? 'on' : 'am', 'Gear ' + DEP[d.gear])}</div>`;
+    <div class="tl-lamps">${d.landed == null ? na('Landed') : m(d.landed, d.landed ? 'Landed' : 'Flying')}${d.gear == null ? na('Gear') : lamp(depCls(d.gear), 'Gear ' + DEP[d.gear])}</div>`;
 }
 // Acknowledged warnings stay lit but stop calling for attention until a new one comes on.
 let acked = '';
@@ -338,7 +341,7 @@ function ifcs(d) {
     cell('Stability', av(s.ifcs_stability)), cell('Gravity<br>compensation', av(s.ifcs_gravity_compensation)), cell('Wind<br>compensation', av(s.ifcs_wind_compensation)),
     cell('Advanced<br>HUD', hud, hud === 'na' ? '—' : ''), cell('Light<br>amplification', s.flight_light_amplification ? 'on' : 'off'), cell('Lights', v.lights_enabled ? 'on' : 'off'),
   ].join('')}</div>
-  <div class="cap-t">Deploy</div><div class="tl-lamps">${d.gear == null ? lamp('na', 'Gear', '—') : lamp(d.gear === 3 ? 'on' : 'am', 'Gear ' + DEP[d.gear])}${d.vtol == null ? lamp('na', 'VTOL', '—') : lamp(d.vtol === 3 ? 'on' : 'am', 'VTOL ' + DEP[d.vtol])}${d.landed == null ? lamp('na', 'State', '—') : lamp(d.landed ? 'on' : '', d.landed ? 'Landed' : 'Flying')}</div>
+  <div class="cap-t">Deploy</div><div class="tl-lamps">${d.gear == null ? lamp('na', 'Gear', '—') : lamp(depCls(d.gear), 'Gear ' + DEP[d.gear])}${d.vtol == null ? lamp('na', 'VTOL', '—') : lamp(depCls(d.vtol), 'VTOL ' + DEP[d.vtol])}${d.landed == null ? lamp('na', 'State', '—') : lamp(d.landed ? 'on' : '', d.landed ? 'Landed' : 'Flying')}</div>
   <div class="cap-t">Master mode</div><div class="tl-lamps">${mode == null ? lamp('na', 'Mode', 'Not sent') : lamp(mode === 1 ? 'on' : '', 'NAV') + lamp(mode === 2 ? 'on' : '', 'SCM') + lamp(d.spooled ? 'on' : 'am', d.spooled ? 'Spooled' : 'Spooling')}</div>`;
 }
 // The game sends what's left but no capacity: bars are out of the most seen on this ship.
@@ -395,7 +398,7 @@ const vbar = (y, g, n) => G.hbar(40, y, 772, 44, gp(g), { title: n, c: gp(g) == 
 const VITALS = {
   health: vt => vring(150, vt.health, 'HEALTH'),
   oxygen: vt => vring(426, vt.oxygen, 'OXYGEN', C.cyan),
-  heart: vt => (vt.heart_rate > 0 ? G.dial(702, 180, 112, vt.heart_rate, { min: 40, max: 200, step: 40, c: '#ff6a7a', unit: 'BEATS A MINUTE', title: 'HEART RATE', fmt: x => Math.round(x) }) : T(702, 180, 14, 'HEART RATE · NOT SENT', { c: C.dim, ls: 2 })),
+  heart: vt => (vt.heart_rate > 0 ? G.dial(702, 180, 112, vt.heart_rate, { min: 40, max: 200, step: 40, c: '#e4ebf1', unit: 'BEATS A MINUTE', title: 'HEART RATE', fmt: x => Math.round(x) }) : T(702, 180, 14, 'HEART RATE · NOT SENT', { c: C.dim, ls: 2 })),
   needs: vt => vbar(440, vt.hunger, 'HUNGER') + vbar(548, vt.thirst, 'THIRST'),
 };
 /** Each vital on its own part of the glass; the glass says so once when the game sends none. */
@@ -416,7 +419,7 @@ function env(live) {
 function breath(live) {
   const e = live?.actor?.environment;
   if (!e) return `<div class="tl-mc one"><b>Air outside<small>Not sent</small></b></div>`;
-  return `<div class="tl-mc one"><b class="${e.breathable_atmosphere ? 'okl' : 'war'}">${e.breathable_atmosphere ? 'Breathable air' : 'No breathable air'}<small>Outside your helmet</small></b></div>`;
+  return `<div class="tl-mc one"><b class="${e.breathable_atmosphere ? 'calm' : 'war'}">${e.breathable_atmosphere ? 'Breathable air' : 'No breathable air'}<small>Outside your helmet</small></b></div>`;
 }
 function wallet(live) {
   const b = live?.actor?.state?.uec_balance;
@@ -486,7 +489,7 @@ function qmode(d) {
   if (d.mode == null) return `<div class="tl-mc"><b>NAV<small>Not sent</small></b><b>SCM<small>Not sent</small></b></div>`;
   const now = performance.now(), spinning = spool.t0 != null;
   const tm = spinning ? ((now - spool.t0) / 1000).toFixed(1) + ' s' : spool.last != null ? spool.last.toFixed(1) + ' s' : null;
-  return `<div class="tl-mc"><b class="${d.mode === 1 ? 'okl' : ''}">NAV<small>${d.mode === 1 ? 'Quantum and top speed' : '—'}</small></b><b class="${d.mode === 2 ? 'okl' : ''}">SCM<small>${d.mode === 2 ? 'Shields and guns' : '—'}</small></b></div>
+  return `<div class="tl-mc"><b class="${d.mode === 1 ? 'sel' : ''}">NAV<small>${d.mode === 1 ? 'Quantum and top speed' : '—'}</small></b><b class="${d.mode === 2 ? 'sel' : ''}">SCM<small>${d.mode === 2 ? 'Shields and guns' : '—'}</small></b></div>
     <div class="tl-spool">${G.svg(852, 290, stopwatch(spinning ? (now - spool.t0) / 1000 : spool.last, spinning))}</div>`;
 }
 /** A stopwatch dial for the spool: the console's own timing, from the switch to spooled. */
