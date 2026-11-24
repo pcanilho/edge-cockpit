@@ -591,8 +591,8 @@ function paintLamp(node, st) {
   const cap = node.matches('.cap') ? node : node.querySelector(':scope > .cap');
   if (!cap) return;
   const show = teleKeys.has(st.key) && typeof states[st.key] === 'boolean';
-  cap.classList.toggle('lamp', show);
-  cap.classList.toggle('lamp-on', show && states[st.key]);
+  cap.classList.toggle('glamp', show);
+  cap.classList.toggle('glamp-on', show && states[st.key]);
   let t = cap.querySelector(':scope > .lvt');
   if (!show) { t?.remove(); cap.querySelector(':scope > .lv')?.remove(); return; }
   if (!t) { cap.insertAdjacentHTML('beforeend', '<span class="lv"></span><span class="lvt"></span>'); t = cap.querySelector(':scope > .lvt'); }
@@ -1443,7 +1443,7 @@ const LEGEND = [
   ['<div class="well key fam-wpn"><div class="cap"><span class="lg">Decoy</span><span class="tg">LONG</span></div></div>', 'LONG or 2×', 'Press and hold, or tap twice, for a second action. Its name shows at the bottom of the screen when it goes.'],
   ['<div class="well key fam-sys cut"><div class="cap"><span class="lg">Flight ready</span><span class="notch"></span></div></div>', 'Notched corner: macro', 'Several keys in turn, such as power on and Flight Ready.'],
   ['<div class="well pair fam-flt"><div class="cap half a"><span class="lg">On</span><span class="led"></span></div><div class="cap half b"><span class="lg">Off</span><span class="led"></span></div></div>', 'On and off', 'Sets it on or off in game. Dark until you set it here, as the game never says which it is.', 'Sets it on or off in game. Lit with the game\'s own state while telemetry is live; dark for what the game doesn\'t send (doors, port locks).'],
-  ['<div class="well key fam-flt"><div class="cap lamp lamp-on"><span class="lg">G-safe</span><span class="lv"></span><span class="lvt">On</span></div></div>', 'Lamp: the game says', 'A toggle with its state from the game. Only while telemetry is live.', null, true],
+  ['<div class="well key fam-flt"><div class="cap glamp glamp-on"><span class="lg">G-safe</span><span class="lv"></span><span class="lvt">On</span></div></div>', 'Lamp: the game says', 'A toggle with its state from the game. Only while telemetry is live.', null, true],
   ['<div class="well key fam-emg"><div class="cap"><span class="lg">Self destruct</span><span class="tg">GUARD</span></div></div>', 'GUARD', 'Tap twice within 3 s. The first tap only arms it.'],
   ['<div class="guard"><div class="cover"><span class="hinge"></span><span>LIFT COVER</span></div></div>', 'Cover', 'The first tap lifts it, a second within 3 s sends the key.'],
   ['<div class="well key fam-flt"><div class="cap"><span class="lg">Ping</span><span class="mine"></span></div></div>', 'Cyan dot: your key', 'A key you swapped in. Long press it to change it again or go back to stock.'],
