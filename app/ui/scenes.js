@@ -3,6 +3,7 @@
 import { plate, placard, label, keycap, rocker, toggle, onOff, onOffKey, rotary, wheelKnob, slider, slideConfirm, guard, gearLever, quantum,
   roundButton, dial, missileRack, screen, icon, esc, h, pressable, blank } from './controls.js';
 import { lefts, unset } from './lib/custom.js';
+import { isTele, scene as teleScene } from './telepages.js';
 
 let K;
 export const init = ctx => { K = ctx; };
@@ -493,6 +494,7 @@ function customScene(page) {
 
 /** The plates for a page. */
 export function scene(page) {
+  if (isTele(page.id)) return teleScene(page.id);
   if (CUSTOM.has(page.id)) return customScene(page);
   if (page.id === 'onfoot') return onFoot();
   if (page.id === 'map') return mapPage();

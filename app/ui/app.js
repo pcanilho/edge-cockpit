@@ -18,6 +18,7 @@ import * as phone from './phone.js';
 import { keepAwake } from './awake.js';
 import * as haptics from './haptics.js';
 import * as tele from './lib/telemetry.js';
+import * as tp from './telepages.js';
 import { reportText, issueBody } from './lib/report.js';
 
 const $ = id => document.getElementById(id);
@@ -66,6 +67,9 @@ const KIT_KEYS = { missiles: ['Missiles +', 'Missiles reset', 'Missile mode'], e
 // Kept in this console's storage; each one joins the main deck after the curated pages, so
 // showing, swiping and the soft keys treat it like any page. The curated pages are not touched.
 const mainPages = layout.decks.find(d => d.id === 'main').pages;
+// The Telemetry pages join the deck too; only the Gauges soft key reaches them, and only while
+// the game link is live with the Telemetry layout on.
+for (const t of tp.TELE_PAGES) mainPages.push({ id: t.id, name: t.name, theme: { accent: '#58d2f0', code: 'TLM', glyph: t.glyph }, groups: [], rows: [] });
 const CURATED = mainPages.length;
 // A Device keeps no pages of its own: it shows the PC's, which arrive with the shared state.
 const devicePages = new Map();
@@ -584,7 +588,17 @@ function applyTelemetry(u) {
     linkShared = gl;
   }
   paintTele();
+  paintGauges();
   if (!$('sheet').hidden) paintLink();
+}
+let lastGauges = 'tl-instruments', gaugesShown = null;
+/** The Telemetry pages: filled from each update; when telemetry goes away, back to the ship. */
+function paintGauges() {
+  const on = teleOn();
+  if (on !== gaugesShown) { gaugesShown = on; paintSoftkeys(); }
+  if (!tp.isTele(current)) return;
+  if (!on) { show(rolePage || lastShip); return; }
+  tp.paint($('console'), link.live);
 }
 /** A push-button whose state the game reports: a lamp, and the state under its label. */
 function paintLamp(node, st) {
@@ -730,6 +744,8 @@ const K = {
     show(!CUSTOM.has(base) && rolePage?.startsWith(base) ? rolePage : base);
   },
   go: id => { tick('page'); show(id); },
+  live: () => link.live,
+  repaint: () => paintGauges(),
   /** A live value for a status screen on a page of yours: only what Game.log gave. */
   live: f => {
     if (f === 'armistice') return game.armistice ? 'Armistice zone' : 'Weapons free';
@@ -1023,6 +1039,7 @@ function render() {
   paintQuantum();
   paintLog();
   world.paint();
+  if (tp.isTele(current)) paintGauges();
   paintSoftkeys();
   // A phone folds the plates as painted.
   if (onPhone) fit();
@@ -1032,6 +1049,7 @@ function show(id, remote) {
   if (!pageById(layout, id) || arrange.isEditing() || (editor.isOpen() && id !== current)) return;
   if (!remote && id !== current) bridge.share({ page: id });
   if (moduleOf(id)) lastShip = id;
+  if (tp.isTele(id)) lastGauges = id;
   const changed = id !== current;
   if (changed && (current === 'world' || id === 'world')) world.showing(id === 'world');
   current = id;
@@ -1046,6 +1064,7 @@ const SOFT = [
   { label: 'Downed', icon: 'medical', go: () => 'downed', is: id => id === 'downed' },
   { label: 'Log', icon: 'list', go: () => 'log', is: id => id === 'log' },
   { label: 'World', icon: 'globe', go: () => 'world', is: id => id === 'world' },
+  { label: 'Gauges', icon: 'gauge', go: () => lastGauges, is: tp.isTele, tele: true },
   { label: 'Settings', icon: 'cog', go: null },
 ];
 function buildSoftkeys() {
@@ -1061,6 +1080,9 @@ function buildSoftkeys() {
 function paintSoftkeys() {
   const sheet = !$('sheet').hidden;
   for (const s of SOFT) s.node?.classList.toggle('cur', sheet ? !s.go : !!s.is?.(current));
+  const tl = teleOn();
+  $('softkeys').classList.toggle('with-gauges', tl);
+  for (const s of SOFT) if (s.tele && s.node) s.node.hidden = !tl;
 }
 
 // ---------- settings sheet ----------
