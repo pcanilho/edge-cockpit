@@ -22,6 +22,23 @@ export const TELE_PAGES = [
 ];
 export const isTele = id => typeof id === 'string' && id.startsWith('tl-');
 
+// What the game has sent since the link came up: a page this game build can't fill steps out of
+// the way (4.10.3 sends no radar altitude or vertical speed, so Approach would be all "Not sent").
+let sent = new Set();
+/** The link went down: forget, since the next game may be another build. */
+export function forget() { sent = new Set(); }
+const NEEDS = {
+  'tl-approach': () => sent.has('ralt') || sent.has('vsi'),
+  'tl-turret': live => isGunner(live),
+};
+/** Why a page isn't in the swipe right now, or '' when it is there. */
+export const waitsFor = (id, live) => (NEEDS[id]?.(live) ?? true) ? '' : id === 'tl-turret' ? 'a gunner seat' : 'radar altitude or vertical speed';
+/** The pages to step through: the ones the game can fill now, less those you hid. */
+export function pages(live, hidden = K?.hidden?.() || []) {
+  const list = TELE_PAGES.filter(p => !hidden.includes(p.id) && !waitsFor(p.id, live));
+  return list.length ? list : TELE_PAGES.filter(p => p.id === 'tl-ship');
+}
+
 let K;
 /** ctx: go(id) shows a page, scale() is the stage scale, tele() the latest update, repaint() redraws. */
 export const init = ctx => {
@@ -70,15 +87,19 @@ const anyAnn = (ann, states) => !!ann && ANN.some(k => states.includes(ann[k]));
 
 // ---------- pager ----------
 function pager(id) {
-  const i = TELE_PAGES.findIndex(p => p.id === id);
   const el = h(`<div class="pager tl-pager"><button class="pg prev" aria-label="Previous gauge page">${icon('left', 18)}</button>
-    <span><b>${i + 1}</b> / ${TELE_PAGES.length}</span><button class="pg next" aria-label="Next gauge page">${icon('right', 18)}</button></div>`);
+    <span data-tk="pg" data-page="${id}"></span><button class="pg next" aria-label="Next gauge page">${icon('right', 18)}</button></div>`);
   for (const [sel, dir] of [['.prev', -1], ['.next', 1]]) {
     const b = el.querySelector(sel);
-    pressable(b, { up: () => K.go(TELE_PAGES[(i + dir + TELE_PAGES.length) % TELE_PAGES.length].id) });
+    pressable(b, { up: () => K.go(step(id, dir)) });
     b.addEventListener('pointerdown', e => e.stopPropagation());
   }
   return el;
+}
+/** The page dir steps from id, among the pages shown. */
+function step(id, dir) {
+  const list = pages(K.tele()), i = list.findIndex(p => p.id === id), n = list.length;
+  return list[i < 0 ? 0 : (i + dir + n) % n].id;
 }
 /** A plate whose title carries the page's name and the pager. */
 function head(x, w, id) {
@@ -92,8 +113,7 @@ function head(x, w, id) {
     if (x0 === null) return;
     const dx = (e.clientX - x0) / K.scale();
     x0 = null;
-    const i = TELE_PAGES.findIndex(t => t.id === id), n = TELE_PAGES.length;
-    if (Math.abs(dx) > 120) K.go(TELE_PAGES[(i + (dx < 0 ? 1 : -1) + n) % n].id);
+    if (Math.abs(dx) > 120) K.go(step(id, dx < 0 ? 1 : -1));
   });
   return p;
 }
@@ -203,10 +223,33 @@ function caution(d) {
   return `<div class="tl-mc"><b class="${minor ? 'cau' : ''} ${minor && !quiet ? 'fl' : ''}" data-ack>Master caution<small>${minor ? 'Tap to acknowledge' : 'All clear'}</small></b><b class="${major ? 'war' : ''} ${major && !quiet ? 'fl' : ''}" data-ack>Master warning<small>${major ? 'Tap to acknowledge' : 'All clear'}</small></b></div>
     <div class="tl-ann">${ANN.map(k => `<b class="${a ? lampCls(a[k]) : ''} ${a && flashing(a[k]) ? 'fl' : ''}">${ANN_NAME[k]}</b>`).join('')}</div>`;
 }
+const secs = n => `${n} second${n === 1 ? '' : 's'}`;
+/**
+ * Two lines under the shields gauge (how fast they move, and when they'd be empty or full at that
+ * rate) and under the hull (the last hit), from the game's own readings. Nothing until there are
+ * enough of them.
+ */
+function trendLines(which, level, x, y) {
+  const now = performance.now();
+  if (level == null) return '';
+  // The hull doesn't drain, it takes hits: when and how much the last one took.
+  if (which === 'hu') {
+    if (trend.hit == null) return '';
+    const ago = Math.round((now - trend.hit) / 1000), lost = Math.max(1, Math.round(trend.lost * 100));
+    return T(x, y, 15, `LAST HIT ${secs(ago).toUpperCase()} AGO`, { c: ago < 10 ? C.amber : C.muted, ls: 2.4 }) + T(x, y + 26, 12, `HULL LOST ${lost} %`, { c: C.paint, ls: 2.4 });
+  }
+  const r = rateOf(trend.sh);
+  if (r == null) return '';
+  const per = Math.abs(r * 100), rate = `${per < 10 ? per.toFixed(1) : Math.round(per)} % A SECOND`;
+  if (r < -0.002) return T(x, y, 15, '▼ ' + rate, { c: C.amber, ls: 2.4 }) + T(x, y + 26, 12, `EMPTY IN ABOUT ${secs(Math.max(1, Math.round(level / -r))).toUpperCase()}`, { c: C.paint, ls: 2.4 });
+  if (r > 0.002) return T(x, y, 15, '▲ ' + rate, { c: C.ok, ls: 2.4 }) + (level < 0.995 ? T(x, y + 26, 12, `FULL IN ABOUT ${secs(Math.max(1, Math.round((1 - level) / r))).toUpperCase()}`, { c: C.paint, ls: 2.4 }) : '');
+  return T(x, y, 15, 'STEADY', { c: C.muted, ls: 2.4 });
+}
 function shHull(d) {
   const sh = pct(d.shields), hu = pct(d.hull);
   return G.svg(612, 368, (sh == null ? T(160, 200, 14, 'SHIELDS · NOT SENT', { c: C.dim, ls: 2 }) : G.semi(160, 210, 120, sh, { title: 'SHIELDS', c: C.cyan }))
-    + (hu == null ? T(452, 200, 14, 'HULL · NOT SENT', { c: C.dim, ls: 2 }) : G.semi(452, 210, 120, hu, { title: 'HULL', c: hu < 25 ? C.red : hu < 50 ? C.amber : C.ok })));
+    + (hu == null ? T(452, 200, 14, 'HULL · NOT SENT', { c: C.dim, ls: 2 }) : G.semi(452, 210, 120, hu, { title: 'HULL', c: hu < 25 ? C.red : hu < 50 ? C.amber : C.ok }))
+    + trendLines('sh', d.shields, 160, 270) + trendLines('hu', d.hull, 452, 270));
 }
 
 function approach(d) {
@@ -320,7 +363,8 @@ function threat(d) {
 function defence(d) {
   const sh = pct(d.shields), hu = pct(d.hull);
   return G.svg(652, 400, (sh == null ? T(170, 190, 14, 'SHIELDS · NOT SENT', { c: C.dim, ls: 2 }) : G.ring(170, 190, 130, sh, { title: 'SHIELDS', c: C.cyan, glow: true, fs: 52 }))
-    + (hu == null ? T(482, 190, 14, 'HULL · NOT SENT', { c: C.dim, ls: 2 }) : G.ring(482, 190, 130, hu, { title: 'HULL', c: hu < 25 ? C.red : hu < 50 ? C.amber : C.ok, glow: true, fs: 52 })));
+    + (hu == null ? T(482, 190, 14, 'HULL · NOT SENT', { c: C.dim, ls: 2 }) : G.ring(482, 190, 130, hu, { title: 'HULL', c: hu < 25 ? C.red : hu < 50 ? C.amber : C.ok, glow: true, fs: 52 }))
+    + trendLines('sh', d.shields, 170, 352) + trendLines('hu', d.hull, 482, 352));
 }
 function guns(live) {
   const w = live?.weapons, list = w?.weapons || [];
@@ -375,9 +419,29 @@ let spool = { key: '', t0: null, last: null };
 // Hydrogen over the last two minutes, per ship, for the burn rate.
 let fuel = { ship: '', samples: [] };
 const FUEL_WINDOW = 120e3, FUEL_MIN = 20e3;
+// Shields and hull over the last few seconds, per ship, for which way a fight is going.
+let trend = { ship: '', sh: [], hu: [], hit: null, lost: 0 };
+const TREND_MS = 3000, TREND_MIN = 1000;
+const sample = (arr, v, now) => {
+  if (v == null) { arr.length = 0; return; }
+  arr.push({ t: now, v });
+  while (arr.length && now - arr[0].t > TREND_MS) arr.shift();
+};
+/** Change a second (fraction of full) over the window, or null while it's too short to say. */
+const rateOf = arr => (arr.length < 2 || arr.at(-1).t - arr[0].t < TREND_MIN ? null : (arr.at(-1).v - arr[0].v) / ((arr.at(-1).t - arr[0].t) / 1000));
+/** Which way shields are going: -1 falling, 1 rising, 0 steady, null not known. */
+export function shieldTrend() { const r = rateOf(trend.sh); return r == null ? null : r < -0.002 ? -1 : r > 0.002 ? 1 : 0; }
 /** Fed every update, whatever page is showing, so the timers and rates are ready. */
 export function observe(live, now = performance.now()) {
   const d = flightOf(live), ship = d.v?.class_name || '';
+  if (ship !== trend.ship) trend = { ship, sh: [], hu: [], hit: null, lost: 0 };
+  const hu0 = trend.hu.at(-1)?.v;
+  // A hit is a step down; hits close together count as one.
+  if (d.hull != null && hu0 != null && d.hull < hu0 - 0.0005) { trend.lost = (trend.hit != null && now - trend.hit < 1500 ? trend.lost : 0) + (hu0 - d.hull); trend.hit = now; }
+  sample(trend.sh, d.shields, now);
+  sample(trend.hu, d.hull, now);
+  if (d.ralt != null) sent.add('ralt');
+  if (d.vsi != null) sent.add('vsi');
   const k = `${ship}:${d.mode}`;
   if (d.mode == null) spool = { key: '', t0: null, last: null };
   else if (k !== spool.key) spool = { key: k, t0: d.spooled ? null : now, last: spool.key.startsWith(ship + ':') ? spool.last : null };
@@ -642,16 +706,76 @@ export function fieldGauge(f, live, w, h) {
   return null;
 }
 const last = new WeakMap();
+// The child elements of a piece of markup, as strings: our own markup, so counting tags is enough.
+const TAG = /<(\/?)([a-zA-Z][\w-]*)[^>]*?(\/?)>/g;
+function kids(html) {
+  const out = [];
+  let depth = 0, start = -1, m;
+  const re = new RegExp(TAG);
+  while ((m = re.exec(html))) {
+    if (m[1]) { if (--depth === 0) out.push(html.slice(start, re.lastIndex)); continue; }
+    if (depth === 0) start = m.index;
+    if (m[3]) { if (depth === 0) out.push(html.slice(start, re.lastIndex)); } else depth++;
+  }
+  return out;
+}
+const headOf = h => h.slice(0, h.indexOf('>') + 1);
+const ATTR = /([\w:-]+)="([^"]*)"/g;
+const attrs = head => Object.fromEntries([...head.matchAll(ATTR)].map(m => [m[1], m[2]]));
+/**
+ * Changes node (drawn from was) to now, touching only what differs: a moved needle is one
+ * attribute, a new number one text, and the dial face under them stays as it is. Rebuilding
+ * whole plates on every update made the gauge pages cost the PC far more than a control page.
+ */
+function patch(node, was, now) {
+  if (was === now) return;
+  const hw = headOf(was), hn = headOf(now), tag = hn.match(/^<([\w-]+)/)?.[1];
+  if (!tag || tag !== hw.match(/^<([\w-]+)/)?.[1] || hw.endsWith('/>') !== hn.endsWith('/>') || hn.includes('&')) { node.outerHTML = now; return; }
+  if (hw !== hn) {
+    const o = attrs(hw), n = attrs(hn);
+    for (const k of Object.keys(o)) if (!(k in n)) node.removeAttribute(k);
+    for (const [k, v] of Object.entries(n)) if (o[k] !== v) node.setAttribute(k, v);
+  }
+  if (hn.endsWith('/>')) return;
+  const close = `</${tag}>`, iw = was.slice(hw.length, -close.length), inn = now.slice(hn.length, -close.length);
+  if (iw === inn) return;
+  const kw = kids(iw), kn = kids(inn);
+  // Text, or text around elements: put it in whole.
+  const bare = (s, k) => k.reduce((r, c) => r.replace(c, ''), s);
+  if (!kn.length || kn.length !== kw.length || node.childElementCount !== kn.length || node.childNodes.length !== kn.length) {
+    if (!kn.length && !inn.includes('&')) node.textContent = inn; else node.innerHTML = inn;
+    return;
+  }
+  if (bare(inn, kn) !== bare(iw, kw)) { node.innerHTML = inn; return; }
+  kn.forEach((c, i) => patch(node.children[i], kw[i], c));
+}
+/** Puts html into el, which shows was: only the parts that differ change when it can. */
+export function refill(el, was, html) {
+  if (was === html) return;
+  const k = kids(html);
+  if (was && k.length && k.join('') === html && kids(was).join('') === was && kids(was).length === k.length && el.childNodes.length === k.length) {
+    const kw = kids(was);
+    k.forEach((c, i) => patch(el.children[i], kw[i], c));
+  } else el.innerHTML = html;
+}
 /** Fills the page's slots from a live update; slots whose drawing didn't change are left alone. */
 export function paint(root, live) {
   const d = flightOf(live);
   for (const el of root.querySelectorAll('[data-tk]')) {
     const k = el.dataset.tk;
     if (k === 'ship3d') { ship3d(el, live); continue; }
-    const html = PAINT[k]?.(d, live) ?? '';
-    if (last.get(el) === html) continue;
+    if (k === 'pg') {
+      const list = pages(live), i = list.findIndex(p => p.id === el.dataset.page);
+      const t = `${i < 0 ? '—' : i + 1} / ${list.length}`;
+      if (el.textContent !== t) el.innerHTML = `<b>${i < 0 ? '—' : i + 1}</b> / ${list.length}`;
+      continue;
+    }
+    const html = PAINT[k]?.(d, live) ?? '', was = last.get(el);
+    if (was === html) continue;
+    // The first drawing goes in whole; after that only what changed.
+    if (was != null && el.childElementCount === 1 && el.childNodes.length === 1 && kids(html).length === 1 && kids(was).length === 1) patch(el.firstElementChild, was, html);
+    else el.innerHTML = html;
     last.set(el, html);
-    el.innerHTML = html;
   }
 }
 /** A tap on master caution or warning acknowledges what is lit now. */
