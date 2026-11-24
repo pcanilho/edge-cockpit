@@ -34,6 +34,8 @@ export const init = ctx => {
 const finite = v => typeof v === 'number' && Number.isFinite(v) && Math.abs(v) < 1e30;
 const pct = v => (finite(v) ? Math.max(0, Math.min(100, Math.floor(v * 100 + 1e-6))) : null);
 const ANN = ['pwr', 'wpn', 'thr', 'shld', 'cool', 'qdrv', 'radr', 'prox', 'hit', 'misl'];
+/** The warning lights in words: the game's own short codes would truncate them. */
+const ANN_NAME = { pwr: 'Power', wpn: 'Weapons', thr: 'Thrusters', shld: 'Shields', cool: 'Coolers', qdrv: 'Quantum', radr: 'Radar', prox: 'Proximity', hit: 'Hit', misl: 'Missile' };
 const lampCls = s => (s === 1 ? 'n' : s === 3 || s === 4 ? 'm' : s === 5 || s === 6 ? 'x' : '');
 const flashing = s => s === 3 || s === 5;
 const DEP = { 1: 'Up', 2: 'Lowering', 3: 'Down', 4: 'Raising' };
@@ -175,7 +177,7 @@ function air(d) {
   return G.svg(852, 632,
     G.heading(150, 18, 552, 64, d.hdg) +
     G.tape(26, 124, 160, 470, d.speed, { title: 'SPEED', unit: 'M/S', ppu: 4, minor: 5, major: 25, min: 0, c: C.cyan, fmt: v => Math.round(v), side: 'left' }) +
-    G.tape(666, 124, 160, 470, d.ralt, { title: 'RADAR ALT', unit: 'METRES', ppu: 9, minor: 1, major: 5, c: C.ok, fmt: v => (v < 100 ? v.toFixed(1) : Math.round(v)), side: 'right', ground: true }) +
+    G.tape(666, 124, 160, 470, d.ralt, { title: 'RADAR ALTITUDE', unit: 'METRES', ppu: 9, minor: 1, major: 5, c: C.ok, fmt: v => (v < 100 ? v.toFixed(1) : Math.round(v)), side: 'right', ground: true }) +
     (d.vsi == null ? T(426, 368, 15, 'VERTICAL SPEED · NOT SENT', { c: C.dim, ls: 3 }) : G.vsi(426, 368, 200, d.vsi)));
 }
 function energy(d) {
@@ -199,7 +201,7 @@ function caution(d) {
   const minor = anyAnn(a, [3, 4]), major = anyAnn(a, [5, 6]);
   const quiet = key === acked;
   return `<div class="tl-mc"><b class="${minor ? 'cau' : ''} ${minor && !quiet ? 'fl' : ''}" data-ack>Master caution<small>${minor ? 'Tap to acknowledge' : 'All clear'}</small></b><b class="${major ? 'war' : ''} ${major && !quiet ? 'fl' : ''}" data-ack>Master warning<small>${major ? 'Tap to acknowledge' : 'All clear'}</small></b></div>
-    <div class="tl-ann">${ANN.map(k => `<b class="${a ? lampCls(a[k]) : ''} ${a && flashing(a[k]) ? 'fl' : ''}">${k.toUpperCase()}</b>`).join('')}</div>`;
+    <div class="tl-ann">${ANN.map(k => `<b class="${a ? lampCls(a[k]) : ''} ${a && flashing(a[k]) ? 'fl' : ''}">${ANN_NAME[k]}</b>`).join('')}</div>`;
 }
 function shHull(d) {
   const sh = pct(d.shields), hu = pct(d.hull);
@@ -211,7 +213,7 @@ function approach(d) {
   const W = 1052, H = 632, gy = 552, top = 70, lg = a => gy - Math.log10(1 + Math.max(0, a)) / Math.log10(1001) * (gy - top);
   let s = `<rect width="${W}" height="${gy}" fill="#08202d" opacity=".6"/><rect y="${gy}" width="${W}" height="${H - gy}" fill="url(#gx-hatch)"/><line x1="0" x2="${W}" y1="${gy}" y2="${gy}" stroke="${C.amber}" stroke-width="3"/>`;
   for (const a of [0, 5, 10, 25, 50, 100, 250, 500, 1000]) { const y = lg(a); s += `<line x1="70" x2="${W - 20}" y1="${y}" y2="${y}" stroke="#fff" stroke-opacity=".05"/><line x1="58" x2="76" y1="${y}" y2="${y}" stroke="${C.paint}" stroke-width="2"/>` + mono(50, y, 15, a, { c: C.muted, a: 'end' }); }
-  s += T(40, 40, 12, 'RADAR ALT · M', { c: C.muted, ls: 2, a: 'start' });
+  s += T(40, 40, 12, 'RADAR ALTITUDE · METRES', { c: C.muted, ls: 2, a: 'start' });
   const mx = 260;
   if (d.ralt == null) return G.svg(W, H, s + T(W / 2, 300, 18, d.v ? 'NO RADAR ALTITUDE READING' : 'NOT IN A SHIP', { c: C.dim, ls: 4 }));
   const my = d.landed ? gy - 14 : lg(d.ralt);
@@ -248,7 +250,7 @@ function sink(d) {
   return G.svg(492, 640, `<rect x="186" y="${cy - 270}" width="120" height="540" rx="10" fill="#071119" stroke="#ffffff14"/>`
     + [-20, -10, -5, 0, 5, 10, 20].map(t => `<line x1="306" x2="326" y1="${cy - t * sc}" y2="${cy - t * sc}" stroke="${C.paint}" stroke-width="2"/>` + mono(336, cy - t * sc, 15, t > 0 ? '+' + t : t, { c: C.muted, a: 'start' })).join('')
     + `<rect x="196" y="${Math.min(cy, cy - vv * sc)}" width="100" height="${Math.abs(vv * sc) || 2}" fill="${col}" filter="url(#gx-gl)"/>`
-    + T(246, 30, 12, 'SINK RATE · M/S', { c: C.muted, ls: 3 }) + mono(100, cy, 40, Math.abs(v) < 0.5 ? '0' : (v > 0 ? '+' : '−') + Math.abs(v).toFixed(1), { c: v < -0.5 ? C.amber : C.ink })
+    + T(246, 30, 12, 'SINK RATE · METRES A SECOND', { c: C.muted, ls: 3 }) + mono(100, cy, 40, Math.abs(v) < 0.5 ? '0' : (v > 0 ? '+' : '−') + Math.abs(v).toFixed(1), { c: v < -0.5 ? C.amber : C.ink })
     + T(100, cy + 40, 12, v < -0.5 ? 'DESCENDING' : v > 0.5 ? 'CLIMBING' : 'LEVEL', { c: C.muted, ls: 3 }));
 }
 
@@ -277,8 +279,8 @@ function ifcs(d) {
   return `<div class="tl-ifcs">${[
     cell('Coupled', s.ifcs_coupled ? (s.ifcs_coupled.enabled && s.ifcs_coupled.active ? 'on' : 'off') : 'na'), cell('Speed<br>limiter', av(s.ifcs_speed_limiter)), cell('Cruise', av(s.ifcs_cruise_mode)),
     cell('ESP', av(s.ifcs_esp)), cell('G-safe', av(s.ifcs_g_safe)), cell('Proximity<br>assist', av(s.ifcs_proximity_assist)),
-    cell('Stability', av(s.ifcs_stability)), cell('Gravity<br>comp', av(s.ifcs_gravity_compensation)), cell('Wind<br>comp', av(s.ifcs_wind_compensation)),
-    cell('Advanced<br>HUD', hud, hud === 'na' ? '—' : ''), cell('Light<br>amp', s.flight_light_amplification ? 'on' : 'off'), cell('Lights', v.lights_enabled ? 'on' : 'off'),
+    cell('Stability', av(s.ifcs_stability)), cell('Gravity<br>compensation', av(s.ifcs_gravity_compensation)), cell('Wind<br>compensation', av(s.ifcs_wind_compensation)),
+    cell('Advanced<br>HUD', hud, hud === 'na' ? '—' : ''), cell('Light<br>amplification', s.flight_light_amplification ? 'on' : 'off'), cell('Lights', v.lights_enabled ? 'on' : 'off'),
   ].join('')}</div>
   <div class="cap-t">Deploy</div><div class="tl-lamps">${d.gear == null ? lamp('na', 'Gear', '—') : lamp(d.gear === 3 ? 'on' : 'am', 'Gear ' + DEP[d.gear])}${d.vtol == null ? lamp('na', 'VTOL', '—') : lamp(d.vtol === 3 ? 'on' : 'am', 'VTOL ' + DEP[d.vtol])}${d.landed == null ? lamp('na', 'State', '—') : lamp(d.landed ? 'on' : '', d.landed ? 'Landed' : 'Flying')}</div>
   <div class="cap-t">Master mode</div><div class="tl-lamps">${mode == null ? lamp('na', 'Mode', 'Not sent') : lamp(mode === 1 ? 'on' : '', 'NAV') + lamp(mode === 2 ? 'on' : '', 'SCM') + lamp(d.spooled ? 'on' : 'am', d.spooled ? 'Spooled' : 'Spooling')}</div>`;
@@ -312,7 +314,7 @@ function threat(d) {
   if (!a) return NOT(712, 632, d.v ? 'Warning lights · not sent' : 'Not in a ship');
   const big = (k, n) => `<b class="${lampCls(a[k])} ${flashing(a[k]) ? 'fl' : ''}">${n}<small>${WORD[a[k]] || '—'}</small></b>`;
   return `<div class="tl-threat">${big('misl', 'Missile')}${big('hit', 'Hit')}</div>
-    <div class="tl-ann four">${['radr', 'prox', 'shld', 'wpn'].map(k => `<b class="${lampCls(a[k])} ${flashing(a[k]) ? 'fl' : ''}">${k.toUpperCase()}</b>`).join('')}</div>
+    <div class="tl-ann four">${['radr', 'prox', 'shld', 'wpn'].map(k => `<b class="${lampCls(a[k])} ${flashing(a[k]) ? 'fl' : ''}">${ANN_NAME[k]}</b>`).join('')}</div>
     <div class="tl-src">The game's own warning lights. Missile and Hit flash when the game flashes them.</div>`;
 }
 function defence(d) {
@@ -442,7 +444,7 @@ function fuelPlate(d) {
 function navPlate(d) {
   return G.svg(612, 640, G.heading(30, 30, 552, 64, d.hdg)
     + G.tape(40, 150, 200, 460, d.speed, { title: 'SPEED', unit: 'M/S', ppu: 4, minor: 5, major: 25, min: 0, c: C.cyan, fmt: v => Math.round(v), side: 'left' })
-    + G.tape(372, 150, 200, 460, d.ralt, { title: 'RADAR ALT', unit: 'METRES', ppu: 9, minor: 1, major: 5, c: C.ok, fmt: v => (v < 100 ? v.toFixed(1) : Math.round(v)), side: 'right', ground: true }));
+    + G.tape(372, 150, 200, 460, d.ralt, { title: 'RADAR ALTITUDE', unit: 'METRES', ppu: 9, minor: 1, major: 5, c: C.ok, fmt: v => (v < 100 ? v.toFixed(1) : Math.round(v)), side: 'right', ground: true }));
 }
 
 // ---------- turret ----------
@@ -470,7 +472,7 @@ function gunsMini(live) {
 }
 function turretLamp(live) {
   const t = live?.turret;
-  return `<div class="tl-lamps">${t ? lamp(t.light_amplification ? 'on' : '', 'Light amp', t.light_amplification ? 'On' : 'Off') : lamp('na', 'Light amp', '—')}</div>`;
+  return `<div class="tl-lamps">${t ? lamp(t.light_amplification ? 'on' : '', 'Light amplification', t.light_amplification ? 'On' : 'Off') : lamp('na', 'Light amplification', 'Not sent')}</div>`;
 }
 
 // ---------- ship in 3D ----------
