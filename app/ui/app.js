@@ -118,6 +118,12 @@ const platesMode = v => (Array.isArray(v) && v.some(x => SHIP_PLATES.includes(x)
 const nightLevel = v => [0, 10, 30, 50].includes(+v) ? +v : 30;
 const nightMode = v => (v === true ? 'on' : ['on', 'auto'].includes(v) ? v : 'off');
 const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), mute: store.get('mute', false), anywhere: store.get('anywhere', false), stack: store.get('stack', true), large: store.get('large', false), shapes: store.get('shapes', false), calm: store.get('calm', false), plates: platesMode(store.get('plates', null)), size: store.get('size', 'fit') === 'actual' ? 'actual' : 'fit', makerTheme: themeMode(store.get('makerTheme', 'auto')), vibrate: store.get('vibrate', true), nightLight: nightLevel(store.get('nightLight', 30)), layout: store.get('layout', 'telemetry') === 'classic' ? 'classic' : 'telemetry', gameSend: store.get('gameSend', true) };
+// The game link (see the game link section): off until the game shares its telemetry.
+let link = { link: 'off', port: 2942, actions: [], live: {} };
+/** A key the game takes through the link, so it needs no keyboard bind (5.0, taps only). */
+const byGame = k => !!k && k.role !== 'hold' && tele.viaGame(link, k, 'tap', opts.gameSend);
+/** A key the console can press: a keyboard bind, or the game takes it. */
+const reach = k => !!k && (!!bindOf(k) || byGame(k));
 // Vibration is for paired phones and tablets only; the Edge has no motor.
 if (onPhone) haptics.enable(opts.vibrate);
 stage.classList.toggle('large', opts.large);
@@ -239,13 +245,13 @@ function bindHealth() {
   const byAction = new Map();
   const add = k => { if (k?.action && !byAction.has(k.action)) byAction.set(k.action, k); };
   for (const k of KEYS.values()) { add(k); k.steps?.forEach(st => add(st.key)); }
-  const missing = [], stick = [], shared = [], mouse = [], held = [], seen = new Map();
+  const missing = [], stick = [], shared = [], mouse = [], held = [], game = [], seen = new Map();
   for (const k of byAction.values()) {
     const spec = bindOf(k);
     // Our key took the slot of a default mouse button and the button didn't move to the mouse.
     const button = consoleMouse[k.action];
     if (button && Object.hasOwn(mine.kb, k.action) && spec === consoleBinds[k.action] && !mine.mouse[k.action]) mouse.push(`${k.label} (${mouseText(button)})`);
-    if (!spec) { (mine.stick[k.action] ? stick : missing).push(k.label); continue; }
+    if (!spec) { (byGame(k) ? game : mine.stick[k.action] ? stick : missing).push(k.label); continue; }
     // The game fires a modifier's own action even mid-chord: right Shift alone is Lock rotation.
     const parts = spec.split('+'), lone = parts.find(p => Object.hasOwn(LONE_MODIFIERS, p));
     if (parts.length > 1 && lone && spec !== k.defaultKey) held.push(`${k.label} (${keyText(spec)}, also ${LONE_MODIFIERS[lone]})`);
@@ -255,7 +261,7 @@ function bindHealth() {
     if (other && !(spec === k.defaultKey && spec === other.defaultKey)) shared.push(`${other.label} and ${k.label} (${keyText(spec)})`);
     else seen.set(id, k);
   }
-  return { total: byAction.size, missing, stick, shared, mouse, held };
+  return { total: byAction.size, missing, stick, shared, mouse, held, game };
 }
 function mouseText(spec) { return spec.split('+').map(p => ({ mouse1: 'left mouse button', mouse2: 'right mouse button', mouse3: 'middle mouse button' }[p] || keyText(p))).join(' + '); }
 const listOf = (a, n = 4) => a.slice(0, n).join(', ') + (a.length > n ? ` and ${a.length - n} more` : '');
@@ -267,10 +273,11 @@ function paintBindHealth() {
   row.className = `health ${bad || odd ? 'warn' : h.shared.length ? 'info' : 'ok'}`;
   row.querySelector('b').textContent = bad
     ? `${bad} of ${h.total} keys can't be pressed from the console`
-    : `All ${h.total} keys the console uses have a keyboard bind`;
+    : h.game.length ? `All ${h.total} keys the console uses can be pressed` : `All ${h.total} keys the console uses have a keyboard bind`;
   const lines = [];
   if (h.missing.length) lines.push(`No keyboard key: ${listOf(h.missing)}.`);
   if (h.stick.length) lines.push(`Joystick only: ${listOf(h.stick)}.`);
+  if (h.game.length) lines.push(`No keyboard key, so only through the game while telemetry is live: ${listOf(h.game)}.`);
   if (h.shared.length) lines.push(`Sharing a key: ${listOf(h.shared, 2)}.`);
   if (h.mouse.length) lines.push(`Lost their mouse button in game: ${listOf(h.mouse)}.`);
   if (h.held.length) lines.push(`Shift or left Ctrl in these keys also fires its own action in game: ${listOf(h.held, 2)}.`);
@@ -530,7 +537,7 @@ function shared(s) {
     for (const id of CUSTOM.keys()) cache.delete(id);
     if (CUSTOM.has(current)) render();
   }
-  if (s.gl && onPhone) link = { ...link, link: s.gl.link, actions: s.gl.actions || [] };
+  if (s.gl && onPhone) { link = { ...link, link: s.gl.link, actions: s.gl.actions || [] }; gameBinds(); }
   if (Array.isArray(s.tk)) teleKeys = new Set(s.tk);
   if ('st' in s) {
     if (s.st === null) for (const key of Object.keys(states)) delete states[key];
@@ -556,12 +563,16 @@ function repaint() {
 // With the game sharing its state, switches show where the ship really is, push-buttons for
 // what the game reports get a lamp, and the status display shows the game's instruments. What
 // the game doesn't send keeps the classic behaviour. With telemetry off, nothing changes.
-let link = { link: 'off', port: 2942, actions: [], live: {} };
 const teleOn = () => link.link === 'live' && opts.layout !== 'classic';
 let teleKeys = new Set();           // state keys whose value came from the game
 const holdoff = {};                 // key -> until when the game's value waits
 const HOLDOFF_MS = 800;
-let linkShared = '';
+let linkShared = '', byGameNow = '';
+/** Keys with no keyboard bind that the game takes: the bind health, and GAME on their caps. */
+function gameBinds() {
+  const g = paintBindHealth().game.join('|');
+  if (g !== byGameNow) { byGameNow = g; cache.clear(); render(); }
+}
 function applyTelemetry(u) {
   if (u) link = u;
   if (onPhone) return;
@@ -582,6 +593,7 @@ function applyTelemetry(u) {
   const keys = Object.keys(want), moved = keys.length !== teleKeys.size || keys.some(k => !teleKeys.has(k));
   teleKeys = new Set(keys);
   const gl = JSON.stringify({ link: link.link, actions: link.actions });
+  if (gl !== linkShared) gameBinds();
   if (Object.keys(changed).length || moved || gl !== linkShared) {
     repaint();
     bridge.share({ st: changed, tk: keys, gl: JSON.parse(gl) });
@@ -618,8 +630,8 @@ function paintLamp(node, st) {
   const cap = node.matches('.cap') ? node : node.querySelector(':scope > .cap');
   if (!cap) return;
   const show = teleKeys.has(st.key) && typeof states[st.key] === 'boolean';
-  cap.classList.toggle('lamp', show);
-  cap.classList.toggle('lamp-on', show && states[st.key]);
+  cap.classList.toggle('glamp', show);
+  cap.classList.toggle('glamp-on', show && states[st.key]);
   let t = cap.querySelector(':scope > .lvt');
   if (!show) { t?.remove(); cap.querySelector(':scope > .lv')?.remove(); return; }
   if (!t) { cap.insertAdjacentHTML('beforeend', '<span class="lv"></span><span class="lvt"></span>'); t = cap.querySelector(':scope > .lvt'); }
@@ -744,7 +756,7 @@ const K = {
     const lacks = pageById(layout, current)?.role?.lacks || [];
     return !lacks.some(kit => KIT_KEYS[kit]?.includes(k.label));
   },
-  bindText: k => (k.role === 'macro' ? '' : mine.stick[k.action] ? 'STICK' : keyText(bindOf(k))),
+  bindText: k => (k.role === 'macro' ? '' : mine.stick[k.action] ? 'STICK' : !bindOf(k) && byGame(k) ? 'GAME' : keyText(bindOf(k))),
   isWeapon,
   family,
   bind, fire, wheel, flip, isOn, known, local, tick, toast, theme,
@@ -922,7 +934,7 @@ function editorTile({ label, keys }, hit) {
   const pickLabel = base ? (keys.some(([, t]) => t === 'On') ? label : k0.label.replace(BASE, '$1')) : null;
   const segs = base ? [] : keys.filter(([, t]) => t);
   const why = base ? pickFor.refuse(pickLabel) : keys.map(([k]) => pickFor.refuse(k.label)).every(Boolean) ? pickFor.refuse(k0.label) : '';
-  const unbound = !why && (base ? !(bindOf(KEYS.get(`${pickLabel} on`) || {}) && bindOf(KEYS.get(`${pickLabel} off`) || {})) : !bindOf(k0));
+  const unbound = !why && (base ? !(reach(KEYS.get(`${pickLabel} on`)) && reach(KEYS.get(`${pickLabel} off`))) : !reach(k0));
   const isNow = base ? pickFor.now === pickLabel : keys.some(([k]) => k === pickNow);
   const b = controls.h(`<div class="pick fam-${family(k0)} ${isNow ? 'cur' : ''} ${segs.length > 1 ? 'fold' : ''} ${why ? 'no' : ''}" role="button">${controls.icon(k0.icon, 22)}<span class="pn">${name}${
     why ? `<small class="why">${controls.esc(why.split(/[,.;]/)[0])}</small>` : unbound ? '<small class="amber">Not bound in your game yet</small>' : ''}</span>${segs.length > 1
@@ -1123,6 +1135,7 @@ function setOpt(name, v) {
   if (name === 'anywhere') paintIdle();
   if (name === 'auto' && v) follow(true);
   if (name === 'layout') { applyTelemetry(); paintLink(); }
+  if (name === 'gameSend') gameBinds();
 }
 const isNight = (d = new Date()) => opts.night === 'on' || (opts.night === 'auto' && (d.getHours() >= NIGHT_FROM || d.getHours() < NIGHT_TO));
 // The backlight level last asked of the PC (undefined: not yet), and whether the screen answered.
@@ -1481,7 +1494,7 @@ const LEGEND = [
   ['<div class="well key fam-wpn"><div class="cap"><span class="lg">Decoy</span><span class="tg">LONG</span></div></div>', 'LONG or 2×', 'Press and hold, or tap twice, for a second action. Its name shows at the bottom of the screen when it goes.'],
   ['<div class="well key fam-sys cut"><div class="cap"><span class="lg">Flight ready</span><span class="notch"></span></div></div>', 'Notched corner: macro', 'Several keys in turn, such as power on and Flight Ready.'],
   ['<div class="well pair fam-flt"><div class="cap half a"><span class="lg">On</span><span class="led"></span></div><div class="cap half b"><span class="lg">Off</span><span class="led"></span></div></div>', 'On and off', 'Sets it on or off in game. Dark until you set it here, as the game never says which it is.', 'Sets it on or off in game. Lit with the game\'s own state while telemetry is live; dark for what the game doesn\'t send (doors, port locks).'],
-  ['<div class="well key fam-flt"><div class="cap lamp lamp-on"><span class="lg">G-safe</span><span class="lv"></span><span class="lvt">On</span></div></div>', 'Lamp: the game says', 'A toggle with its state from the game. Only while telemetry is live.', null, true],
+  ['<div class="well key fam-flt"><div class="cap glamp glamp-on"><span class="lg">G-safe</span><span class="lv"></span><span class="lvt">On</span></div></div>', 'Lamp: the game says', 'A toggle with its state from the game. Only while telemetry is live.', null, true],
   ['<div class="well key fam-emg"><div class="cap"><span class="lg">Self destruct</span><span class="tg">GUARD</span></div></div>', 'GUARD', 'Tap twice within 3 s. The first tap only arms it.'],
   ['<div class="guard"><div class="cover"><span class="hinge"></span><span>LIFT COVER</span></div></div>', 'Cover', 'The first tap lifts it, a second within 3 s sends the key.'],
   ['<div class="well key fam-flt"><div class="cap"><span class="lg">Ping</span><span class="mine"></span></div></div>', 'Cyan dot: your key', 'A key you swapped in. Long press it to change it again or go back to stock.'],
@@ -2205,7 +2218,7 @@ function newPage(spec) {
 editor.init({
   K, keys: KEYS, store, tick, toast, scale: K.scale, size: () => opts.size,
   pageName: id => pageById(layout, id)?.name,
-  bound: (label, base) => (base ? !!(bindOf(KEYS.get(`${label} on`) || {}) && bindOf(KEYS.get(`${label} off`) || {})) : !!bindOf(KEYS.get(label) || {})),
+  bound: (label, base) => (base ? reach(KEYS.get(`${label} on`)) && reach(KEYS.get(`${label} off`)) : reach(KEYS.get(label))),
   openPicker: openEditorPicker,
   ships: () => {
     shipGroups ||= groupShips();

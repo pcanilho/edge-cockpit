@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **Game telemetry.** Star Citizen can share your ship's state with apps on your PC; Settings > Game link turns it on (4.10 LIVE and 5.0 PTU), then restart the RSI Launcher and the game. While it's live, switches show the game's own state instead of staying dark until you set them: power, thrusters, shields, weapons, gear, VTOL, lights, decoupled, speed limiter, G-safe, ESP, proximity assist, stability, gravity and wind compensation, advanced HUD, light amplification, SCM or NAV, gimbals and staggered fire. Toggles get a lamp.
+  - The status display shows the ten warning lights, shields, hull, boost, speed, radar altitude and vertical speed, and the seat, landed or flying, and SCM or NAV. On foot or in EVA: health, oxygen, hunger, thirst, body temperature, heart rate, outside temperature and gravity.
+  - Decoy and noise keys show what's left; the gun placard how many guns are ready.
+  - On 5.0, a tap goes to the game directly when it takes the action, and your key when it doesn't. Settings shows which way the last press went. 4.10 only shares state.
+  - A key with no keyboard bind still works on 5.0 when the game takes its action: its cap reads GAME, and Keybinds and the unbound chip no longer count it.
+  - What the game doesn't send (door state, port locks, flashlight, the gun group) stays as before.
+  - Layout > Classic keeps the console as it is without telemetry. Record telemetry saves up to ten minutes of it to Documents\Edge Cockpit for a bug report.
+- Start with Windows: an update no longer takes the app off Windows sign-in until it is opened again.
+
 ## 0.10.2
 
 - **Pick the edge-cockpit control profile again, with Keyboard and Mouse ticked.** Keys that used right Shift (Open doors, Door locks and 40 more) also fired the game's Lock rotation, so the mouse stopped turning the ship until the key was pressed again. The profile uses right Ctrl and right Ctrl + left Alt only now. Every key, and each modifier on its way down, is checked against all the game's default keyboard binds, in CI too. Greet no longer uses Ctrl + Alt + F4. Settings > Keybinds and the setup check say when a loaded bind still holds right Shift, left Shift or left Ctrl.
