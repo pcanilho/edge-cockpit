@@ -315,13 +315,13 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: ro
 .figure.wait { color: var(--dim); }
 .name { left: 20px; right: 16px; top: 222px; font: 700 28px/1.1 var(--hud); white-space: nowrap; }
 .role { left: 20px; right: 16px; top: 258px; font: 700 10px/1.3 var(--hud); letter-spacing: .18em; text-transform: uppercase; color: var(--ship); }
-.facts { left: 20px; right: 16px; top: 284px; display: flex; flex-direction: column; gap: 11px; }
+.facts { left: 20px; right: 16px; top: calc(284px + var(--role-x, 0px)); display: flex; flex-direction: column; gap: 11px; }
 .facts > * { position: static; }
 /* A busy status (mission, place, quantum, route) makes room by shrinking the ship, then dropping it. */
 #mfd.tight .hero { transform: scale(.68); transform-origin: 50% 0; }
-#mfd.tight .name { top: 166px; } #mfd.tight .role { top: 202px; } #mfd.tight .facts { top: 228px; }
+#mfd.tight .name { top: 166px; } #mfd.tight .role { top: 202px; } #mfd.tight .facts { top: calc(228px + var(--role-x, 0px)); }
 #mfd.tighter .hero { display: none; }
-#mfd.tighter .name { top: 52px; } #mfd.tighter .role { top: 88px; } #mfd.tighter .facts { top: 114px; }
+#mfd.tighter .name { top: 52px; } #mfd.tighter .role { top: 88px; } #mfd.tighter .facts { top: calc(114px + var(--role-x, 0px)); }
 .where[hidden] { display: none; }
 .where small { display: block; font: 700 10px/1 var(--hud); letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
 .where b { display: block; margin-top: 6px; font: 600 17px/1.25 var(--hud); letter-spacing: .02em; color: var(--ink); }
@@ -1230,10 +1230,11 @@ body.calm *, body.calm *::before, body.calm *::after { animation: none !importan
 /* ---------- game link: Star Citizen's own telemetry ---------- */
 /* The status display trades the ship's picture for the game's instruments, or your vitals. */
 #stage #mfd.tlm-on .hero { display: none; }
-#stage #mfd.tlm-on .name { top: 52px; } #stage #mfd.tlm-on .role { top: 88px; } #stage #mfd.tlm-on .facts { top: 114px; }
+#stage #mfd.tlm-on .name { top: 52px; } #stage #mfd.tlm-on .role { top: 88px; } #stage #mfd.tlm-on .facts { top: calc(114px + var(--role-x, 0px)); }
 .tlm { display: flex; flex-direction: column; gap: 8px; }
-.tlm .ann { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
-.tlm .ann b { height: 22px; display: grid; place-items: center; border-radius: 3px; font: 700 10px/1 var(--hud); letter-spacing: .12em;
+.tlm .ann { display: flex; flex-wrap: wrap; gap: 4px; }
+.tlm .ann .clear { font: 700 10px/22px var(--hud); letter-spacing: .16em; text-transform: uppercase; color: var(--ok); }
+.tlm .ann b { height: 22px; display: grid; place-items: center; padding: 0 8px; border-radius: 3px; font: 700 10px/1 var(--hud); letter-spacing: .12em; text-transform: uppercase;
   background: #0a1015; border: 1px solid #ffffff14; color: #3d4752; }
 .tlm .ann b.n { color: var(--ok); border-color: #5fe0a040; background: #0c1a14; }
 .tlm .ann b.m { color: #14100a; background: var(--hold); border-color: var(--hold); }

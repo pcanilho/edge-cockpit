@@ -59,6 +59,8 @@ export function guns(live) {
 }
 
 export const ANNUNCIATORS = ['pwr', 'wpn', 'thr', 'shld', 'cool', 'qdrv', 'radr', 'prox', 'hit', 'misl'];
+/** The warning lights in words: the game's own short codes would cut them. */
+export const ANNUNCIATOR_NAMES = { pwr: 'Power', wpn: 'Weapons', thr: 'Thrusters', shld: 'Shields', cool: 'Coolers', qdrv: 'Quantum', radr: 'Radar', prox: 'Proximity', hit: 'Hit', misl: 'Missile' };
 /** A warning light's look: '' off or unknown, 'n' nominal, 'm' minor, 'x' major; flashing too. */
 export function lamp(state) {
   return { cls: state === 1 ? 'n' : state === 3 || state === 4 ? 'm' : state === 5 || state === 6 ? 'x' : '', flash: state === 3 || state === 5 };
