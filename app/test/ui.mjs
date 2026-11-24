@@ -1112,6 +1112,13 @@ for (const [W, H] of [[1920, 1080], [1180, 820]]) {
   await pg.waitForTimeout(100);
   await checkLabels('settings game link', true, pg);
   if (shots) await pg.screenshot({ path: join(shots, 'settings-link.png') });
+  // On for 4.10 and LIVE, but a PTU folder came later: the button turns on the rest, not off.
+  const part = await pg.evaluate(async () => {
+    window.xfdTestTelemetrySetup = { env: true, channels: [['LIVE', true], ['PTU', false]] };
+    window.xfd.showSection('link'); await new Promise(r => setTimeout(r, 100));
+    return [document.getElementById('tele-act').textContent, document.getElementById('tele-act-note').textContent];
+  });
+  if (part[0] !== 'Turn telemetry on' || !/not yet for PTU/.test(part[1])) problems.push(`telemetry: partly on reads ${JSON.stringify(part)}`);
   await pg.click('#layout-seg [data-v="classic"]');
   await pg.evaluate(() => { document.getElementById('sheet').hidden = true; });
   const classic = await sw();
