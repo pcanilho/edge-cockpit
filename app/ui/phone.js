@@ -161,6 +161,18 @@ export function plan(plate, aw, ah) {
   // Text screens (log, prices, timers) flow: a wide one narrows to the phone and grows taller.
   const tw = Math.floor(aw / FLOW - PAD.x * 2), th = Math.floor(ah / FLOW - PAD.top - PAD.bottom);
   for (const it of list) {
+    // A gauge (the Gauges pages draw to scale) shrinks whole to the phone's width: nothing in it
+    // is cut, and its words stay words.
+    if (it.els.length === 1 && it.els[0].classList.contains('tl-slot') && it.w > tw) {
+      const z = tw / it.w, nh = Math.round(it.h * z), dw = it.w - tw, dh = nh - it.h, right = it.x + it.w, bottom = it.y + it.h;
+      for (const o of list) {
+        if (o === it) continue;
+        if (o.x >= right - 4 && o.y < bottom && o.y + o.h > it.y) o.x -= dw;
+        if (o.y >= bottom - 4) o.y += dh;
+      }
+      Object.assign(it, { w: tw, h: nh, zoom: z });
+      continue;
+    }
     if (it.els.length !== 1 || !FLOWS.test(it.els[0].className) || it.w <= tw) continue;
     const c = it.els[0].className, bar = /\bcm-(head|foot)\b/.test(c);
     it.rh = /\blab\b/.test(c) ? Math.ceil(it.h * 1.4 * Math.ceil(it.w / tw)) : bar ? Math.max(it.h, autoHeight(it.els[0], tw)) : it.h < 200 ? Math.min(th, Math.max(it.h, Math.round(it.h * it.w / tw * 0.7))) : it.h;
@@ -203,13 +215,13 @@ export function plan(plate, aw, ah) {
 function remember(el) {
   if (el.dataset.phx !== undefined) return;
   el.dataset.phx = el.style.left; el.dataset.phy = el.style.top;
-  el.dataset.phw = el.style.width; el.dataset.phh = el.style.height;
+  el.dataset.phw = el.style.width; el.dataset.phh = el.style.height; el.dataset.phz = el.style.zoom;
 }
 function restore(el) {
   if (el.dataset.phx === undefined) return;
   el.style.left = el.dataset.phx; el.style.top = el.dataset.phy;
-  el.style.width = el.dataset.phw; el.style.height = el.dataset.phh;
-  delete el.dataset.phx; delete el.dataset.phy; delete el.dataset.phw; delete el.dataset.phh;
+  el.style.width = el.dataset.phw; el.style.height = el.dataset.phh; el.style.zoom = el.dataset.phz || '';
+  delete el.dataset.phx; delete el.dataset.phy; delete el.dataset.phw; delete el.dataset.phh; delete el.dataset.phz;
 }
 
 /** Puts a plate back as the console built it. */
@@ -234,14 +246,17 @@ function fold(plate, view) {
     for (const it of leaves(p)) {
       for (const el of it.els) {
         const [dx, dy] = it.at.get(el);
-        moves.push([el, it.x + dx - p.x + PAD.x + x, it.y + dy - p.y + PAD.top + y, it.rw, it.rh]);
+        moves.push([el, it.x + dx - p.x + PAD.x + x, it.y + dy - p.y + PAD.top + y, it.rw, it.rh, it.zoom]);
         keep.add(el);
       }
     }
   }
-  for (const [el, l, t, w, h] of moves) {
+  for (const [el, l, t, w, h, z] of moves) {
     remember(el);
-    el.style.left = `${l}px`; el.style.top = `${t}px`;
+    // A zoomed element's own left and top are zoomed too.
+    const k = z || 1;
+    if (z) el.style.zoom = String(z);
+    el.style.left = `${l / k}px`; el.style.top = `${t / k}px`;
     if (w) { el.style.width = `${w}px`; el.style.height = `${h}px`; }
   }
   const e = extent(view);
@@ -284,7 +299,7 @@ export function previewPlate(plate, aw, ah, host) {
 // Short names, so a rail label stays on one line with its view number.
 const NAMES = { status: 'Status', power: 'Power', role: 'Role', flight: 'Flight', gear: 'Gear', commodities: 'Prices', 'comms and map': 'Comms' };
 const keyOf = el => el.id === 'status' ? 'status' : el.dataset.slot || el.querySelector(':scope > .title')?.textContent.trim().toLowerCase() || 'plate';
-const nameOf = el => NAMES[keyOf(el)] || el.querySelector(':scope > .title')?.textContent.trim() || 'Plate';
+const nameOf = el => NAMES[keyOf(el)] || el.querySelector(':scope > .title')?.textContent.trim() || el.querySelector(':scope > .rtitle span')?.textContent.trim() || 'Plate';
 
 let probe = null;
 /** The screen's safe area (notch, home bar), read through a probe since env() doesn't reach JS. */
