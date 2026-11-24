@@ -53,7 +53,7 @@ const pct = v => (finite(v) ? Math.max(0, Math.min(100, Math.floor(v * 100 + 1e-
 const ANN = ['pwr', 'wpn', 'thr', 'shld', 'cool', 'qdrv', 'radr', 'prox', 'hit', 'misl'];
 /** The warning lights in words: the game's own short codes would truncate them. */
 const ANN_NAME = { pwr: 'Power', wpn: 'Weapons', thr: 'Thrusters', shld: 'Shields', cool: 'Coolers', qdrv: 'Quantum', radr: 'Radar', prox: 'Proximity', hit: 'Hit', misl: 'Missile' };
-const lampCls = s => (s === 1 ? 'n' : s === 3 || s === 4 ? 'm' : s === 5 || s === 6 ? 'x' : '');
+const lampCls = s => (s === 1 ? 'n' : s === 2 ? 'o' : s === 3 || s === 4 ? 'm' : s === 5 || s === 6 ? 'x' : '');
 const flashing = s => s === 3 || s === 5;
 const DEP = { 1: 'Up', 2: 'Lowering', 3: 'Down', 4: 'Raising' };
 
