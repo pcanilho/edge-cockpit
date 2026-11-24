@@ -97,6 +97,12 @@ pub mod pb {
     pub struct Instruments {
         #[prost(float, tag = "1")]
         pub speed: f32,
+        /// 0 to 1. Not every ship sends it.
+        #[prost(float, optional, tag = "2")]
+        pub hydrogen_fuel: Option<f32>,
+        /// Current G and the peak the game recorded.
+        #[prost(message, optional, tag = "4")]
+        pub g_meter: Option<Gauge>,
         #[prost(message, optional, tag = "5")]
         pub boost: Option<Boost>,
         /// The largest float when no ground is in range.
@@ -104,6 +110,9 @@ pub mod pb {
         pub radar_altitude: f32,
         #[prost(float, tag = "8")]
         pub vertical_speed_indicator: f32,
+        /// Degrees.
+        #[prost(float, optional, tag = "10")]
+        pub heading: Option<f32>,
     }
     #[derive(Clone, PartialEq, prost::Message, Serialize)]
     pub struct Flight {
@@ -122,8 +131,18 @@ pub mod pb {
         pub engines: bool,
         #[prost(bool, tag = "3")]
         pub weapons: bool,
+        #[prost(bool, tag = "4")]
+        pub coolers: bool,
+        #[prost(bool, tag = "5")]
+        pub life_support: bool,
+        #[prost(bool, tag = "6")]
+        pub gravity_generators: bool,
+        #[prost(bool, tag = "7")]
+        pub sensors: bool,
         #[prost(bool, tag = "8")]
         pub shield_generators: bool,
+        #[prost(bool, tag = "9")]
+        pub shield_emitters: bool,
     }
     /// Warning lights. 1 nominal, 2 off, 3 minor flashing, 4 minor on, 5 major flashing, 6 major on.
     #[derive(Clone, PartialEq, prost::Message, Serialize)]
@@ -253,6 +272,9 @@ pub mod pb {
         /// 1 pilot, 2 gunner, 3 crew.
         #[prost(int32, tag = "2")]
         pub crew_role: i32,
+        /// aUEC.
+        #[prost(int64, optional, tag = "4")]
+        pub uec_balance: Option<i64>,
     }
     #[derive(Clone, PartialEq, prost::Message, Serialize)]
     pub struct ActorFrame {
@@ -649,9 +671,9 @@ mod tests {
                     flight: Some(pb::Flight {
                         state: Some(pb::FlightState { is_landed: true, gear: Some(3), vtol: Some(3) }),
                         settings: Some(pb::FlightSettings { ifcs_coupled: av(true, true), ifcs_esp: av(true, false), ifcs_speed_limiter: av(true, true), ..Default::default() }),
-                        instruments: Some(pb::Instruments { speed: 0.0, boost: Some(pb::Boost { reserves: 1.0, ..Default::default() }), radar_altitude: 4.433704, vertical_speed_indicator: 0.0 }),
+                        instruments: Some(pb::Instruments { speed: 0.0, boost: Some(pb::Boost { reserves: 1.0, ..Default::default() }), radar_altitude: 4.433704, vertical_speed_indicator: 0.0, ..Default::default() }),
                     }),
-                    power: Some(pb::Power { powerplants: true, engines: false, weapons: true, shield_generators: true }),
+                    power: Some(pb::Power { powerplants: true, engines: false, weapons: true, shield_generators: true, ..Default::default() }),
                     shields: Some(pb::Shields { level: 1.0 }),
                     health: 1.0,
                     master_mode: Some(pb::MasterMode { mode: 2, spooled: true }),
@@ -691,6 +713,30 @@ mod tests {
         let mut b = prospector().encode_to_vec();
         b.extend_from_slice(&[0x3a, 0x02, 0x25, 0x00]);
         assert_eq!(pb::StreamResponse::decode(&b[..]).unwrap(), prospector());
+    }
+
+    /// Fields as the game puts them on the wire, from a real Avenger Titan frame: hydrogen,
+    /// G meter (current 0 left out), heading, the full power set and the balance.
+    #[test]
+    fn reads_gauge_fields() {
+        let mut ins = Vec::new();
+        ins.extend_from_slice(&[0x15]); ins.extend_from_slice(&0.9986225f32.to_le_bytes()); // 2 hydrogen_fuel
+        ins.extend_from_slice(&[0x22, 0x05, 0x15]); ins.extend_from_slice(&3.4770613f32.to_le_bytes()); // 4 g_meter { max }
+        ins.extend_from_slice(&[0x55]); ins.extend_from_slice(&359.99857f32.to_le_bytes()); // 10 heading
+        let i = pb::Instruments::decode(&ins[..]).unwrap();
+        assert_eq!(i.hydrogen_fuel, Some(0.9986225));
+        assert_eq!(i.g_meter, Some(pb::Gauge { current: 0.0, max: 3.4770613 }));
+        assert_eq!(i.heading, Some(359.99857));
+        assert_eq!(pb::Instruments::decode(&[][..]).unwrap().hydrogen_fuel, None);
+        // powerplants, engines, weapons, coolers, life support, sensors, shield generators and emitters on; no gravity generators.
+        let p = pb::Power::decode(&[0x08, 1, 0x10, 1, 0x18, 1, 0x20, 1, 0x28, 1, 0x38, 1, 0x40, 1, 0x48, 1][..]).unwrap();
+        assert!(p.coolers && p.life_support && p.sensors && p.shield_emitters && !p.gravity_generators);
+        // uec_balance 15001986 as a varint.
+        let mut a = vec![0x20];
+        let mut n = 15001986u64;
+        while n >= 0x80 { a.push((n as u8) | 0x80); n >>= 7; }
+        a.push(n as u8);
+        assert_eq!(pb::ActorState::decode(&a[..]).unwrap().uec_balance, Some(15001986));
     }
 
     #[test]
