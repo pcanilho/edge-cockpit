@@ -31,7 +31,7 @@ A press goes through the game when it is a tap, the game lists its action, and S
 
 Proto3 leaves out zero and false, so a missing value can mean either. The console shows nothing for a value it can't tell apart from "not sent".
 
-Frame: `3: vehicle`, `4: weapons`, `6: actor`. Each section counts as stale 1.5 s after its last frame.
+Frame: `3: vehicle`, `4: weapons`, `6: actor`, `8: turret`. Each section counts as stale 1.5 s after its last frame.
 
 **vehicle** (`VehicleFrame 2: state`)
 
@@ -42,15 +42,17 @@ Frame: `3: vehicle`, `4: weapons`, `6: actor`. Each section counts as stale 1.5 
 | `7 annunciators` (`1 pwr` … `10 misl`) | the ten warning lights: 1 nominal, 2 off, 3/4 minor flashing/on, 5/6 major flashing/on |
 | `8 flight.1 state` | `1 is_landed`; `2 gear`, `3 vtol`: 1 retracted, 2 deploying, 3 deployed, 4 retracting |
 | `8 flight.2 settings` | `{1 enabled, 2 active}` for `1` coupled (decoupled, 5.0 sends it with both false), `2` ESP, `3` gravity comp, `4` G-safe, `7` speed limiter, `8` proximity assist, `10` stability, `16` wind comp. A setting the ship doesn't offer (`enabled` false) stays unknown. Also `12`/`13` advanced HUD in SCM/NAV, `19` light amplification. |
-| `8 flight.3 instruments` | `1 speed` (m/s), `5 boost.3 reserves` (0–1), `7 radar_altitude` (m; the largest float means none), `8 vertical_speed_indicator` (m/s) |
+| `8 flight.3 instruments` | `1 speed` (m/s), `2 hydrogen_fuel` (0–1), `3 heading` (°), `4 g_meter` (`1 current`, `2 max`), `5 boost` (`1 engaged`, `3 reserves` 0–1), `7 radar_altitude` (m; the largest float means none, and 4.10 always sends it), `8 vertical_speed_indicator` (m/s; exactly 0 reads as not sent) |
 | `9 power` | `1` power plants, `2` engines, `3` weapons, `8` shield generators |
 | `10 shields.1 level` | 0–1 |
 | `11 health` | hull, 0–1; exactly 0 reads as not sent |
 | `12 master_mode` | `1 mode` (1 NAV, 2 SCM), `2 spooled` |
 
-**weapons**: `1 settings` (`4` staggered fire, `8` gimbals locked); `4 weapons` (`2 is_powered`, `3 ready_to_fire`) for guns ready; `5 countermeasures` (`1 type`: 1 decoy, 2 noise; `2 amount`). The game sends no maximum.
+**weapons**: `1 settings` (`4` staggered fire, `8` gimbals locked); `4 weapons` (`1 name`: item class, plus `_<instance id>` on 5.0; `2 is_powered`, `3 ready_to_fire`) for guns ready; `5 countermeasures` (`1 type`: 1 decoy, 2 noise; `2 amount`). The game sends no maximum.
 
-**actor**: `1 vitals` (`1` health, `2` oxygen, `3` hunger, `4` thirst, `5` body temperature as `{1 current, 2 max}`; `7 heart_rate`, `8 gravity`); `2 state` (`1 locomotion`: 1 on foot, 2 EVA, 3 seated; `2 crew_role`: 1 pilot, 2 gunner, 3 crew); `3 environment` (`1 external_temperature`, `3 breathable_atmosphere`). Vitals show only on foot or in EVA.
+**turret** (frame `8`): `1 light_amplification`.
+
+**actor**: `1 vitals` (`1` health, `2` oxygen, `3` hunger, `4` thirst, `5` body temperature as `{1 current, 2 max}`; `7 heart_rate`, `8 gravity`); `2 state` (`1 locomotion`: 1 on foot, 2 EVA, 3 seated; `2 crew_role`: 1 pilot, 2 gunner, 3 crew; `3 seat_name`); `3 environment` (`1 external_temperature`, `3 breathable_atmosphere`). Vitals show only on foot or in EVA.
 
 4.10.3 LIVE (recorded in an RSI Galaxy) also leaves out shields, hull, master mode, vertical speed and radar altitude; the status display then shows only what came. `app/test/fixtures/telemetry-galaxy-410.json` is a frame from that recording.
 

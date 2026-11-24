@@ -10,6 +10,16 @@
   - A key with no keyboard bind still works on 5.0 when the game takes its action: its cap reads GAME, and Keybinds and the unbound chip no longer count it.
   - What the game doesn't send (door state, port locks, flashlight, the gun group) stays as before.
   - Layout > Classic keeps the console as it is without telemetry. Record telemetry saves up to ten minutes of it to Documents\Edge Cockpit for a bug report.
+- **Gauges.** A softkey shown while telemetry is live opens eight instrument pages, each drawn only from what the game sends (anything else reads Not sent):
+  - Ship: your ship's 3D model from FleetYards, turned with a finger. Shield bubble glows with the shield level, hull tints as it drops, dark with the power plant off, landed or flight model by the gear. Paint is your pick. Guns the game names get a card with rated stats (burst, sustained, alpha, rate, range) from the Star Citizen Wiki, labelled with the game version, and a ship total.
+  - Instruments: heading ribbon, speed and radar altitude tapes, vertical speed, boost and G meters with peak, hydrogen, master caution and warning from the ten lights.
+  - Approach: radar altitude on a log scale, descent angle and time to ground, touchdown check, sink rate.
+  - Systems: power bus, flight control board, gear and VTOL, guns, gimbals, stagger, decoys and noise.
+  - Combat: big Missile and Hit lamps, shields and hull, decoy and noise keys, guns ready.
+  - Suit: health, oxygen, heart rate, hunger, thirst, body and outside temperature, gravity, breathable air.
+  - Quantum: NAV or SCM with a stopwatch for the spool (timed by the console, the game sends no percentage), hydrogen and how long it lasts at the current burn.
+  - Turret: seat, gyro and mouse mode, recenter, change position and remote turret keys. Opens by itself in a gunner seat.
+- Page builder: status screens can show 16 live values as gauges.
 - Start with Windows: an update no longer takes the app off Windows sign-in until it is opened again.
 
 ## 0.10.2
