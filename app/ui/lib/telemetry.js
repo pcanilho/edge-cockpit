@@ -21,7 +21,9 @@ export function switchesOf(live) {
     out.lights = !!v.lights_enabled;
     if (f?.state) { out.gear = deployed(f.state.gear); out.vtol = deployed(f.state.vtol); }
     if (s) {
-      out.decoupled = s.ifcs_coupled?.enabled ? !s.ifcs_coupled.active : undefined;
+      // Decoupled, the game sends coupled as neither offered nor active (5.0 PTU, checked in game),
+      // so any coupled it sends that isn't active is decoupled. Not sent at all: unknown.
+      out.decoupled = s.ifcs_coupled ? !(s.ifcs_coupled.enabled && s.ifcs_coupled.active) : undefined;
       Object.assign(out, {
         limiter: avail(s.ifcs_speed_limiter), gsafe: avail(s.ifcs_g_safe), esp: avail(s.ifcs_esp), prox: avail(s.ifcs_proximity_assist),
         stability: avail(s.ifcs_stability), gravcomp: avail(s.ifcs_gravity_compensation), windcomp: avail(s.ifcs_wind_compensation),

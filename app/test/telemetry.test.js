@@ -86,3 +86,10 @@ test('4.10.3 LIVE leaves out shields, hull, master mode and vertical speed: none
   assert.deepEqual(instruments(v), { shields: null, hull: null, boost: 99, speed: 12, radarAlt: null, vertical: null });
   assert.equal(shipLine({ vehicle: v, actor: { state: { crew_role: 1 } } }), 'Pilot seat · Flying');
 });
+
+test('decoupled: 5.0 sends coupled as neither offered nor active', () => {
+  const at = c => switchesOf({ vehicle: { flight: { settings: { ifcs_coupled: c } } } }).decoupled;
+  assert.equal(at({ enabled: true, active: true }), false);
+  assert.equal(at({ enabled: false, active: false }), true);
+  assert.equal(at(null), undefined);
+});

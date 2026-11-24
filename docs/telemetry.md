@@ -41,7 +41,7 @@ Frame: `3: vehicle`, `4: weapons`, `6: actor`. Each section counts as stale 1.5 
 | `5 lights_enabled` | Lights |
 | `7 annunciators` (`1 pwr` … `10 misl`) | the ten warning lights: 1 nominal, 2 off, 3/4 minor flashing/on, 5/6 major flashing/on |
 | `8 flight.1 state` | `1 is_landed`; `2 gear`, `3 vtol`: 1 retracted, 2 deploying, 3 deployed, 4 retracting |
-| `8 flight.2 settings` | `{1 enabled, 2 active}` for `1` coupled, `2` ESP, `3` gravity comp, `4` G-safe, `7` speed limiter, `8` proximity assist, `10` stability, `16` wind comp. A setting the ship doesn't offer (`enabled` false) stays unknown. Also `12`/`13` advanced HUD in SCM/NAV, `19` light amplification. |
+| `8 flight.2 settings` | `{1 enabled, 2 active}` for `1` coupled (decoupled, 5.0 sends it with both false), `2` ESP, `3` gravity comp, `4` G-safe, `7` speed limiter, `8` proximity assist, `10` stability, `16` wind comp. A setting the ship doesn't offer (`enabled` false) stays unknown. Also `12`/`13` advanced HUD in SCM/NAV, `19` light amplification. |
 | `8 flight.3 instruments` | `1 speed` (m/s), `5 boost.3 reserves` (0–1), `7 radar_altitude` (m; the largest float means none), `8 vertical_speed_indicator` (m/s) |
 | `9 power` | `1` power plants, `2` engines, `3` weapons, `8` shield generators |
 | `10 shields.1 level` | 0–1 |
