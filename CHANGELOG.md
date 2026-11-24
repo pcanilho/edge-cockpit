@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Start with Windows: an update no longer takes the app off Windows sign-in until it is opened again.
+
 ## 0.10.2
 
 - **Pick the edge-cockpit control profile again, with Keyboard and Mouse ticked.** Keys that used right Shift (Open doors, Door locks and 40 more) also fired the game's Lock rotation, so the mouse stopped turning the ship until the key was pressed again. The profile uses right Ctrl and right Ctrl + left Alt only now. Every key, and each modifier on its way down, is checked against all the game's default keyboard binds, in CI too. Greet no longer uses Ctrl + Alt + F4. Settings > Keybinds and the setup check say when a loaded bind still holds right Shift, left Shift or left Ctrl.
