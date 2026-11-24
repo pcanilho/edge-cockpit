@@ -11,7 +11,7 @@ Settings > Game link > Turn telemetry on does both of these. Restart the RSI Lau
 | 4.10 LIVE | User environment variable `GRPC_CLIENT_SERVER_ENABLED=true`. Read only. |
 | 5.0 PTU | `server.game.telemetry.enabled=1` in the channel's `user.cfg`. Reads, and takes commands. |
 
-`Game.log` says `Local services server is running on 127.0.0.1:2942` when the game starts it. The stream begins once your character spawns. The port is `grpc.client.server.port` in `user.cfg`, or 2942.
+`Game.log` says `Local services server is running on 127.0.0.1:2942` when the game starts it. The stream begins once your character spawns. The status screen says **Telemetry linked** until then, **Telemetry live** after, and **Telemetry: no answer** when it's turned on but the running game doesn't answer (restart the RSI Launcher). The port is `grpc.client.server.port` in `user.cfg`, or 2942.
 
 ## The service
 

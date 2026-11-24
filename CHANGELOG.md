@@ -6,6 +6,7 @@
   - The status display shows the ten warning lights, shields, hull, boost, speed, radar altitude and vertical speed, and the seat, landed or flying, and SCM or NAV. On foot or in EVA: health, oxygen, hunger, thirst, body temperature, heart rate, outside temperature and gravity.
   - Decoy and noise keys show what's left; the gun placard how many guns are ready.
   - On 5.0, a tap goes to the game directly when it takes the action, and your key when it doesn't. Settings shows which way the last press went. 4.10 only shares state.
+  - A chip on the status screen says whether it works: Telemetry live, linked (the game answers but shares nothing until your character spawns), or no answer. Tap it for Settings > Game link.
   - A key with no keyboard bind still works on 5.0 when the game takes its action: its cap reads GAME, and Keybinds and the unbound chip no longer count it.
   - What the game doesn't send (door state, port locks, flashlight, the gun group) stays as before.
   - Layout > Classic keeps the console as it is without telemetry. Record telemetry saves up to ten minutes of it to Documents\Edge Cockpit for a bug report.
