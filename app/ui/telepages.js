@@ -128,6 +128,20 @@ const ackable = el => {
   return el;
 };
 const add = (p, ...els) => { for (const e of els) p.appendChild(e); return p; };
+/**
+ * One big gauge drawn as separate instruments on one glass: the same picture on the console, while
+ * a phone can give each instrument the whole width. parts: [key, x, y, w, h] inside the glass.
+ */
+const PARTS = {
+  air: [['hdg', 130, 0, 592, 100], ['spd', 0, 96, 212, 536], ['vsi', 212, 96, 428, 536], ['ralt', 640, 96, 212, 536]],
+  vitals: [['health', 0, 0, 288, 400], ['oxygen', 288, 0, 276, 400], ['heart', 564, 0, 288, 400], ['needs', 0, 400, 852, 232]],
+};
+const split = (x, y, w, ht, k) => [screen(x, y, w, ht, '', 'tl-glass'), ...PARTS[k].map(([p, px, py, pw, ph]) => { const el = slot(x + px, y + py, pw, ph, `${k}-${p}`, false); el.classList.add('tl-part'); return el; })];
+/** The part of a w x h drawing that one instrument covers. */
+const cut = (k, p, body) => {
+  const [, x, y, w, ht] = PARTS[k].find(r => r[0] === p);
+  return `<svg class="gx" width="${w}" height="${ht}" viewBox="${x} ${y} ${w} ${ht}">${body}</svg>`;
+};
 
 // ---------- the plates ----------
 export function scene(id) {
@@ -149,7 +163,7 @@ export function scene(id) {
     return [add(head(382, 1430, id), host), add(side, pl, lo)];
   }
   if (id === 'tl-instruments') return [
-    add(head(382, 900, id), slot(24, 52, 852, 632, 'air')),
+    add(head(382, 900, id), ...split(24, 52, 852, 632, 'air')),
     add(plate(1288, 600, 'Energy'), slot(24, 44, 552, 470, 'energy'), slot(24, 526, 552, 160, 'modes', false)),
     add(plate(1894, 660, 'Caution'), ackable(slot(24, 44, 612, 260, 'caution', false)), slot(24, 316, 612, 368, 'sh-hull')),
   ];
@@ -169,7 +183,7 @@ export function scene(id) {
     add(plate(1854, 700, 'Guns'), slot(24, 44, 652, 640, 'guns')),
   ];
   if (id === 'tl-suit') return [
-    add(head(382, 900, id), slot(24, 52, 852, 632, 'vitals')),
+    add(head(382, 900, id), ...split(24, 52, 852, 632, 'vitals')),
     add(plate(1288, 600, 'Environment'), slot(24, 44, 552, 470, 'env'), slot(24, 530, 552, 150, 'breath', false)),
     add(plate(1894, 660, 'Wallet'), slot(24, 44, 612, 260, 'wallet'), slot(24, 330, 612, 354, 'where', false)),
   ];
@@ -193,13 +207,12 @@ export function scene(id) {
 const lamp = (st, n, txt = '') => `<b class="${st}"><i></i>${n}${txt ? `<em>${esc(txt)}</em>` : ''}</b>`;
 const NOT = (w, ht, what = 'Not sent') => G.svg(w, ht, T(w / 2, ht / 2, 15, what.toUpperCase(), { c: C.dim, ls: 3 }));
 
-function air(d) {
-  return G.svg(852, 632,
-    G.heading(150, 18, 552, 64, d.hdg) +
-    G.tape(26, 124, 160, 470, d.speed, { title: 'SPEED', unit: 'M/S', ppu: 4, minor: 5, major: 25, min: 0, c: C.cyan, fmt: v => Math.round(v), side: 'left' }) +
-    G.tape(666, 124, 160, 470, d.ralt, { title: 'RADAR ALTITUDE', unit: 'METRES', ppu: 9, minor: 1, major: 5, c: C.ok, fmt: v => (v < 100 ? v.toFixed(1) : Math.round(v)), side: 'right', ground: true }) +
-    (d.vsi == null ? T(426, 368, 15, 'VERTICAL SPEED · NOT SENT', { c: C.dim, ls: 3 }) : G.vsi(426, 368, 200, d.vsi)));
-}
+const AIR = {
+  hdg: d => G.heading(150, 18, 552, 64, d.hdg),
+  spd: d => G.tape(26, 124, 160, 470, d.speed, { title: 'SPEED', unit: 'M/S', ppu: 4, minor: 5, major: 25, min: 0, c: C.cyan, fmt: v => Math.round(v), side: 'left' }),
+  ralt: d => G.tape(666, 124, 160, 470, d.ralt, { title: 'RADAR ALTITUDE', unit: 'METRES', ppu: 9, minor: 1, major: 5, c: C.ok, fmt: v => (v < 100 ? v.toFixed(1) : Math.round(v)), side: 'right', ground: true }),
+  vsi: d => (d.vsi == null ? T(426, 368, 15, 'VERTICAL SPEED · NOT SENT', { c: C.dim, ls: 3 }) : G.vsi(426, 368, 200, d.vsi)),
+};
 function energy(d) {
   const b = d.boost;
   return G.svg(552, 470,
@@ -377,15 +390,19 @@ function guns(live) {
 }
 
 const gp = g => (g && g.max > 0 && finite(g.current) ? Math.floor(Math.max(0, Math.min(1, g.current / g.max)) * 100 + 1e-6) : null);
-function vitals(live) {
+const vring = (x, g, n, c) => (gp(g) == null ? T(x, 180, 14, n + ' · NOT SENT', { c: C.dim, ls: 2 }) : G.ring(x, 180, 112, gp(g), { title: n, c: c || lvl(gp(g)), glow: true }));
+const vbar = (y, g, n) => G.hbar(40, y, 772, 44, gp(g), { title: n, c: gp(g) == null ? C.ok : lvl(gp(g)), n: 34 });
+const VITALS = {
+  health: vt => vring(150, vt.health, 'HEALTH'),
+  oxygen: vt => vring(426, vt.oxygen, 'OXYGEN', C.cyan),
+  heart: vt => (vt.heart_rate > 0 ? G.dial(702, 180, 112, vt.heart_rate, { min: 40, max: 200, step: 40, c: '#ff6a7a', unit: 'BEATS A MINUTE', title: 'HEART RATE', fmt: x => Math.round(x) }) : T(702, 180, 14, 'HEART RATE · NOT SENT', { c: C.dim, ls: 2 })),
+  needs: vt => vbar(440, vt.hunger, 'HUNGER') + vbar(548, vt.thirst, 'THIRST'),
+};
+/** Each vital on its own part of the glass; the glass says so once when the game sends none. */
+function vitals(live, p) {
   const vt = live?.actor?.vitals;
-  if (!vt) return NOT(852, 632, 'Vitals · not sent');
-  const lvl = p => (p < 25 ? C.red : p < 50 ? C.amber : C.ok);
-  const ring = (x, g, n, c) => (gp(g) == null ? T(x, 180, 14, n + ' · NOT SENT', { c: C.dim, ls: 2 }) : G.ring(x, 180, 112, gp(g), { title: n, c: c || lvl(gp(g)), glow: true }));
-  const bar = (y, g, n) => G.hbar(40, y, 772, 44, gp(g), { title: n, c: gp(g) == null ? C.ok : lvl(gp(g)), n: 34 });
-  return G.svg(852, 632, ring(150, vt.health, 'HEALTH') + ring(426, vt.oxygen, 'OXYGEN', C.cyan)
-    + (vt.heart_rate > 0 ? G.dial(702, 180, 112, vt.heart_rate, { min: 40, max: 200, step: 40, c: '#ff6a7a', unit: 'BEATS A MINUTE', title: 'HEART RATE', fmt: x => Math.round(x) }) : T(702, 180, 14, 'HEART RATE · NOT SENT', { c: C.dim, ls: 2 }))
-    + bar(440, vt.hunger, 'HUNGER') + bar(548, vt.thirst, 'THIRST'));
+  if (!vt) return p === 'oxygen' ? cut('vitals', p, T(426, 316, 15, 'VITALS · NOT SENT', { c: C.dim, ls: 3 })) : '';
+  return cut('vitals', p, VITALS[p](vt));
 }
 function env(live) {
   const vt = live?.actor?.vitals, e = live?.actor?.environment;
@@ -602,14 +619,16 @@ function loadoutPlate(live) {
 }
 
 const PAINT = {
-  air: (d) => air(d), energy: (d) => energy(d), modes: (d) => modes(d), caution: (d) => caution(d), 'sh-hull': (d) => shHull(d),
+  ...Object.fromEntries(Object.keys(AIR).map(p => [`air-${p}`, d => cut('air', p, AIR[p](d))])),
+  energy: (d) => energy(d), modes: (d) => modes(d), caution: (d) => caution(d), 'sh-hull': (d) => shHull(d),
   approach: (d) => approach(d), touchdown: (d) => touchdown(d), sink: (d) => sink(d),
   bus: (d) => bus(d), ifcs: (d) => ifcs(d), weapons: (d, l) => weapons(l),
   threat: (d) => threat(d), defence: (d) => defence(d), guns: (d, l) => guns(l),
   s3left: (d) => s3left(d), s3name: (d, l) => s3name(l), paints: (d, l) => paintsPlate(l), loadout: (d, l) => loadoutPlate(l),
   qmode: (d) => qmode(d), fuel: (d) => fuelPlate(d), nav: (d) => navPlate(d),
   seat: (d, l) => seatCard(l), gunsmini: (d, l) => gunsMini(l), tlamp: (d, l) => turretLamp(l),
-  vitals: (d, l) => vitals(l), env: (d, l) => env(l), breath: (d, l) => breath(l), wallet: (d, l) => wallet(l), where: (d, l) => where(l),
+  ...Object.fromEntries(Object.keys(VITALS).map(p => [`vitals-${p}`, (d, l) => vitals(l, p)])),
+  env: (d, l) => env(l), breath: (d, l) => breath(l), wallet: (d, l) => wallet(l), where: (d, l) => where(l),
 };
 /** A game-link value for a status screen on a page of yours, as text; null when not sent. */
 export function fieldValue(f, live) {
