@@ -1288,21 +1288,30 @@ svg.gx { display: block; overflow: visible; }
 .tl-mc { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .tl-mc.one { grid-template-columns: 1fr; height: 100%; }
 .tl-mc b { height: 92px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font: 700 19px/1 var(--hud); letter-spacing: .18em; text-transform: uppercase;
-  background: linear-gradient(180deg, #151a20, #0b0e12); box-shadow: inset 0 0 0 2px #000, inset 0 0 0 3px #ffffff12, 0 4px 0 #0d1013; color: #2c353e; }
+  background: linear-gradient(180deg, #151a20, #0b0e12); box-shadow: inset 0 0 0 2px #000, inset 0 0 0 3px #ffffff12, 0 4px 0 #0d1013; color: #46525d; }
 .tl-mc.one b { height: 100%; }
 .tl-mc b small { font: 600 11px/1 var(--hud); letter-spacing: .2em; opacity: .8; }
+/* Lit lamps flash between filled and dark with a coloured rim; the legend stays readable in both. */
+.tl-mc b.cau, .tl-ann b.m, .tl-threat b.m { --lc: #ffb547; }
+.tl-mc b.war, .tl-ann b.x, .tl-threat b.x { --lc: #ff5a4f; }
+.tl-mc b.okl { --lc: #5fe0a0; }
 .tl-mc b.cau { color: #1a1104; background: linear-gradient(180deg, #ffcf7a, #f39a20); box-shadow: 0 0 26px #ffb547aa, inset 0 1px 0 #fff8, 0 4px 0 #6b4200; }
 .tl-mc b.war { color: #fff; background: linear-gradient(180deg, #ff6a5c, #d01e10); box-shadow: 0 0 26px #ff4232aa, 0 4px 0 #5a0a04; }
 .tl-mc b.okl { color: #04140b; background: linear-gradient(180deg, #8ff0be, #3cc47e); box-shadow: 0 0 22px #5fe0a088, 0 4px 0 #0b4a28; }
 .tl-ann { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 16px; }
 .tl-ann.four { grid-template-columns: repeat(4, 1fr); }
-.tl-ann b { height: 58px; display: grid; place-items: center; border-radius: 5px; font: 700 16px/1 var(--hud); letter-spacing: .16em; text-transform: uppercase;
-  background: linear-gradient(180deg, #0b1116, #070b0e); box-shadow: inset 0 0 0 1px #ffffff12, inset 0 2px 6px #000; color: #26313a; }
-.tl-ann b.n { color: #5fe0a0aa; text-shadow: 0 0 8px #5fe0a055; }
+.tl-ann b { position: relative; height: 58px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; border-radius: 5px; font: 700 15px/1 var(--hud); letter-spacing: .1em; text-transform: uppercase;
+  background: linear-gradient(180deg, #0b1116, #070b0e); box-shadow: inset 0 0 0 1px #ffffff12, inset 0 2px 6px #000; color: #2e3943; }
+/* On and working: a plain legend under a small green bar, so only warnings carry colour. */
+.tl-ann b.n { color: #8f9ba7; }
+.tl-ann b.n::before { content: ''; position: absolute; top: 7px; left: 50%; width: 22px; height: 3px; margin-left: -11px; border-radius: 2px; background: #5fe0a0; box-shadow: 0 0 6px #5fe0a0aa; }
+/* Switched off: dim legend, and it says so. */
+.tl-ann b.o { color: #4c5864; }
+.tl-ann b.o::after { content: 'Off'; font: 600 9px/1 var(--hud); letter-spacing: .2em; color: #4c5864; }
 .tl-ann b.m { color: #1a1104; background: linear-gradient(180deg, #ffc76a, #f0a030); box-shadow: 0 0 16px #ffb54788, inset 0 1px 0 #fff6; }
 .tl-ann b.x { color: #fff; background: linear-gradient(180deg, #ff6a5c, #e02818); box-shadow: 0 0 18px #ff423299, inset 0 1px 0 #fff6; }
 .tl-mc b.fl, .tl-ann b.fl, .tl-threat b.fl { animation: tl-flash 1s steps(2, jump-none) infinite; }
-@keyframes tl-flash { 50% { filter: brightness(.45); } }
+@keyframes tl-flash { 50% { background: #0b0f13; color: var(--lc); box-shadow: inset 0 0 0 2px var(--lc), 0 0 12px color-mix(in oklab, var(--lc) 35%, transparent); } }
 @media (prefers-reduced-motion: reduce) { .tl-mc b.fl, .tl-ann b.fl, .tl-threat b.fl { animation: none; } }
 .tl-check { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
 .tl-check b { height: 84px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: #070b0e;
@@ -1346,7 +1355,8 @@ svg.gx { display: block; overflow: visible; }
 .tl-threat b { border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; font: 700 44px/1 var(--hud); letter-spacing: .14em; text-transform: uppercase;
   background: linear-gradient(180deg, #151a20, #0b0e12); box-shadow: inset 0 0 0 2px #000, inset 0 0 0 3px #ffffff12, 0 5px 0 #0d1013; color: #2c353e; }
 .tl-threat b small { font: 700 14px/1 var(--hud); letter-spacing: .24em; opacity: .85; }
-.tl-threat b.n { color: #5fe0a0aa; }
+.tl-threat b.n { color: #8f9ba7; }
+.tl-threat b.o { color: #4c5864; }
 .tl-threat b.m { color: #1a1104; background: linear-gradient(180deg, #ffcf7a, #f39a20); box-shadow: 0 0 30px #ffb547aa, 0 5px 0 #6b4200; }
 .tl-threat b.x { color: #fff; background: linear-gradient(180deg, #ff6a5c, #d01e10); box-shadow: 0 0 34px #ff4232cc, 0 5px 0 #5a0a04; }
 .tl-seat { height: 170px; border-radius: 10px; padding: 24px 28px; background: #070b0e; box-shadow: inset 0 0 0 1px #ffffff12, inset 0 2px 6px #000; }

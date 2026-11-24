@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Caution lamps: a flashing lamp alternates between filled and outlined, so its name stays readable. Working systems show a grey name under a small green bar, so only warnings carry colour, and a system the game reports as switched off says Off.
 - Phone: Instruments and Suit split into one tab per instrument, each at full width.
 
 ## 0.11.1
