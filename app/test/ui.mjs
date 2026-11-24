@@ -1037,6 +1037,89 @@ for (const [W, H] of [[1920, 1080], [1180, 820]]) {
   await ctx.close();
 }
 
+// The game link: a real Prospector frame (5.0 PTU). Switches show where the ship is, push-buttons
+// the game reports get a lamp, the status shows the game's instruments; Classic and a dropped link
+// take it all back, and presses go through the game when it takes the action.
+{
+  const U = JSON.parse(await readFile(join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'telemetry-prospector.json'), 'utf8'));
+  const ctx = await browser.newContext({ viewport: { width: 2560, height: 720 } });
+  const pg = await ctx.newPage();
+  pg.on('pageerror', e => errors.push('telemetry: ' + e.message));
+  await pg.route(/fleetyards|fltyrd/, r => r.abort());
+  await pg.goto(base + '?demo=ship');
+  await pg.waitForSelector('body[data-ready]');
+  await pg.waitForTimeout(300);
+  await pg.evaluate(() => window.xfd.feed(["CVehicleMovementBase::SetDriver: Local client node [1] granted control token for 'MISC_Prospector_877602860529' [877602860529]"]));
+  await pg.evaluate(() => window.xfd.show('mining'));
+  const sw = () => pg.evaluate(() => Object.fromEntries([...document.querySelectorAll('#console .tgl.dual')].map(e => [e.querySelector('.placard').textContent.trim(), e.classList.contains('on') ? 'on' : e.classList.contains('off') ? 'off' : '-'])));
+  const before = await sw();
+  if (Object.values(before).some(v => v !== '-')) problems.push(`telemetry: switches show a side before the game said: ${JSON.stringify(before)}`);
+  await pg.evaluate(u => window.xfd.telemetry(u), U);
+  await pg.waitForTimeout(100);
+  const after = await sw();
+  const want = { Power: 'on', Thrusters: 'off', Shields: 'on', Weapons: 'on' };
+  for (const [k, v] of Object.entries(want)) if (after[k] !== v) problems.push(`telemetry: ${k} shows ${after[k]}, the game said ${v}`);
+  const st = await pg.evaluate(() => ({
+    gear: document.querySelector('#console .gear').classList.contains('on'),
+    ann: document.querySelectorAll('#tlm .ann b').length, amber: document.querySelector('#tlm .ann b.m')?.textContent,
+    decoy: document.querySelector('#console [data-k="Decoy"] .cnt')?.textContent, noise: document.querySelector('#console [data-k="Noise"] .cnt')?.textContent,
+    role: document.getElementById('ship-role').textContent, chip: !document.getElementById('tele-chip').hidden,
+  }));
+  if (!st.gear || st.ann !== 10 || st.amber !== 'SHLD' || st.decoy !== '48' || st.noise !== '5' || !/Pilot seat · Landed · SCM spooled/.test(st.role) || !st.chip)
+    problems.push(`telemetry status: ${JSON.stringify(st)}`);
+  await checkLabels('telemetry mining', false, pg);
+  if (shots) await pg.screenshot({ path: join(shots, 'telemetry-mining.png') });
+  await pg.evaluate(() => window.xfd.show('flight'));
+  const fl = await pg.evaluate(() => ({
+    esp: document.querySelector('#console [data-k="ESP"] .lvt')?.textContent,
+    locks: [...document.querySelectorAll('#console .tgl.dual')].find(e => /door locks/i.test(e.textContent))?.className,
+  }));
+  if (fl.esp !== 'OFF') problems.push(`telemetry: ESP lamp reads ${fl.esp}`);
+  if (fl.locks && /\b(on|off)\b/.test(fl.locks)) problems.push('telemetry: door locks show a side the game never sent');
+  await checkLabels('telemetry flight', false, pg);
+  if (shots) await pg.screenshot({ path: join(shots, 'telemetry-flight.png') });
+  await pg.evaluate(() => window.xfd.show('light-fighter'));
+  const gp = await pg.evaluate(() => document.querySelector('#console .guns-placard')?.textContent);
+  if (gp !== 'Guns 2/2 ready') problems.push(`telemetry: gun placard reads ${gp}`);
+  await checkLabels('telemetry fighter', false, pg);
+  if (shots) await pg.screenshot({ path: join(shots, 'telemetry-fighter.png') });
+  // Presses: through the game when it takes the action, the key when it refuses.
+  await pg.evaluate(() => { window.__keys = []; window.__acts = []; window.xfdTestAction = a => { window.__acts.push(a); return window.__answer; }; window.__answer = 'ok'; window.xfd.show('flight'); });
+  const press = async sel => { const b = await (await pg.$(sel)).boundingBox(); await pg.mouse.click(b.x + b.width / 2, b.y + b.height / 2); await pg.waitForTimeout(400); };
+  await press('#console [data-k="ESP"] .cap');
+  let r = await pg.evaluate(() => ({ acts: window.__acts.slice(), keys: window.__keys.length }));
+  if (r.acts.join() !== 'v_ifcs_toggle_esp' || r.keys !== 0) problems.push(`telemetry: ESP through the game sent ${JSON.stringify(r)}`);
+  await pg.evaluate(() => { window.__answer = 'filtered'; window.__acts = []; window.__keys = []; });
+  await press('#console [data-k="ESP"] .cap');
+  r = await pg.evaluate(() => ({ acts: window.__acts.slice(), keys: window.__keys.length }));
+  if (r.acts.length !== 1 || r.keys !== 1) problems.push(`telemetry: a refused ESP did not fall back to the key: ${JSON.stringify(r)}`);
+  // On foot: vitals.
+  const foot = structuredClone(U); foot.live.vehicle = null; foot.live.weapons = null; foot.live.actor.state.locomotion = 1;
+  await pg.evaluate(u => { window.xfd.feed(['<Context Establisher Done>', 'Entering Armistice Zone']); window.xfd.telemetry(u); window.xfd.show('onfoot'); }, foot);
+  await pg.waitForTimeout(100);
+  const vit = await pg.evaluate(() => [...document.querySelectorAll('#tlm .vit > div')].map(d => d.textContent.replace(/\s+/g, ' ').trim()));
+  if (vit.length !== 8 || !vit.includes('Hunger73%')) problems.push(`telemetry vitals: ${JSON.stringify(vit)}`);
+  await checkLabels('telemetry on foot', false, pg);
+  if (shots) await pg.screenshot({ path: join(shots, 'telemetry-onfoot.png') });
+  // Classic, then a dropped link: back to the console without telemetry.
+  await pg.evaluate(u => { window.xfd.feed(["CVehicleMovementBase::SetDriver: Local client node [1] granted control token for 'MISC_Prospector_877602860529' [877602860529]"]); window.xfd.telemetry(u); window.xfd.show('mining'); }, U);
+  await pg.evaluate(() => { document.getElementById('sheet').hidden = false; window.xfd.showSection('link'); });
+  await pg.waitForTimeout(100);
+  await checkLabels('settings game link', true, pg);
+  if (shots) await pg.screenshot({ path: join(shots, 'settings-link.png') });
+  await pg.click('#layout-seg [data-v="classic"]');
+  await pg.evaluate(() => { document.getElementById('sheet').hidden = true; });
+  const classic = await sw();
+  if (Object.values(classic).some(v => v !== '-') || await pg.$('#tlm')) problems.push(`telemetry: Classic still shows the game's state ${JSON.stringify(classic)}`);
+  await pg.evaluate(() => { document.getElementById('sheet').hidden = false; window.xfd.showSection('link'); });
+  await pg.click('#layout-seg [data-v="telemetry"]');
+  await pg.evaluate(() => { document.getElementById('sheet').hidden = true; });
+  await pg.evaluate(u => window.xfd.telemetry({ ...u, link: 'off', actions: [], live: { vehicle: null, weapons: null, actor: null } }), U);
+  const dropped = await sw();
+  if (Object.values(dropped).some(v => v !== '-') || await pg.$('#tlm')) problems.push(`telemetry: a dropped link left ${JSON.stringify(dropped)}`);
+  await ctx.close();
+}
+
 const heap = await page.evaluate(() => performance.memory?.usedJSHeapSize || 0);
 
 report.push(`pages checked: ${ids.length}`, `slowest first build: ${worstBuild.toFixed(1)} ms (budget ${BUDGET.firstBuildMs})`,

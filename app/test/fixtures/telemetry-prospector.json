@@ -1,0 +1,37 @@
+{
+  "_note": "A MISC Prospector, landed, pilot seat: one TelemetryStream frame from Star Citizen 5.0 PTU (2026-11-21), as the app passes it to the UI. Fields the game left out are proto3 defaults.",
+  "link": "live",
+  "port": 2942,
+  "actions": ["v_lights", "v_lights_on", "v_lights_off", "v_ifcs_toggle_esp", "v_deploy_landing_system", "v_retract_landing_system"],
+  "live": {
+    "vehicle": {
+      "name": "MISC_Prospector_877602860529", "class_name": "MISC_Prospector", "lights_enabled": false, "doors": null,
+      "annunciators": { "pwr": 1, "wpn": 1, "thr": 2, "shld": 4, "cool": 2, "qdrv": 2, "radr": 1, "prox": 1, "hit": 1, "misl": 1 },
+      "flight": {
+        "state": { "is_landed": true, "gear": 3, "vtol": 3 },
+        "settings": {
+          "ifcs_coupled": { "enabled": true, "active": true }, "ifcs_esp": { "enabled": true, "active": false },
+          "ifcs_gravity_compensation": { "enabled": true, "active": true }, "ifcs_g_safe": { "enabled": true, "active": false },
+          "ifcs_cruise_mode": { "enabled": false, "active": false }, "ifcs_speed_limiter": { "enabled": true, "active": true },
+          "ifcs_proximity_assist": { "enabled": true, "active": false }, "ifcs_stability": { "enabled": true, "active": true },
+          "advanced_hud_enabled_scm": false, "advanced_hud_enabled_nav": false,
+          "ifcs_wind_compensation": { "enabled": true, "active": true }, "flight_light_amplification": false
+        },
+        "instruments": { "speed": 6.3309443e-7, "boost": { "engaged": false, "reserves": 1, "critical": false }, "radar_altitude": 4.433704, "vertical_speed_indicator": 6.3309443e-7 }
+      },
+      "power": { "powerplants": true, "engines": false, "weapons": true, "shield_generators": true },
+      "shields": { "level": 1 }, "health": 1, "master_mode": { "mode": 2, "spooled": true }
+    },
+    "weapons": {
+      "settings": { "staggered_fire": false, "gimbals_locked": true },
+      "weapons": [{ "is_powered": true, "ready_to_fire": true }, { "is_powered": true, "ready_to_fire": true }],
+      "countermeasures": [{ "type": 1, "amount": 48 }, { "type": 2, "amount": 5 }]
+    },
+    "actor": {
+      "vitals": { "health": { "current": 100, "max": 100 }, "oxygen": { "current": 1, "max": 1 }, "hunger": { "current": 73.05671, "max": 100 },
+        "thirst": { "current": 39.57986, "max": 100 }, "body_temperature": { "current": 36.5, "max": 100 }, "heart_rate": 60.800385, "gravity": 1.0003417 },
+      "state": { "locomotion": 3, "crew_role": 1 },
+      "environment": { "external_temperature": 20.999994, "breathable_atmosphere": true }
+    }
+  }
+}

@@ -1226,3 +1226,39 @@ body.shapes #stage.alert::before { outline: 3px dashed #ff4232; outline-offset: 
 /* Reduce motion (Settings > Screen): no frame flashes, blinking, pulses or slides. Colours still change. */
 body.calm *, body.calm *::before, body.calm *::after { animation: none !important; transition: none !important; }
 .chip.squeezed { display: none; }
+
+/* ---------- game link: Star Citizen's own telemetry ---------- */
+/* The status display trades the ship's picture for the game's instruments, or your vitals. */
+#stage #mfd.tlm-on .hero { display: none; }
+#stage #mfd.tlm-on .name { top: 52px; } #stage #mfd.tlm-on .role { top: 88px; } #stage #mfd.tlm-on .facts { top: 114px; }
+.tlm { display: flex; flex-direction: column; gap: 8px; }
+.tlm .ann { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.tlm .ann b { height: 22px; display: grid; place-items: center; border-radius: 3px; font: 700 10px/1 var(--hud); letter-spacing: .12em;
+  background: #0a1015; border: 1px solid #ffffff14; color: #3d4752; }
+.tlm .ann b.n { color: var(--ok); border-color: #5fe0a040; background: #0c1a14; }
+.tlm .ann b.m { color: #14100a; background: var(--hold); border-color: var(--hold); }
+.tlm .ann b.x { color: #fff; background: var(--danger); border-color: var(--danger); }
+.tlm .ann b.fl { animation: ann-flash 1s steps(2, jump-none) infinite; }
+body.calm .tlm .ann b.fl { animation: none; }
+@keyframes ann-flash { 50% { opacity: .35; } }
+.tlm .bars { display: grid; grid-template-columns: auto 1fr auto; gap: 5px 8px; align-items: center; font: 700 10px/1 var(--hud); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.tlm .bars i { height: 8px; border-radius: 2px; background: #0b1217; box-shadow: inset 0 0 0 1px #ffffff12; position: relative; overflow: hidden; }
+.tlm .bars i::after { content: ""; position: absolute; inset: 0; width: var(--v); background: linear-gradient(90deg, color-mix(in oklab, var(--c) 60%, #000), var(--c)); }
+.tlm .bars em { font: 600 12px/1 var(--mono); font-style: normal; color: var(--ink); letter-spacing: 0; text-align: right; min-width: 40px; }
+.tlm .rd { display: flex; gap: 14px; font: 700 10px/1 var(--hud); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.tlm .rd b { display: block; margin-top: 4px; font: 600 15px/1 var(--mono); letter-spacing: 0; color: var(--ink); white-space: nowrap; }
+.tlm .rd small, .tlm .vit small { font-size: 11px; color: var(--muted); text-transform: none; }
+.tlm .vit { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tlm .vit div { padding: 8px 10px; border-radius: 6px; background: #0a1117; box-shadow: inset 0 0 0 1px #ffffff12; font: 700 9px/1 var(--hud); letter-spacing: .16em; color: var(--muted); text-transform: uppercase; }
+.tlm .vit b { display: block; margin-top: 6px; font: 600 18px/1 var(--mono); letter-spacing: 0; color: var(--ink); white-space: nowrap; }
+.tlm .vit small { margin-left: 3px; }
+.tlm .vit i { display: block; margin-top: 7px; height: 5px; border-radius: 2px; background: #ffffff10; position: relative; overflow: hidden; }
+.tlm .vit i::after { content: ""; position: absolute; inset: 0; width: var(--v); background: var(--c); }
+/* A push-button the game reports: a lamp on top, its state under the label. */
+.cap.lamp .kb { display: none; }
+.cap > .lv { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); width: 18px; height: 5px; border-radius: 3px; background: #0b0e11; box-shadow: inset 0 0 0 1px #ffffff14; }
+.cap.lamp-on > .lv { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.cap > .lvt { position: absolute; left: 0; right: 0; bottom: 8px; text-align: center; font: 700 9px/1 var(--hud); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.cap.lamp-on > .lvt { color: var(--ok); }
+/* Decoys and noise left. */
+.cap > .cnt { position: absolute; right: 9px; top: 7px; font: 600 15px/1 var(--mono); color: var(--ink); }

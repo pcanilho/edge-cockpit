@@ -475,6 +475,48 @@ pub fn set_autostart(on: bool) -> bool {
     }
 }
 
+/// A variable in the user's environment (HKCU\\Environment), as setx writes it.
+pub fn user_env(name: &str) -> Option<String> {
+    use windows::Win32::System::Registry::{RegGetValueW, HKEY_CURRENT_USER, RRF_RT_REG_SZ};
+    let key = wide("Environment");
+    let val = wide(name);
+    let mut buf = [0u16; 256];
+    let mut len = (buf.len() * 2) as u32;
+    unsafe {
+        RegGetValueW(HKEY_CURRENT_USER, PCWSTR(key.as_ptr()), PCWSTR(val.as_ptr()), RRF_RT_REG_SZ, None, Some(buf.as_mut_ptr() as *mut _), Some(&mut len)).ok().ok()?;
+    }
+    let n = (len as usize / 2).saturating_sub(1).min(buf.len());
+    Some(String::from_utf16_lossy(&buf[..n]))
+}
+
+/// Sets (or, with None, removes) a variable in the user's environment and tells running
+/// programs, as setx does. The RSI Launcher passes it on to the game once it restarts.
+pub fn set_user_env(name: &str, value: Option<&str>) -> bool {
+    use windows::Win32::Foundation::{ERROR_FILE_NOT_FOUND, LPARAM, WPARAM};
+    use windows::Win32::System::Registry::{RegDeleteKeyValueW, RegSetKeyValueW, HKEY_CURRENT_USER, REG_SZ};
+    use windows::Win32::UI::WindowsAndMessaging::{SendMessageTimeoutW, HWND_BROADCAST, SMTO_ABORTIFHUNG, WM_SETTINGCHANGE};
+    let key = wide("Environment");
+    let n = wide(name);
+    let ok = unsafe {
+        match value {
+            Some(v) => {
+                let v = wide(v);
+                RegSetKeyValueW(HKEY_CURRENT_USER, PCWSTR(key.as_ptr()), PCWSTR(n.as_ptr()), REG_SZ.0, Some(v.as_ptr() as *const _), (v.len() * 2) as u32).is_ok()
+            }
+            None => {
+                let r = RegDeleteKeyValueW(HKEY_CURRENT_USER, PCWSTR(key.as_ptr()), PCWSTR(n.as_ptr()));
+                r.is_ok() || r == ERROR_FILE_NOT_FOUND
+            }
+        }
+    };
+    if ok {
+        unsafe {
+            let _ = SendMessageTimeoutW(HWND_BROADCAST, WM_SETTINGCHANGE, WPARAM(0), LPARAM(key.as_ptr() as isize), SMTO_ABORTIFHUNG, 2000, None);
+        }
+    }
+    ok
+}
+
 /// The exe name of the window in front, e.g. "StarCitizen.exe".
 pub fn foreground_exe() -> Option<String> {
     unsafe {

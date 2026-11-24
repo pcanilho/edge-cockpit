@@ -91,6 +91,16 @@ export const onPhones = f => tauri?.event.listen('phones', () => f());
 /** On a phone: this phone's own plate and mode changed. */
 export const phoneSet = (plate, mode) => tauri ? tauri.core.invoke('phone_set', { plate, mode }) : Promise.resolve();
 export const onPhoneConfig = f => tauri?.event.listen('phone-config', e => f(e.payload));
+// The game link: Star Citizen's own telemetry. Outside the app a page may supply its own.
+/** f(update) for each change of the game link: { link, port, actions, live }. */
+export const onTelemetry = f => tauri?.event.listen('telemetry', e => f(e.payload));
+export const telemetryNow = () => tauri ? tauri.core.invoke('telemetry_now') : Promise.resolve(window.xfdTestTelemetry ?? null);
+/** Runs an action through the game: 'ok', or why not ('no-link', 'unknown', 'filtered'…). */
+export const gameAction = action => tauri ? tauri.core.invoke('game_action', { action, holdMs: null }) : Promise.resolve(window.xfdTestAction ? window.xfdTestAction(action) : 'no-link');
+export const telemetrySetup = () => tauri ? tauri.core.invoke('telemetry_setup') : Promise.resolve(window.xfdTestTelemetrySetup ?? { env: false, channels: [] });
+export const telemetryEnable = on => tauri ? tauri.core.invoke('telemetry_enable', { on }) : Promise.resolve(window.xfdTestTelemetrySetup = { env: on, channels: [['LIVE', on]] });
+/** Starts (true) or stops and saves (false) a recording of the game link; resolves to the file when saved. */
+export const telemetryRecord = on => tauri ? tauri.core.invoke('telemetry_record', { on }) : Promise.resolve(on ? null : 'Documents\\Edge Cockpit\\telemetry.sctl');
 export const quit = () => tauri ? tauri.core.invoke('quit') : window.close();
 
 /** onBatch({ lines, live, reset }) for each batch of Game.log lines. */

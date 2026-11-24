@@ -11,6 +11,7 @@ mod game;
 mod keys;
 mod phone;
 mod tailor;
+mod telemetry;
 mod world;
 #[cfg(windows)]
 mod win;
@@ -52,6 +53,9 @@ struct App {
     phones: phone::Phones,
     /// The console's size after its last move, against the size of its display.
     fit: Mutex<Option<Fit>>,
+    /// The game link (Star Citizen's local telemetry), for actions; and the last update it sent.
+    link: std::sync::Arc<telemetry::Link>,
+    telemetry: Mutex<Option<telemetry::Update>>,
 }
 
 /// The console's size against its display's, after a move. Settings and the setup check
@@ -179,6 +183,108 @@ async fn send_key(app: &App, spec: String, mode: String, ms: Option<u64>, anywhe
         let _ = (app, mode, ms, chord);
         Err("not-windows".into())
     }
+}
+
+/// The game link's last update, for a UI that just started listening.
+#[tauri::command]
+fn telemetry_now(app: State<'_, App>) -> Option<telemetry::Update> {
+    app.telemetry.lock().unwrap().clone()
+}
+
+/// Runs an action through the game link. "ok", or why the game didn't (see telemetry::Link::trigger).
+#[tauri::command]
+async fn game_action(app: State<'_, App>, action: String, hold_ms: Option<u32>) -> Result<String, String> {
+    let link = app.link.clone();
+    link.trigger(&action, hold_ms).await.map(str::to_string)
+}
+
+#[derive(Serialize)]
+struct TelemetrySetup {
+    /// The Windows variable 4.10 reads (GRPC_CLIENT_SERVER_ENABLED) is set.
+    env: bool,
+    /// Channel folders (LIVE, PTU…) and whether their user.cfg turns telemetry on.
+    channels: Vec<(String, bool)>,
+}
+
+fn telemetry_channels(app: &App) -> Vec<PathBuf> {
+    let current = app.channel.lock().unwrap().clone().or_else(|| game::find_channel(None));
+    current.map(|c| telemetry::sibling_channels(&c)).unwrap_or_default()
+}
+
+/// Whether telemetry is turned on for the game, as far as Windows and user.cfg say.
+#[tauri::command]
+fn telemetry_setup(app: State<'_, App>) -> TelemetrySetup {
+    #[cfg(windows)]
+    let env = win::user_env("GRPC_CLIENT_SERVER_ENABLED").is_some_and(|v| v.eq_ignore_ascii_case("true") || v == "1");
+    #[cfg(not(windows))]
+    let env = false;
+    let channels = telemetry_channels(&app)
+        .into_iter()
+        .map(|c| {
+            let on = std::fs::read_to_string(c.join("user.cfg")).is_ok_and(|cfg| telemetry::cfg_on(&cfg));
+            (c.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default(), on)
+        })
+        .collect();
+    TelemetrySetup { env, channels }
+}
+
+/// Turns the game's telemetry on or off: the Windows variable 4.10 reads, and the user.cfg
+/// line 5.0 reads in each channel folder. The game picks it up on its next start.
+#[tauri::command]
+fn telemetry_enable(app: State<'_, App>, on: bool) -> Result<TelemetrySetup, String> {
+    let channels = telemetry_channels(&app);
+    if channels.is_empty() {
+        return Err("Start Star Citizen once, so the console finds its folder".into());
+    }
+    for c in &channels {
+        let path = c.join("user.cfg");
+        let cfg = std::fs::read_to_string(&path).unwrap_or_default();
+        let next = telemetry::with_telemetry(&cfg, on);
+        if next != cfg {
+            std::fs::write(&path, next).map_err(|e| format!("{}: {e}", path.display()))?;
+        }
+    }
+    #[cfg(windows)]
+    if !win::set_user_env("GRPC_CLIENT_SERVER_ENABLED", on.then_some("true")) {
+        return Err("Windows didn't take the setting".into());
+    }
+    Ok(telemetry_setup(app))
+}
+
+/// Starts recording the game link, or stops and saves the recording to Documents\\Edge Cockpit.
+/// Some(path) once saved; None when a recording started.
+#[tauri::command]
+fn telemetry_record(handle: AppHandle, app: State<'_, App>, on: bool) -> Result<Option<String>, String> {
+    if on {
+        app.link.record();
+        return Ok(None);
+    }
+    let bytes = app.link.stop().ok_or("Not recording")?;
+    let dir = user_dir(&handle).ok_or("No Documents folder")?;
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+    let path = dir.join(format!("telemetry-{secs}.sctl"));
+    std::fs::write(&path, bytes).map_err(|e| e.to_string())?;
+    #[cfg(windows)]
+    {
+        let _ = std::process::Command::new("explorer.exe").arg(format!("/select,{}", path.display())).spawn();
+    }
+    Ok(Some(path.to_string_lossy().into_owned()))
+}
+
+/// Follows the game link and passes each change to the UI.
+fn watch_link(handle: AppHandle) {
+    let link = handle.state::<App>().link.clone();
+    let h1 = handle.clone();
+    let h2 = handle;
+    tauri::async_runtime::spawn(telemetry::run(
+        link,
+        move || h1.state::<App>().channel.lock().unwrap().clone(),
+        move |u| {
+            *h2.state::<App>().telemetry.lock().unwrap() = Some(u.clone());
+            let _ = h2.emit("telemetry", u);
+        },
+    ));
 }
 
 /// Turns the mouse wheel in the game, for controls the game only reads from the wheel.
@@ -1252,6 +1358,11 @@ impl phone::Host for PhoneHost {
             let anywhere = args["anywhere"].as_bool().unwrap_or(false);
             match cmd.as_str() {
                 "key" => send_key(&app, spec.ok_or("no key")?, mode, args["ms"].as_u64(), anywhere).await.map(|_| Value::Null),
+                "game_action" => {
+                    let link = app.link.clone();
+                    let action = args["action"].as_str().ok_or("no action")?.to_string();
+                    link.trigger(&action, None).await.map(Value::from)
+                }
                 "wheel" => wheel(args["clicks"].as_i64().unwrap_or(0).clamp(-50, 50) as i32, anywhere).map(|_| Value::Null),
                 "release_keys" => {
                     self.release(mine.into_iter().collect());
@@ -1341,7 +1452,8 @@ fn main() {
             save_profile, load_profile, save_user_ships, install_profile_binds, binds_backups, read_binds_backup, dismiss_binds_loss, save_page, page_files,
             get_prefs, set_pref, wake_screen, sleep_screen, check_update, install_update, perf,
             displays, set_display, fix_touch, refit, identify_screens, night_backlight, report_issue, report_info, save_report, world_prices, world_status,
-            phones_view, phones_enable, phones_set, phones_forget, share
+            phones_view, phones_enable, phones_set, phones_forget, share,
+            telemetry_now, game_action, telemetry_setup, telemetry_enable, telemetry_record
         ])
         .setup(|app| {
             let handle = app.handle().clone();
@@ -1377,6 +1489,7 @@ fn main() {
             }
             tray(app.handle())?;
             watch_game(app.handle().clone());
+            watch_link(app.handle().clone());
             // The game coming to the front counts as it starting; one snapshot covers a game
             // that was already running.
             #[cfg(windows)]

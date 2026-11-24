@@ -99,6 +99,7 @@ export function keycap(x, y, w, ht, l, o = {}) {
       <span class="bar"><i></i></span>
     </div></div>`);
   if (k.state) el.dataset.state = JSON.stringify(k.state);
+  el.dataset.k = k.label;
   K.bind(el, k);
   if (map) K.remappable(el, map.id, stock, map.key);
   return el;
