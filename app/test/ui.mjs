@@ -1065,7 +1065,7 @@ for (const [W, H] of [[1920, 1080], [1180, 820]]) {
     decoy: document.querySelector('#console [data-k="Decoy"] .cnt')?.textContent, noise: document.querySelector('#console [data-k="Noise"] .cnt')?.textContent,
     role: document.getElementById('ship-role').textContent, chip: !document.getElementById('tele-chip').hidden,
   }));
-  if (!st.gear || st.ann !== 10 || st.amber !== 'SHLD' || st.decoy !== '48' || st.noise !== '5' || !/Pilot seat · Landed · SCM spooled/.test(st.role) || !st.chip)
+  if (!st.gear || st.ann !== 1 || st.amber !== 'Shields' || st.decoy !== '48' || st.noise !== '5' || !/Pilot seat · Landed · SCM spooled/.test(st.role) || !st.chip)
     problems.push(`telemetry status: ${JSON.stringify(st)}`);
   await checkLabels('telemetry mining', false, pg);
   if (shots) await pg.screenshot({ path: join(shots, 'telemetry-mining.png') });

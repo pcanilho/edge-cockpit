@@ -154,3 +154,35 @@ export async function render(cls) {
   }
   return url || null;
 }
+
+const pendingModels = new Map();
+/** The FleetYards model for a game class: slug, name, maker and its 3D files. Kept a week. */
+export async function model(cls) {
+  const key = 'xfd-model:' + cls;
+  const saved = store.get(key);
+  if (saved && Date.now() - saved.at < RETRY_MS) return saved.m;
+  if (!navigator.onLine) return saved?.m || null;
+  if (!pendingModels.has(cls)) pendingModels.set(cls, fromModel(cls, async m => {
+    const u = k => m.media?.[k]?.url || null;
+    return { slug: m.slug, name: m.name, maker: m.manufacturer?.name || '', paints: !!m.hasPaints,
+      flight: u('holoTexturedLite') || u('holoTextured'), landed: u('landedHoloTexturedLite') || u('landedHoloTextured') };
+  }).catch(() => undefined));
+  const m = await pendingModels.get(cls);
+  pendingModels.delete(cls);
+  if (m === undefined) return saved?.m || null;
+  store.set(key, { at: Date.now(), m });
+  return m;
+}
+/** The paints FleetYards has textures for, for a model slug: [{ name, tex, img }]. Kept a week. */
+export async function paints(slug) {
+  const key = 'xfd-paints:' + slug;
+  const saved = store.get(key);
+  if (saved && Date.now() - saved.at < RETRY_MS) return saved.list;
+  const res = await json(`${API}/${slug}/paints`).catch(() => null);
+  if (!Array.isArray(res)) return saved?.list || [];
+  // Paint media come as plain URLs or as { url, smallUrl }.
+  const u = v => (typeof v === 'string' ? v : v?.smallUrl || v?.url || null);
+  const list = res.filter(p => u(p.media?.holoTexture)).map(p => ({ name: p.name, tex: u(p.media.holoTextureLite) || u(p.media.holoTexture), img: u(p.media.storeImage) }));
+  store.set(key, { at: Date.now(), list });
+  return list;
+}
