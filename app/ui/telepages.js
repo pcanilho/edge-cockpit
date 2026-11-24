@@ -22,6 +22,23 @@ export const TELE_PAGES = [
 ];
 export const isTele = id => typeof id === 'string' && id.startsWith('tl-');
 
+// What the game has sent since the link came up: a page this game build can't fill steps out of
+// the way (4.10.3 sends no radar altitude or vertical speed, so Approach would be all "Not sent").
+let sent = new Set();
+/** The link went down: forget, since the next game may be another build. */
+export function forget() { sent = new Set(); }
+const NEEDS = {
+  'tl-approach': () => sent.has('ralt') || sent.has('vsi'),
+  'tl-turret': live => isGunner(live),
+};
+/** Why a page isn't in the swipe right now, or '' when it is there. */
+export const waitsFor = (id, live) => (NEEDS[id]?.(live) ?? true) ? '' : id === 'tl-turret' ? 'a gunner seat' : 'radar altitude or vertical speed';
+/** The pages to step through: the ones the game can fill now, less those you hid. */
+export function pages(live, hidden = K?.hidden?.() || []) {
+  const list = TELE_PAGES.filter(p => !hidden.includes(p.id) && !waitsFor(p.id, live));
+  return list.length ? list : TELE_PAGES.filter(p => p.id === 'tl-ship');
+}
+
 let K;
 /** ctx: go(id) shows a page, scale() is the stage scale, tele() the latest update, repaint() redraws. */
 export const init = ctx => {
@@ -70,15 +87,19 @@ const anyAnn = (ann, states) => !!ann && ANN.some(k => states.includes(ann[k]));
 
 // ---------- pager ----------
 function pager(id) {
-  const i = TELE_PAGES.findIndex(p => p.id === id);
   const el = h(`<div class="pager tl-pager"><button class="pg prev" aria-label="Previous gauge page">${icon('left', 18)}</button>
-    <span><b>${i + 1}</b> / ${TELE_PAGES.length}</span><button class="pg next" aria-label="Next gauge page">${icon('right', 18)}</button></div>`);
+    <span data-tk="pg" data-page="${id}"></span><button class="pg next" aria-label="Next gauge page">${icon('right', 18)}</button></div>`);
   for (const [sel, dir] of [['.prev', -1], ['.next', 1]]) {
     const b = el.querySelector(sel);
-    pressable(b, { up: () => K.go(TELE_PAGES[(i + dir + TELE_PAGES.length) % TELE_PAGES.length].id) });
+    pressable(b, { up: () => K.go(step(id, dir)) });
     b.addEventListener('pointerdown', e => e.stopPropagation());
   }
   return el;
+}
+/** The page dir steps from id, among the pages shown. */
+function step(id, dir) {
+  const list = pages(K.tele()), i = list.findIndex(p => p.id === id), n = list.length;
+  return list[i < 0 ? 0 : (i + dir + n) % n].id;
 }
 /** A plate whose title carries the page's name and the pager. */
 function head(x, w, id) {
@@ -92,8 +113,7 @@ function head(x, w, id) {
     if (x0 === null) return;
     const dx = (e.clientX - x0) / K.scale();
     x0 = null;
-    const i = TELE_PAGES.findIndex(t => t.id === id), n = TELE_PAGES.length;
-    if (Math.abs(dx) > 120) K.go(TELE_PAGES[(i + (dx < 0 ? 1 : -1) + n) % n].id);
+    if (Math.abs(dx) > 120) K.go(step(id, dx < 0 ? 1 : -1));
   });
   return p;
 }
@@ -378,6 +398,8 @@ const FUEL_WINDOW = 120e3, FUEL_MIN = 20e3;
 /** Fed every update, whatever page is showing, so the timers and rates are ready. */
 export function observe(live, now = performance.now()) {
   const d = flightOf(live), ship = d.v?.class_name || '';
+  if (d.ralt != null) sent.add('ralt');
+  if (d.vsi != null) sent.add('vsi');
   const k = `${ship}:${d.mode}`;
   if (d.mode == null) spool = { key: '', t0: null, last: null };
   else if (k !== spool.key) spool = { key: k, t0: d.spooled ? null : now, last: spool.key.startsWith(ship + ':') ? spool.last : null };
@@ -691,6 +713,12 @@ export function paint(root, live) {
   for (const el of root.querySelectorAll('[data-tk]')) {
     const k = el.dataset.tk;
     if (k === 'ship3d') { ship3d(el, live); continue; }
+    if (k === 'pg') {
+      const list = pages(live), i = list.findIndex(p => p.id === el.dataset.page);
+      const t = `${i < 0 ? '—' : i + 1} / ${list.length}`;
+      if (el.textContent !== t) el.innerHTML = `<b>${i < 0 ? '—' : i + 1}</b> / ${list.length}`;
+      continue;
+    }
     const html = PAINT[k]?.(d, live) ?? '', was = last.get(el);
     if (was === html) continue;
     // The first drawing goes in whole; after that only what changed.

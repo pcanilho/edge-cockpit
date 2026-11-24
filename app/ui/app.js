@@ -117,7 +117,7 @@ const platesMode = v => (Array.isArray(v) && v.some(x => SHIP_PLATES.includes(x)
 // Night backlight in percent; 0 leaves the backlight alone.
 const nightLevel = v => [0, 10, 30, 50].includes(+v) ? +v : 30;
 const nightMode = v => (v === true ? 'on' : ['on', 'auto'].includes(v) ? v : 'off');
-const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), mute: store.get('mute', false), anywhere: store.get('anywhere', false), stack: store.get('stack', true), large: store.get('large', false), shapes: store.get('shapes', false), calm: store.get('calm', false), plates: platesMode(store.get('plates', null)), size: store.get('size', 'fit') === 'actual' ? 'actual' : 'fit', makerTheme: themeMode(store.get('makerTheme', 'auto')), vibrate: store.get('vibrate', true), nightLight: nightLevel(store.get('nightLight', 30)), layout: store.get('layout', 'telemetry') === 'classic' ? 'classic' : 'telemetry', gameSend: store.get('gameSend', true) };
+const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), mute: store.get('mute', false), anywhere: store.get('anywhere', false), stack: store.get('stack', true), large: store.get('large', false), shapes: store.get('shapes', false), calm: store.get('calm', false), plates: platesMode(store.get('plates', null)), size: store.get('size', 'fit') === 'actual' ? 'actual' : 'fit', makerTheme: themeMode(store.get('makerTheme', 'auto')), vibrate: store.get('vibrate', true), nightLight: nightLevel(store.get('nightLight', 30)), layout: store.get('layout', 'telemetry') === 'classic' ? 'classic' : 'telemetry', gameSend: store.get('gameSend', true), tlHidden: [].concat(store.get('tlHidden', [])).filter(tp.isTele) };
 // The game link (see the game link section): off until the game shares its telemetry.
 let link = { link: 'off', port: 2942, actions: [], live: {} };
 /** A key the game takes through the link, so it needs no keyboard bind (5.0, taps only). */
@@ -614,10 +614,10 @@ function paintGauges() {
     const st = link.live?.actor?.state, seat = st ? `${st.crew_role}:${st.seat_name || ''}` : '';
     if (seat !== seatSeen) {
       seatSeen = seat;
-      if (tp.isGunner(link.live)) { if (current !== 'tl-turret') show('tl-turret'); }
+      if (tp.isGunner(link.live)) { if (current !== 'tl-turret' && !opts.tlHidden.includes('tl-turret')) show('tl-turret'); }
       else if (current === 'tl-turret' && seat) show(rolePage || lastShip);
     }
-  } else seatSeen = '';
+  } else { seatSeen = ''; tp.forget(); }
   if (on !== gaugesShown) { gaugesShown = on; paintSoftkeys(); }
   // Status screens of yours that show game values follow every update.
   if (CUSTOM.has(current)) for (const node of document.querySelectorAll('#console .custom-screen.painted')) node.paint();
@@ -734,6 +734,7 @@ async function paintLink(fresh) {
     : teleSet() && info.running ? `Turned on, but the game doesn't answer on 127.0.0.1:${link.port}. Restart the RSI Launcher and the game`
     : 'The game isn\'t sharing it. The console runs from Game.log and your keys, as before';
   document.querySelectorAll('#layout-seg button').forEach(b => b.classList.toggle('cur', b.dataset.v === opts.layout));
+  paintGaugePages();
   const set = teleSet(), all = teleAll();
   // Partly on (a channel added since): the button turns on the rest.
   $('tele-act').textContent = all ? 'Turn telemetry off' : 'Turn telemetry on';
@@ -746,6 +747,31 @@ async function paintLink(fresh) {
     : lastPress.via === 'key' ? `${lastPress.label}: your key` : `${lastPress.label}: your key (the game: ${WHY[lastPress.via] || lastPress.via})`;
   $('rec-act').textContent = recording ? 'Stop and save the recording' : 'Record telemetry';
   $('rec-note').textContent = recording ? 'Recording what the game sends. Saves to Documents\\Edge Cockpit' : live ? 'Saves up to ten minutes of what the game sends, for a bug report' : 'Works while the game shares telemetry';
+}
+/** Settings > Game link > Gauge pages: lit = in the swipe; dim = waiting for something the game hasn't sent. */
+function paintGaugePages() {
+  const seg = $('tlpages-seg');
+  if (!seg.childElementCount) for (const p of tp.TELE_PAGES) {
+    const b = controls.h(`<button data-v="${p.id}">${controls.esc(p.name)}</button>`);
+    controls.pressable(b, { up: () => {
+      const hid = opts.tlHidden.includes(p.id) ? opts.tlHidden.filter(x => x !== p.id) : [...opts.tlHidden, p.id];
+      // At least one page stays.
+      if (hid.length >= tp.TELE_PAGES.length) { toast('One gauge page stays in the swipe'); return; }
+      tick('toggle');
+      setOpt('tlHidden', hid);
+      if (tp.isTele(current)) paintGauges();
+      paintGaugePages();
+    } });
+    seg.append(b);
+  }
+  const waits = [];
+  for (const b of seg.children) {
+    const id = b.dataset.v, why = tp.waitsFor(id, link.live), mine = !opts.tlHidden.includes(id);
+    b.classList.toggle('cur', mine);
+    b.classList.toggle('waits', mine && !!why);
+    if (mine && why) waits.push(`${tp.TELE_PAGES.find(p => p.id === id).name} waits for ${why}`);
+  }
+  $('tlpages-note').textContent = 'Tap a page to take it out of the swipe or put it back.' + (waits.length ? ` ${waits.join('. ')}.` : '');
 }
 async function toggleTelemetry() {
   const set = teleAll();
@@ -785,6 +811,7 @@ const applyAccent = () => stage.style.setProperty('--accent', makerAccent || pag
 
 const K = {
   key: l => KEYS.get(l) || null,
+  hidden: () => opts.tlHidden,
   fitted: k => {
     const lacks = pageById(layout, current)?.role?.lacks || [];
     return !lacks.some(kit => KIT_KEYS[kit]?.includes(k.label));
@@ -1126,7 +1153,7 @@ const SOFT = [
   { label: 'Downed', icon: 'medical', go: () => 'downed', is: id => id === 'downed' },
   { label: 'Log', icon: 'list', go: () => 'log', is: id => id === 'log' },
   { label: 'World', icon: 'globe', go: () => 'world', is: id => id === 'world' },
-  { label: 'Gauges', icon: 'gauge', go: () => lastGauges, is: tp.isTele, tele: true },
+  { label: 'Gauges', icon: 'gauge', go: () => { const list = tp.pages(link.live); return list.some(p => p.id === lastGauges) ? lastGauges : list[0].id; }, is: tp.isTele, tele: true },
   { label: 'Settings', icon: 'cog', go: null },
 ];
 function buildSoftkeys() {
