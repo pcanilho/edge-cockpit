@@ -52,6 +52,8 @@ export async function gun(cls) {
   store.set(key, { at: Date.now(), g });
   return g;
 }
+/** 'KLWE_LaserRepeater_S2_878452447009' -> 'KLWE_LaserRepeater_S2': 5.0 adds the item's instance id. */
+export const classOf = name => String(name || '').replace(/_\d{6,}$/, '');
 /** 'KLWE_LaserRepeater_S1' -> 'Laser repeater S1': what the class name says, until the Wiki answers. */
 export function plainName(cls) {
   const [, t = '', sz = ''] = String(cls).split('_');

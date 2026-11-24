@@ -4,7 +4,7 @@
 import * as G from './lib/gauges.js';
 import { plate, screen, keycap, onOffKey, h, icon, esc, pressable } from './controls.js';
 import { model as fyModel, paints as fyPaints } from './outlines.js';
-import { gun as gunInfo, plainName } from './guns.js';
+import { gun as gunInfo, plainName, classOf } from './guns.js';
 import { view as shipView } from './ship3d.js';
 
 const { C, T, mono } = G;
@@ -516,7 +516,7 @@ function loadoutPlate(live) {
   const list = live?.weapons?.weapons || [];
   if (!list.length) return `<div class="s3-ph"><b>Guns</b><span>Not sent</span></div>`;
   const byName = new Map();
-  list.forEach((g, i) => { const k = g.name || ''; if (!byName.has(k)) byName.set(k, []); byName.get(k).push({ ...g, n: i + 1 }); });
+  list.forEach((g, i) => { const k = classOf(g.name); if (!byName.has(k)) byName.set(k, []); byName.get(k).push({ ...g, n: i + 1 }); });
   let patch = null, tot = { burst: 0, sustained: 0, alpha: 0 }, rated = true;
   const cards = [...byName].map(([cls, gs]) => {
     const info = cls ? once(gunCache, cls, () => gunInfo(cls)) : null, st = info?.stats;
