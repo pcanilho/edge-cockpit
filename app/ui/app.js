@@ -684,9 +684,9 @@ function paintTele() {
     const line = tele.shipLine(link.live);
     if (line && game.seated) role = baseRole.replace(/ · pilot seat$/, '') + ' · ' + line;
     // What this game version doesn't send (4.10: shields, hull, vertical speed) is left out, not shown as a dash.
-    const bar = (n, val, c) => val == null ? '' : `<span>${n}</span><i style="--v:${val}%;--c:${c}"></i><em>${val}%</em>`;
+    const bar = (n, val, c, way) => val == null ? '' : `<span>${n}</span><i style="--v:${val}%;--c:${c}"></i><em>${way === -1 ? '<b class="dn">▼</b>' : way === 1 ? '<b class="up">▲</b>' : ''}${val}%</em>`;
     const num = (n, val, unit) => val == null ? '' : `<span>${n}<b>${esc(String(val))}<small> ${unit}</small></b></span>`;
-    const bars = bar('Shields', ins.shields, 'var(--cyan)') + bar('Hull', ins.hull, 'var(--ok)') + bar('Boost', ins.boost, 'var(--hold)');
+    const bars = bar('Shields', ins.shields, 'var(--cyan)', tp.shieldTrend()) + bar('Hull', ins.hull, 'var(--ok)') + bar('Boost', ins.boost, 'var(--hold)');
     const nums = num('Speed', ins.speed, 'm/s') + num('Radar altitude', ins.radarAlt == null ? null : ins.radarAlt < 100 ? ins.radarAlt.toFixed(1) : Math.round(ins.radarAlt), 'm') + num('Vertical', ins.vertical, 'm/s');
     // The warning lights that are lit, in words; ten in full don't fit here, so the rest stay out.
     const lit = ann ? tele.ANNUNCIATORS.map(k => ({ k, l: tele.lamp(ann[k]) })).filter(x => x.l.cls === 'm' || x.l.cls === 'x') : [];

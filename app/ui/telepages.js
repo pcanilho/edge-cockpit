@@ -223,10 +223,33 @@ function caution(d) {
   return `<div class="tl-mc"><b class="${minor ? 'cau' : ''} ${minor && !quiet ? 'fl' : ''}" data-ack>Master caution<small>${minor ? 'Tap to acknowledge' : 'All clear'}</small></b><b class="${major ? 'war' : ''} ${major && !quiet ? 'fl' : ''}" data-ack>Master warning<small>${major ? 'Tap to acknowledge' : 'All clear'}</small></b></div>
     <div class="tl-ann">${ANN.map(k => `<b class="${a ? lampCls(a[k]) : ''} ${a && flashing(a[k]) ? 'fl' : ''}">${ANN_NAME[k]}</b>`).join('')}</div>`;
 }
+const secs = n => `${n} second${n === 1 ? '' : 's'}`;
+/**
+ * Two lines under the shields gauge (how fast they move, and when they'd be empty or full at that
+ * rate) and under the hull (the last hit), from the game's own readings. Nothing until there are
+ * enough of them.
+ */
+function trendLines(which, level, x, y) {
+  const now = performance.now();
+  if (level == null) return '';
+  // The hull doesn't drain, it takes hits: when and how much the last one took.
+  if (which === 'hu') {
+    if (trend.hit == null) return '';
+    const ago = Math.round((now - trend.hit) / 1000), lost = Math.max(1, Math.round(trend.lost * 100));
+    return T(x, y, 15, `LAST HIT ${secs(ago).toUpperCase()} AGO`, { c: ago < 10 ? C.amber : C.muted, ls: 2.4 }) + T(x, y + 26, 12, `HULL LOST ${lost} %`, { c: C.paint, ls: 2.4 });
+  }
+  const r = rateOf(trend.sh);
+  if (r == null) return '';
+  const per = Math.abs(r * 100), rate = `${per < 10 ? per.toFixed(1) : Math.round(per)} % A SECOND`;
+  if (r < -0.002) return T(x, y, 15, '▼ ' + rate, { c: C.amber, ls: 2.4 }) + T(x, y + 26, 12, `EMPTY IN ABOUT ${secs(Math.max(1, Math.round(level / -r))).toUpperCase()}`, { c: C.paint, ls: 2.4 });
+  if (r > 0.002) return T(x, y, 15, '▲ ' + rate, { c: C.ok, ls: 2.4 }) + (level < 0.995 ? T(x, y + 26, 12, `FULL IN ABOUT ${secs(Math.max(1, Math.round((1 - level) / r))).toUpperCase()}`, { c: C.paint, ls: 2.4 }) : '');
+  return T(x, y, 15, 'STEADY', { c: C.muted, ls: 2.4 });
+}
 function shHull(d) {
   const sh = pct(d.shields), hu = pct(d.hull);
   return G.svg(612, 368, (sh == null ? T(160, 200, 14, 'SHIELDS · NOT SENT', { c: C.dim, ls: 2 }) : G.semi(160, 210, 120, sh, { title: 'SHIELDS', c: C.cyan }))
-    + (hu == null ? T(452, 200, 14, 'HULL · NOT SENT', { c: C.dim, ls: 2 }) : G.semi(452, 210, 120, hu, { title: 'HULL', c: hu < 25 ? C.red : hu < 50 ? C.amber : C.ok })));
+    + (hu == null ? T(452, 200, 14, 'HULL · NOT SENT', { c: C.dim, ls: 2 }) : G.semi(452, 210, 120, hu, { title: 'HULL', c: hu < 25 ? C.red : hu < 50 ? C.amber : C.ok }))
+    + trendLines('sh', d.shields, 160, 270) + trendLines('hu', d.hull, 452, 270));
 }
 
 function approach(d) {
@@ -340,7 +363,8 @@ function threat(d) {
 function defence(d) {
   const sh = pct(d.shields), hu = pct(d.hull);
   return G.svg(652, 400, (sh == null ? T(170, 190, 14, 'SHIELDS · NOT SENT', { c: C.dim, ls: 2 }) : G.ring(170, 190, 130, sh, { title: 'SHIELDS', c: C.cyan, glow: true, fs: 52 }))
-    + (hu == null ? T(482, 190, 14, 'HULL · NOT SENT', { c: C.dim, ls: 2 }) : G.ring(482, 190, 130, hu, { title: 'HULL', c: hu < 25 ? C.red : hu < 50 ? C.amber : C.ok, glow: true, fs: 52 })));
+    + (hu == null ? T(482, 190, 14, 'HULL · NOT SENT', { c: C.dim, ls: 2 }) : G.ring(482, 190, 130, hu, { title: 'HULL', c: hu < 25 ? C.red : hu < 50 ? C.amber : C.ok, glow: true, fs: 52 }))
+    + trendLines('sh', d.shields, 170, 352) + trendLines('hu', d.hull, 482, 352));
 }
 function guns(live) {
   const w = live?.weapons, list = w?.weapons || [];
@@ -395,9 +419,27 @@ let spool = { key: '', t0: null, last: null };
 // Hydrogen over the last two minutes, per ship, for the burn rate.
 let fuel = { ship: '', samples: [] };
 const FUEL_WINDOW = 120e3, FUEL_MIN = 20e3;
+// Shields and hull over the last few seconds, per ship, for which way a fight is going.
+let trend = { ship: '', sh: [], hu: [], hit: null, lost: 0 };
+const TREND_MS = 3000, TREND_MIN = 1000;
+const sample = (arr, v, now) => {
+  if (v == null) { arr.length = 0; return; }
+  arr.push({ t: now, v });
+  while (arr.length && now - arr[0].t > TREND_MS) arr.shift();
+};
+/** Change a second (fraction of full) over the window, or null while it's too short to say. */
+const rateOf = arr => (arr.length < 2 || arr.at(-1).t - arr[0].t < TREND_MIN ? null : (arr.at(-1).v - arr[0].v) / ((arr.at(-1).t - arr[0].t) / 1000));
+/** Which way shields are going: -1 falling, 1 rising, 0 steady, null not known. */
+export function shieldTrend() { const r = rateOf(trend.sh); return r == null ? null : r < -0.002 ? -1 : r > 0.002 ? 1 : 0; }
 /** Fed every update, whatever page is showing, so the timers and rates are ready. */
 export function observe(live, now = performance.now()) {
   const d = flightOf(live), ship = d.v?.class_name || '';
+  if (ship !== trend.ship) trend = { ship, sh: [], hu: [], hit: null, lost: 0 };
+  const hu0 = trend.hu.at(-1)?.v;
+  // A hit is a step down; hits close together count as one.
+  if (d.hull != null && hu0 != null && d.hull < hu0 - 0.0005) { trend.lost = (trend.hit != null && now - trend.hit < 1500 ? trend.lost : 0) + (hu0 - d.hull); trend.hit = now; }
+  sample(trend.sh, d.shields, now);
+  sample(trend.hu, d.hull, now);
   if (d.ralt != null) sent.add('ralt');
   if (d.vsi != null) sent.add('vsi');
   const k = `${ship}:${d.mode}`;
