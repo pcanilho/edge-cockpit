@@ -25,7 +25,7 @@ Settings > Game link > Turn telemetry on does both of these. Restart the RSI Lau
 
 `TriggerGameAction` status: 1 ok, 2 unknown action, 3 map inactive (not in this seat or mode), 4 rate limited, 5 failed, 6 hold not allowed, 7 filtered.
 
-A press goes through the game when it is a tap, the game lists its action, and Settings > Game link > Send commands through the game is on. Any other status, no answer within 1.5 s, or a hold sends your key instead. Settings shows which path the last press took.
+A press goes through the game when it is a tap, the game lists its action, and Settings > Game link > Send commands through the game is on. Any other status, no answer within 1.5 s, or a hold sends your key instead. Settings shows which path the last press took. A key with no keyboard bind still works when the game takes its action; its cap reads GAME.
 
 ## Fields the console reads
 

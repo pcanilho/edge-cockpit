@@ -1075,6 +1075,11 @@ for (const [W, H] of [[1920, 1080], [1180, 820]]) {
     locks: [...document.querySelectorAll('#console .tgl.dual')].find(e => /door locks/i.test(e.textContent))?.className,
   }));
   if (fl.esp !== 'OFF') problems.push(`telemetry: ESP lamp reads ${fl.esp}`);
+  // A key with no keyboard bind still works when the game takes its action: GAME on the cap, not unbound.
+  const noEsp = `<ActionMaps><ActionProfiles profileName="default"><actionmap name="spaceship_movement"><action name="v_ifcs_toggle_esp"><rebind input="kb1_ "/></action></actionmap></ActionProfiles></ActionMaps>`;
+  const gb = await pg.evaluate(async xml => { window.xfdTestBinds = xml; await window.xfd.reloadBinds(); const h = window.xfd.bindHealth(); return { game: h.game, missing: h.missing, kb: document.querySelector('#console [data-k="ESP"] .kb')?.textContent, chip: !document.getElementById('binds-chip').hidden }; }, noEsp);
+  if (!gb.game.includes('ESP') || gb.missing.includes('ESP') || gb.kb !== 'GAME' || gb.chip) problems.push(`telemetry: an unbound key the game takes: ${JSON.stringify(gb)}`);
+  await pg.evaluate(async () => { window.xfdTestBinds = null; await window.xfd.reloadBinds(); });
   if (fl.locks && /\b(on|off)\b/.test(fl.locks)) problems.push('telemetry: door locks show a side the game never sent');
   await checkLabels('telemetry flight', false, pg);
   if (shots) await pg.screenshot({ path: join(shots, 'telemetry-flight.png') });
