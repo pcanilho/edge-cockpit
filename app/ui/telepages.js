@@ -749,6 +749,15 @@ function patch(node, was, now) {
   if (bare(inn, kn) !== bare(iw, kw)) { node.innerHTML = inn; return; }
   kn.forEach((c, i) => patch(node.children[i], kw[i], c));
 }
+/** Puts html into el, which shows was: only the parts that differ change when it can. */
+export function refill(el, was, html) {
+  if (was === html) return;
+  const k = kids(html);
+  if (was && k.length && k.join('') === html && kids(was).join('') === was && kids(was).length === k.length && el.childNodes.length === k.length) {
+    const kw = kids(was);
+    k.forEach((c, i) => patch(el.children[i], kw[i], c));
+  } else el.innerHTML = html;
+}
 /** Fills the page's slots from a live update; slots whose drawing didn't change are left alone. */
 export function paint(root, live) {
   const d = flightOf(live);

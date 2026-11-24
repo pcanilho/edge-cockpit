@@ -708,16 +708,17 @@ function paintTele() {
   teleShape = shape;
   if ($('ship-role').textContent !== role) $('ship-role').textContent = role;
   if (html === teleShown) { if (reshaped) fitChips(); return; }
-  const had = !!teleShown;
+  const had = teleShown;
   teleShown = html;
   let box = $('tlm');
   if (!html) { box?.remove(); mfd.classList.remove('tlm-on'); }
   else {
     if (!box) { box = document.createElement('div'); box.id = 'tlm'; box.className = 'tlm'; facts.prepend(box); }
-    box.innerHTML = html;
+    // Ten times a second: change only the numbers and bars that moved.
+    tp.refill(box, box.childNodes.length ? had : '', html);
     mfd.classList.add('tlm-on');
   }
-  if (had !== !!html || reshaped) fitChips();
+  if (!had !== !html || reshaped) fitChips();
 }
 /** Settings › Game link. With `fresh`, asks the PC how telemetry is set up. */
 let setupSeen = null;
