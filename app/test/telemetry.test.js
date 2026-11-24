@@ -77,3 +77,12 @@ test('presses go through the game only for actions it takes', () => {
   assert.equal(viaGame(U, { action: 'v_eject' }, 'tap', true), false);
   assert.equal(viaGame({ ...U, link: 'off' }, k, 'tap', true), false);
 });
+
+test('4.10.3 LIVE leaves out shields, hull, master mode and vertical speed: none is shown', () => {
+  // From a recording on 4.10.3 LIVE (RSI Galaxy, flying), as the app passes it on.
+  const v = { name: 'RSI_Galaxy_929237689784', class_name: 'RSI_Galaxy', lights_enabled: false, shields: null, health: 0, master_mode: null,
+    flight: { state: { is_landed: false, gear: 1, vtol: 1 }, settings: { ifcs_coupled: { enabled: true, active: true } },
+      instruments: { speed: 12.34, boost: { engaged: true, reserves: 0.9977, critical: false }, radar_altitude: 3.4028234663852886e38, vertical_speed_indicator: 0 } } };
+  assert.deepEqual(instruments(v), { shields: null, hull: null, boost: 99, speed: 12, radarAlt: null, vertical: null });
+  assert.equal(shipLine({ vehicle: v, actor: { state: { crew_role: 1 } } }), 'Pilot seat · Flying');
+});

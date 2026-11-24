@@ -1128,6 +1128,17 @@ for (const [W, H] of [[1920, 1080], [1180, 820]]) {
   await pg.evaluate(u => window.xfd.telemetry({ ...u, link: 'linked', live: { vehicle: null, weapons: null, actor: null } }), U);
   const linked = await sw();
   if (await chip() !== 'Telemetry linked · waiting for spawn' || Object.values(linked).some(v => v !== '-')) problems.push(`telemetry: linked shows ${await chip()} ${JSON.stringify(linked)}`);
+  // A real 4.10.3 LIVE frame (RSI Galaxy, flying): no shields, hull, master mode or vertical speed,
+  // so the status shows only what came.
+  const G = JSON.parse(await readFile(join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'telemetry-galaxy-410.json'), 'utf8'));
+  await pg.evaluate(() => window.xfd.feed(["CVehicleMovementBase::SetDriver: Local client node [1] granted control token for 'RSI_Galaxy_929237689784' [929237689784]"]));
+  await pg.evaluate(u => window.xfd.telemetry(u), G);
+  await pg.evaluate(() => window.xfd.show('flight'));
+  await pg.waitForTimeout(100);
+  const g410 = await pg.evaluate(() => ({ text: document.getElementById('tlm')?.innerText.replace(/\s+/g, ' '), chip: document.getElementById('tele-chip').textContent.trim() }));
+  if (!/BOOST 100%/i.test(g410.text) || /shields|hull|vertical|radar/i.test(g410.text) || !/Speed 339 m\/s/i.test(g410.text) || g410.chip !== 'Telemetry live')
+    problems.push(`telemetry 4.10: ${JSON.stringify(g410)}`);
+  if (shots) await pg.screenshot({ path: join(shots, 'telemetry-410.png') });
   await ctx.close();
 }
 

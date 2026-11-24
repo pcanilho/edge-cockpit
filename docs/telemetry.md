@@ -52,6 +52,8 @@ Frame: `3: vehicle`, `4: weapons`, `6: actor`. Each section counts as stale 1.5 
 
 **actor**: `1 vitals` (`1` health, `2` oxygen, `3` hunger, `4` thirst, `5` body temperature as `{1 current, 2 max}`; `7 heart_rate`, `8 gravity`); `2 state` (`1 locomotion`: 1 on foot, 2 EVA, 3 seated; `2 crew_role`: 1 pilot, 2 gunner, 3 crew); `3 environment` (`1 external_temperature`, `3 breathable_atmosphere`). Vitals show only on foot or in EVA.
 
+4.10.3 LIVE (recorded in an RSI Galaxy) also leaves out shields, hull, master mode, vertical speed and radar altitude; the status display then shows only what came. `app/test/fixtures/telemetry-galaxy-410.json` is a frame from that recording.
+
 Not sent, so never shown: door open and lock state (in the schema, empty in 5.0 PTU), port locks, flashlight, auto precision, the gun group, death and respawn. The game also refuses door, lock and port commands; your keys still work for those.
 
 ## Recordings

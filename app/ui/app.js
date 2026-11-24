@@ -650,11 +650,13 @@ function paintTele() {
     const ins = tele.instruments(v), ann = v.annunciators;
     const line = tele.shipLine(link.live);
     if (line && game.seated) role = baseRole.replace(/ · pilot seat$/, '') + ' · ' + line;
-    const bar = (n, val, c) => `<span>${n}</span><i style="--v:${val ?? 0}%;--c:${c}"></i><em>${val == null ? '—' : val + '%'}</em>`;
-    const num = (n, val, unit) => `<span>${n}<b>${val == null ? '—' : esc(String(val))}${val == null ? '' : `<small> ${unit}</small>`}</b></span>`;
+    // What this game version doesn't send (4.10: shields, hull, vertical speed) is left out, not shown as a dash.
+    const bar = (n, val, c) => val == null ? '' : `<span>${n}</span><i style="--v:${val}%;--c:${c}"></i><em>${val}%</em>`;
+    const num = (n, val, unit) => val == null ? '' : `<span>${n}<b>${esc(String(val))}<small> ${unit}</small></b></span>`;
+    const bars = bar('Shields', ins.shields, 'var(--cyan)') + bar('Hull', ins.hull, 'var(--ok)') + bar('Boost', ins.boost, 'var(--hold)');
+    const nums = num('Speed', ins.speed, 'm/s') + num('Radar alt', ins.radarAlt == null ? null : ins.radarAlt < 100 ? ins.radarAlt.toFixed(1) : Math.round(ins.radarAlt), 'm') + num('Vertical', ins.vertical, 'm/s');
     html = (ann ? `<div class="ann">${tele.ANNUNCIATORS.map(k => { const l = tele.lamp(ann[k]); return `<b class="${l.cls}${l.flash ? ' fl' : ''}">${k.toUpperCase()}</b>`; }).join('')}</div>` : '')
-      + `<div class="bars">${bar('Shields', ins.shields, 'var(--cyan)')}${bar('Hull', ins.hull, 'var(--ok)')}${bar('Boost', ins.boost, 'var(--hold)')}</div>`
-      + `<div class="rd">${num('Speed', ins.speed, 'm/s')}${num('Radar alt', ins.radarAlt == null ? null : ins.radarAlt < 100 ? ins.radarAlt.toFixed(1) : Math.round(ins.radarAlt), 'm')}${num('Vertical', ins.vertical, 'm/s')}</div>`;
+      + (bars ? `<div class="bars">${bars}</div>` : '') + (nums ? `<div class="rd">${nums}</div>` : '');
   } else if (body) {
     if (body.breathable != null) role = `${body.eva ? 'EVA' : 'On foot'} · ${body.breathable ? 'Breathable air outside' : 'No breathable air'}`;
     const g = (n, val, unit, p, c) => `<div>${n}<b>${val == null ? '—' : esc(String(val))}${val == null ? '' : `<small>${unit}</small>`}</b>${p != null ? `<i style="--v:${p}%;--c:${c}"></i>` : ''}</div>`;

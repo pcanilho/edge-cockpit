@@ -76,7 +76,8 @@ export function instruments(v) {
     boost: ins?.boost ? pct(ins.boost.reserves) : null,
     speed: ins && finite(ins.speed) ? Math.round(ins.speed) : null,
     radarAlt: ins && finite(ins.radar_altitude) && ins.radar_altitude > 0 ? ins.radar_altitude : null,
-    vertical: ins && finite(ins.vertical_speed_indicator) ? Math.round(ins.vertical_speed_indicator) : null,
+    // 4.10 never sends it, and an unsent value reads 0: exactly 0 counts as unknown.
+    vertical: ins && finite(ins.vertical_speed_indicator) && ins.vertical_speed_indicator !== 0 ? Math.round(ins.vertical_speed_indicator) : null,
   };
 }
 
