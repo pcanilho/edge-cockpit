@@ -437,17 +437,19 @@ pub struct Recording {
     start: Instant,
     actions: Vec<String>,
     frames: Vec<(u32, Bytes)>,
+    /// Each action sent through the game while recording: ms, name, what the game said.
+    presses: Vec<(u32, String, String)>,
 }
 
 impl Link {
     pub fn record(&self) {
-        *self.rec.lock().unwrap() = Some(Recording { start: Instant::now(), actions: vec![], frames: vec![] });
+        *self.rec.lock().unwrap() = Some(Recording { start: Instant::now(), actions: vec![], frames: vec![], presses: vec![] });
     }
     /// Ends the recording: a JSON header line, then each message as milliseconds since the
     /// start (u32, big-endian), its length (u32) and its bytes. docs/telemetry.md reads it.
     pub fn stop(&self) -> Option<Vec<u8>> {
         let r = self.rec.lock().unwrap().take()?;
-        let head = serde_json::json!({ "app": "edge-cockpit", "format": 1, "service": SERVICE, "actions": r.actions, "frames": r.frames.len() });
+        let head = serde_json::json!({ "app": "edge-cockpit", "format": 1, "service": SERVICE, "actions": r.actions, "presses": r.presses, "frames": r.frames.len() });
         let mut out = head.to_string().into_bytes();
         out.push(b'\n');
         for (ms, b) in r.frames {
@@ -516,8 +518,16 @@ impl Link {
         let Some((client, port)) = self.client.lock().unwrap().clone() else { return Ok("no-link") };
         let req = pb::TriggerRequest { action_name: action.to_string(), hold_ms };
         let call = unary::<_, pb::TriggerResponse>(&client, port, "TriggerGameAction", &req);
-        let resp = tokio::time::timeout(Duration::from_millis(1500), call).await.map_err(|_| "timeout".to_string())??;
-        Ok(status_name(resp.status))
+        let out = match tokio::time::timeout(Duration::from_millis(1500), call).await {
+            Ok(Ok(resp)) => Ok(status_name(resp.status)),
+            Ok(Err(e)) => Err(e),
+            Err(_) => Err("timeout".to_string()),
+        };
+        if let Some(r) = self.rec.lock().unwrap().as_mut() {
+            let said = match &out { Ok(s) => s.to_string(), Err(e) => e.clone() };
+            r.presses.push((r.start.elapsed().as_millis().min(u32::MAX as u128) as u32, action.to_string(), said));
+        }
+        out
     }
 }
 
@@ -579,6 +589,23 @@ pub fn cfg_on(cfg: &str) -> bool {
     cfg_value(cfg, CFG_KEY).is_some_and(|v| matches!(v.to_ascii_lowercase().as_str(), "1" | "true"))
 }
 
+/// The game's action names, and when to ask again: soon while it gives none, rarely on a game
+/// without actions (4.10).
+async fn list_actions(client: &Client, port: u16) -> (Vec<String>, Duration) {
+    match tokio::time::timeout(Duration::from_secs(2), unary::<_, pb::ListResponse>(client, port, "ListTriggerableActions", &pb::Empty {})).await {
+        Ok(Ok(list)) if !list.actions.is_empty() => (list.actions.into_iter().map(|a| a.action_name).collect(), Duration::from_secs(60)),
+        Ok(Err(e)) if e == "grpc-status 12" => (vec![], Duration::from_secs(120)),
+        _ => (vec![], Duration::from_secs(5)),
+    }
+}
+
+struct AbortOnDrop(tokio::task::JoinHandle<()>);
+impl Drop for AbortOnDrop {
+    fn drop(&mut self) {
+        self.0.abort();
+    }
+}
+
 /// "live" while any section is fresh, else "linked": the game answers but shares nothing yet.
 fn state_of(live: &Live) -> &'static str {
     if live.vehicle.is_some() || live.weapons.is_some() || live.actor.is_some() { "live" } else { "linked" }
@@ -629,11 +656,24 @@ async fn session(link: &Link, port: u16, send: &mut impl FnMut(Update)) -> Resul
 }
 
 async fn stream(link: &Link, client: Client, port: u16, send: &mut impl FnMut(Update)) -> Result<(), String> {
-    // A game that only shares state (4.10) answers "unimplemented": no actions.
-    let actions = match tokio::time::timeout(Duration::from_secs(2), unary::<_, pb::ListResponse>(&client, port, "ListTriggerableActions", &pb::Empty {})).await {
-        Ok(Ok(list)) => list.actions.into_iter().map(|a| a.action_name).collect(),
-        _ => vec![],
+    // The actions the game takes. Asked again while streaming: in the menu or while a map loads
+    // 5.0 may give none, or no answer in time. A game that only shares state (4.10) answers
+    // "unimplemented", so it is asked rarely.
+    let (mut actions, again) = list_actions(&client, port).await;
+    let shared = std::sync::Arc::new(Mutex::new(actions.clone()));
+    let refresh = {
+        let (client, shared) = (client.clone(), shared.clone());
+        tokio::spawn(async move {
+            let mut wait = again;
+            loop {
+                tokio::time::sleep(wait).await;
+                let (got, next) = list_actions(&client, port).await;
+                *shared.lock().unwrap() = got;
+                wait = next;
+            }
+        })
     };
+    let _stop = AbortOnDrop(refresh);
     *link.client.lock().unwrap() = Some((client.clone(), port));
     let mut ready = client.ready().await.map_err(|e| e.to_string())?;
     let (resp, mut tx) = ready.send_request(request(port, "TelemetryStream"), false).map_err(|e| e.to_string())?;
@@ -649,6 +689,11 @@ async fn stream(link: &Link, client: Client, port: u16, send: &mut impl FnMut(Up
     let mut pending = false;
     send(Update { link: "linked", port, actions: actions.clone(), live: Live::default() });
     loop {
+        let now_actions = shared.lock().unwrap().clone();
+        if now_actions != actions {
+            actions = now_actions;
+            pending = true;
+        }
         // Wake at least every half second, so a section that stopped arriving goes stale.
         let next = tokio::time::timeout(Duration::from_millis(500), body.data()).await;
         let now = Instant::now();

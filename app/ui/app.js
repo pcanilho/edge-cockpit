@@ -652,6 +652,8 @@ function paintCounts() {
 }
 let baseRole = '', teleShown = '';
 const teleSet = () => !!setupSeen && (setupSeen.env || setupSeen.channels.some(([, on]) => on));
+// On everywhere it can be: 4.10's variable and each channel's user.cfg (PTU added later counts).
+const teleAll = () => !!setupSeen && setupSeen.env && setupSeen.channels.every(([, on]) => on);
 /**
  * Whether the game link works, on the status screen: live, linked (the game answers but shares
  * nothing until your character spawns), or no answer while the game runs with telemetry turned on.
@@ -722,10 +724,12 @@ async function paintLink(fresh) {
     : teleSet() && info.running ? `Turned on, but the game doesn't answer on 127.0.0.1:${link.port}. Restart the RSI Launcher and the game`
     : 'The game isn\'t sharing it. The console runs from Game.log and your keys, as before';
   document.querySelectorAll('#layout-seg button').forEach(b => b.classList.toggle('cur', b.dataset.v === opts.layout));
-  const set = teleSet();
-  $('tele-act').textContent = set ? 'Turn telemetry off' : 'Turn telemetry on';
+  const set = teleSet(), all = teleAll();
+  // Partly on (a channel added since): the button turns on the rest.
+  $('tele-act').textContent = all ? 'Turn telemetry off' : 'Turn telemetry on';
+  const off = setupSeen ? [!setupSeen.env && '4.10', ...setupSeen.channels.filter(([, on]) => !on).map(([c]) => c)].filter(Boolean) : [];
   $('tele-act-note').textContent = set
-    ? `On for ${[setupSeen.env && '4.10', ...setupSeen.channels.filter(([, on]) => on).map(([c]) => c + ' (user.cfg)')].filter(Boolean).join(', ')}. The game reads it when it starts`
+    ? `On for ${[setupSeen.env && '4.10', ...setupSeen.channels.filter(([, on]) => on).map(([c]) => c + ' (user.cfg)')].filter(Boolean).join(', ')}${off.length ? `, not yet for ${off.join(', ')}` : ''}. The game reads it when it starts`
     : 'For 4.10 and 5.0. Restart the RSI Launcher and the game afterwards';
   const WHY = { unknown: 'it doesn\'t know the action', inactive: 'not in this seat or mode', 'rate-limited': 'too many at once', filtered: 'it refused', hold: 'no holds', failed: 'it failed', 'no-link': 'no link', timeout: 'no answer' };
   $('press-note').textContent = !lastPress ? 'Nothing pressed yet' : lastPress.via === 'ok' ? `${lastPress.label}: through the game`
@@ -734,7 +738,7 @@ async function paintLink(fresh) {
   $('rec-note').textContent = recording ? 'Recording what the game sends. Saves to Documents\\Edge Cockpit' : live ? 'Saves up to ten minutes of what the game sends, for a bug report' : 'Works while the game shares telemetry';
 }
 async function toggleTelemetry() {
-  const set = teleSet();
+  const set = teleAll();
   try {
     setupSeen = await bridge.telemetryEnable(!set);
     toast(set ? 'Telemetry off from the next game start' : 'Telemetry on. Restart the RSI Launcher and the game');

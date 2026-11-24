@@ -20,7 +20,7 @@ Settings > Game link > Turn telemetry on does both of these. Restart the RSI Lau
 | RPC | Request | Response |
 |---|---|---|
 | `TelemetryStream` | empty | stream of frames, about 17 a second |
-| `ListTriggerableActions` | empty | `1: repeated { 1: action_name }` |
+| `ListTriggerableActions` | empty | `1: repeated { 1: action_name }`. Asked again every 5 s while it lists none (menu, loading), then every minute |
 | `TriggerGameAction` | `1: action_name`, `2: hold_ms` (optional) | `1: status`, `2: message` |
 
 `TriggerGameAction` status: 1 ok, 2 unknown action, 3 map inactive (not in this seat or mode), 4 rate limited, 5 failed, 6 hold not allowed, 7 filtered.
@@ -60,7 +60,7 @@ Not sent, so never shown: door open and lock state (in the schema, empty in 5.0 
 
 Settings > Game link > Record telemetry saves up to ten minutes of the stream to `Documents\Edge Cockpit\telemetry-<time>.sctl`:
 
-1. One line of JSON: `{"app":"edge-cockpit","format":1,"service":…,"actions":[…],"frames":N}`.
+1. One line of JSON: `{"app":"edge-cockpit","format":1,"service":…,"actions":[…],"presses":[[ms,action,result]…],"frames":N}`.
 2. Then per frame: milliseconds since the start (u32, big-endian), length (u32, big-endian), and the `TelemetryStream` message bytes.
 
 `app/test/fixtures/telemetry-prospector.json` is a real 5.0 PTU frame (MISC Prospector, landed, pilot seat) the tests run against.
