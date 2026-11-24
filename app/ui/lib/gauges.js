@@ -80,9 +80,9 @@ export function tape(x, y, w, h, val, o) {
   s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#gx-fadeV)"/></g>`;
   // Readout box with a pointer toward the scale.
   const bw = w - 18, bx = right ? x + 18 : x, txt = o.fmt(val);
-  const pt = right ? `M${bx} ${cy - 24}h${bw}v48h-${bw}v-16l-14-8 14-8z` : `M${bx} ${cy - 24}h${bw}v16l14 8-14 8v16h-${bw}z`;
+  const pt = right ? `M${bx} ${cy - 28}h${bw}v72h-${bw}v-40l-14-8 14-8z` : `M${bx} ${cy - 28}h${bw}v20l14 8-14 8v44h-${bw}z`;
   s += `<path d="${pt}" fill="#02080c" stroke="${o.c}" stroke-width="2.5" filter="url(#gx-gl)"/>`;
-  s += mono(bx + bw / 2, cy - 2, o.fs || 30, txt, { c: o.c, w: 500 }) + T(bx + bw / 2, cy + 33, 11, o.unit, { c: o.c, ls: 2, op: .9 });
+  s += mono(bx + bw / 2, cy - 2, o.fs || 30, txt, { c: o.c, w: 500 }) + T(bx + bw / 2, cy + 30, 11, o.unit, { c: o.c, ls: 2, op: .9 });
   return s + '</g>';
 }
 
@@ -97,9 +97,9 @@ export function vsi(cx, cy, r, v) {
   }
   for (const t of [3, 4, 6, 7, 8, 9, 15, 25, 40]) for (const sg of [1, -1]) { const a = ang(sg * t), [x0, y0] = P(cx, cy, r - 12, a), [x1, y1] = P(cx, cy, r - 24, a); s += `<line x1="${f1(x0)}" y1="${f1(y0)}" x2="${f1(x1)}" y2="${f1(y1)}" stroke="${C.paint}" stroke-width="1.5" opacity=".6"/>`; }
   s += T(cx + r * .42, cy - r * .42, 14, 'UP', { c: C.ok, ls: 3 }) + T(cx + r * .42, cy + r * .42, 14, 'DOWN', { c: C.amber, ls: 3 });
-  s += T(cx, cy - r * .3, 13, 'VERTICAL SPEED', { c: C.muted, ls: 3 }) + T(cx + r * .42, cy + 40, 12, 'M/S', { c: C.muted, ls: 3 });
+  s += T(cx, cy - r * .3, 13, 'VERTICAL SPEED', { c: C.muted, ls: 3 }) ;
   const vr0 = Math.round(v), t0 = vr0 > 0 ? '+' + vr0 : vr0 < 0 ? '−' + Math.abs(vr0) : '0', col = vr0 < 0 ? C.amber : vr0 > 0 ? C.ok : C.paint;
-  s += `<rect x="${cx + r * .42 - 56}" y="${cy - 26}" width="112" height="52" rx="6" fill="#02080c" stroke="${col}" stroke-width="2"/>` + mono(cx + r * .42, cy + 1, 30, t0, { c: vr0 ? col : C.ink });
+  s += `<rect x="${cx + r * .35 - 46}" y="${cy - 28}" width="92" height="66" rx="6" fill="#02080c" stroke="${col}" stroke-width="2"/>` + mono(cx + r * .35, cy - 4, 28, t0, { c: vr0 ? col : C.ink }) + T(cx + r * .35, cy + 26, 11, 'M/S', { c: C.muted, ls: 3 });
   s += turn(cx, cy, ang(v), `<line x1="${cx}" y1="${cy + 34}" x2="${cx}" y2="${cy - r + 16}" stroke="${C.ink}" stroke-width="7" stroke-linecap="round" filter="url(#gx-gl)"/>`) + `<circle cx="${cx}" cy="${cy}" r="16" fill="url(#gx-nut)" stroke="#000" stroke-width="2"/>`;
   return s + '</g>';
 }
