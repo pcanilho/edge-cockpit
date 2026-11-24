@@ -93,6 +93,20 @@ export function view(host) {
   async function apply() {
     const { T, ship, size } = ctx;
     if (!ship) return;
+    // Materials change only with the paint, the hull or the power: redoing them recompiles shaders.
+    const look = `${shown.gen}|${want.paint}|${want.hull}|${want.power}`;
+    if (look !== shown.look) { shown.look = look; await looks(); }
+    const s = want.shield ?? 0;
+    ctx.shell.visible = s > 0;
+    ctx.shell.material.uniforms.s.value = s;
+    ctx.shell.scale.set(size.x * 0.6, Math.max(size.y * 0.8, size.x * 0.22), size.z * 0.6);
+    ctx.ring.visible = !!want.landed;
+    const rr = Math.max(size.x, size.z) * 0.55;
+    ctx.ring.scale.set(rr, rr, 1); ctx.ring.position.y = -size.y / 2 - 0.05;
+    draw();
+  }
+  async function looks() {
+    const { T, ship } = ctx;
     const paint = want.paint ? await texture(want.paint).catch(() => null) : null;
     const hull = want.hull, dmg = hull == null ? 0 : 1 - hull, tint = new T.Color(hull != null && hull < 0.25 ? 0xff5040 : 0xffb040), dark = want.power === false;
     ship.traverse(m => {
@@ -110,27 +124,27 @@ export function view(host) {
     });
     const lit = dark ? 0.12 : 1;
     ctx.hemi.intensity = 2 * lit; ctx.sun.intensity = 3 * lit; ctx.rim.intensity = 1.6 * lit;
-    const s = want.shield ?? 0;
-    ctx.shell.visible = s > 0;
-    ctx.shell.material.uniforms.s.value = s;
-    ctx.shell.scale.set(size.x * 0.6, Math.max(size.y * 0.8, size.x * 0.22), size.z * 0.6);
-    ctx.ring.visible = !!want.landed;
-    const rr = Math.max(size.x, size.z) * 0.55;
-    ctx.ring.scale.set(rr, rr, 1); ctx.ring.position.y = -size.y / 2 - 0.05;
-    draw();
   }
   /** What to show: { url, paint, shield, hull, power, landed }; only what changed is redone. */
   async function set(next) {
+    // The glow in steps of 5 % and the hull tint in whole percent are all the eye sees; a reading
+    // that moves less draws nothing, so a fight doesn't redraw the model ten times a second.
+    if (typeof next.shield === 'number') next = { ...next, shield: Math.round(next.shield * 20) / 20 };
+    if (typeof next.hull === 'number') next = { ...next, hull: Math.round(next.hull * 100) / 100 };
+    if (Object.keys(next).every(k => want[k] === next[k]) && shown.url === want.url && ctx?.ship) return;
     want = { ...want, ...next };
     if (!want.url) { status('No 3D model for this ship on FleetYards'); return; }
     try {
       if (!ctx) await setup();
       if (want.url !== shown.url) {
+        // Already on its way: that load applies the latest values when it lands.
+        if (want.url === shown.loading) return;
         const url = want.url;
+        shown.loading = url;
         status('Loading the model…');
         loading = load(url);
         const m = await loading;
-        if (want.url !== url) return;
+        if (want.url !== url) { if (shown.loading === url) shown.loading = null; return; }
         if (ctx.ship) { ctx.group.remove(ctx.ship); ctx.ship.traverse(o => { o.geometry?.dispose(); }); }
         ctx.base.clear();
         m.ship.traverse(o => {
@@ -140,11 +154,12 @@ export function view(host) {
           ctx.base.set(o, { name: mt.name || '', map: mt.map, color: mt.color.clone(), emissive: mt.emissive?.clone(), emissiveMap: mt.emissiveMap, ei: mt.emissiveIntensity ?? 1 });
         });
         ctx.ship = m.ship; ctx.size = m.size; ctx.group.add(m.ship);
-        shown.url = url;
+        shown.url = url; shown.loading = null; shown.gen = (shown.gen || 0) + 1;
         status('');
       }
       await apply();
     } catch (e) {
+      shown.loading = null;
       status(navigator.onLine ? 'The 3D model didn\'t load' : 'Offline: the 3D model loads once you\'re online');
       console.warn('ship3d', e);
     }
