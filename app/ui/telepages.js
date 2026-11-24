@@ -235,7 +235,9 @@ function touchdown(d) {
   const dep = v => (v == null ? ['na', '—'] : [v === 3 ? 'on' : 'am', DEP[v]]);
   const yes = (v, a, b) => (v == null ? ['na', '—'] : [v ? 'on' : 'am', v ? a : b]);
   const prox = s?.ifcs_proximity_assist?.enabled ? !!s.ifcs_proximity_assist.active : null;
-  const coupled = s?.ifcs_coupled?.enabled ? !!s.ifcs_coupled.active : null;
+  // Decoupled comes as coupled neither offered nor active (5.0, checked in game): any coupled
+  // that is sent and not active is decoupled. Not sent at all: unknown.
+  const coupled = s?.ifcs_coupled ? !!(s.ifcs_coupled.enabled && s.ifcs_coupled.active) : null;
   const rows = [['Gear', dep(d.gear)], ['VTOL', dep(d.vtol)], ['Lights', yes(d.v ? !!d.v.lights_enabled : null, 'On', 'Off')], ['Proximity assist', yes(prox, 'Active', 'Standby')], ['Flight', yes(coupled, 'Coupled', 'Decoupled')], ['State', d.landed == null ? ['na', '—'] : [d.landed ? 'on' : '', d.landed ? 'Landed' : 'Flying']]];
   return `<div class="cap-t">Touchdown check · live from the game</div><div class="tl-check">${rows.map(([n, [c, t]]) => `<b class="${c}"><span><i></i>${n}</span><em>${t}</em></b>`).join('')}</div>`;
 }
@@ -273,7 +275,7 @@ function ifcs(d) {
   const mode = d.mode;
   const hud = mode === 1 || mode === 2 ? ((mode === 1 ? s.advanced_hud_enabled_nav : s.advanced_hud_enabled_scm) ? 'on' : 'off') : 'na';
   return `<div class="tl-ifcs">${[
-    cell('Coupled', av(s.ifcs_coupled)), cell('Speed<br>limiter', av(s.ifcs_speed_limiter)), cell('Cruise', av(s.ifcs_cruise_mode)),
+    cell('Coupled', s.ifcs_coupled ? (s.ifcs_coupled.enabled && s.ifcs_coupled.active ? 'on' : 'off') : 'na'), cell('Speed<br>limiter', av(s.ifcs_speed_limiter)), cell('Cruise', av(s.ifcs_cruise_mode)),
     cell('ESP', av(s.ifcs_esp)), cell('G-safe', av(s.ifcs_g_safe)), cell('Proximity<br>assist', av(s.ifcs_proximity_assist)),
     cell('Stability', av(s.ifcs_stability)), cell('Gravity<br>comp', av(s.ifcs_gravity_compensation)), cell('Wind<br>comp', av(s.ifcs_wind_compensation)),
     cell('Advanced<br>HUD', hud, hud === 'na' ? '—' : ''), cell('Light<br>amp', s.flight_light_amplification ? 'on' : 'off'), cell('Lights', v.lights_enabled ? 'on' : 'off'),
