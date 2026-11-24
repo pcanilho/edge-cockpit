@@ -1352,3 +1352,44 @@ svg.gx { display: block; overflow: visible; }
 .tl-lamps.fill { margin: 4px 12px 0; height: calc(100% - 14px); }
 .tl-lamps.fill b { height: auto; }
 .tl-spool { margin-top: 18px; }
+/* Ship in 3D (ship3d.js) */
+.s3 { position: absolute; border-radius: 10px; overflow: hidden; touch-action: none; background: radial-gradient(60% 75% at 50% 52%, #0f2633, #040a0e 72%); box-shadow: 0 0 0 3px #08090b, 0 0 0 4px #ffffff14, inset 0 0 40px #000; }
+.s3::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, #58d2f007 0 1px, transparent 1px 32px), repeating-linear-gradient(90deg, #58d2f007 0 1px, transparent 1px 32px); }
+.s3 > .s3-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.s3 > div { position: absolute; }
+.s3-msg { left: 0; right: 0; top: 46%; text-align: center; font: 700 14px/1 var(--hud); letter-spacing: .24em; text-transform: uppercase; color: var(--dim); pointer-events: none; }
+.s3-l { left: 24px; top: 40px; width: 200px; display: flex; flex-direction: column; gap: 12px; pointer-events: none; }
+.s3-co { padding: 12px 16px; border-radius: 8px; background: #02080ccc; box-shadow: inset 0 0 0 1px #ffffff16; }
+.s3-co small { display: block; font: 700 11px/1 var(--hud); letter-spacing: .24em; text-transform: uppercase; color: var(--muted); }
+.s3-co b { display: block; margin-top: 8px; font: 500 30px/1 var(--mono); } .s3-co b.na { color: #3a444e; }
+.s3-co b i { font-style: normal; font-size: 15px; color: var(--muted); margin-left: 3px; }
+.s3-bar { display: block; height: 6px; margin-top: 10px; border-radius: 3px; background: #13212b; overflow: hidden; } .s3-bar i { display: block; height: 100%; box-shadow: 0 0 8px currentColor; }
+.s3-r { position: absolute; right: 24px; top: 40px; width: 200px; height: 452px; }
+.s3-name { left: 0; right: 0; top: 22px; text-align: center; pointer-events: none; }
+.s3-name b { display: block; font: 700 32px/1 var(--hud); letter-spacing: .06em; color: var(--ink); }
+.s3-name span { display: block; margin-top: 6px; font: 700 12px/1 var(--hud); letter-spacing: .3em; text-transform: uppercase; color: var(--muted); }
+.s3-hint { left: 0; right: 0; bottom: 16px; text-align: center; font: 700 12px/1 var(--hud); letter-spacing: .26em; text-transform: uppercase; color: var(--muted); pointer-events: none; }
+.s3-hint span { margin-right: 10px; font-size: 18px; color: var(--cyan); }
+.s3-ph b { display: block; font: 700 15px/1 var(--hud); letter-spacing: .28em; text-transform: uppercase; color: var(--ink); }
+.s3-ph span { display: block; margin-top: 8px; font: 700 10px/1 var(--hud); letter-spacing: .2em; text-transform: uppercase; color: var(--hold); }
+.s3-paints { display: flex; gap: 10px; margin-top: 14px; overflow-x: auto; scrollbar-width: none; }
+.s3-pp { flex: 0 0 150px; padding: 0; border: 0; border-radius: 8px; overflow: hidden; background: #02080c; box-shadow: inset 0 0 0 1px #ffffff16, 0 3px 0 #000; cursor: pointer; }
+.s3-pp img, .s3-pp i { display: block; width: 100%; height: 104px; object-fit: cover; background: radial-gradient(#13303e, #050c11 75%); }
+.s3-pp b { display: block; padding: 9px 10px; font: 700 11px/1 var(--hud); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.s3-pp.sel { box-shadow: inset 0 0 0 2px var(--cyan), 0 0 18px #58d2f055; } .s3-pp.sel b { color: var(--cyan); }
+.s3-guns { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.s3-gun { display: flex; gap: 14px; padding: 10px; border-radius: 8px; background: #02080ccc; box-shadow: inset 0 0 0 1px #ffffff18; }
+.s3-gun > img, .s3-noimg { flex: 0 0 128px; height: 104px; object-fit: contain; border-radius: 6px; background: radial-gradient(#13303e, #050c11 75%); }
+.s3-gun > div { flex: 1; min-width: 0; }
+.s3-gun b { display: block; font: 700 16px/1.1 var(--hud); letter-spacing: .06em; text-transform: uppercase; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.s3-gun > div > small { display: block; margin-top: 5px; font: 500 12px/1 var(--body); color: var(--muted); }
+.s3-st { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 9px; }
+.s3-st small, .s3-tot small { display: block; font: 700 9px/1 var(--hud); letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+.s3-st b, .s3-tot b { margin-top: 4px; font: 500 16px/1 var(--mono); letter-spacing: 0; color: var(--cyan); text-transform: none; }
+.s3-st b i, .s3-tot b i { font-style: normal; font-size: 10px; color: var(--muted); margin-left: 2px; }
+.s3-lamps { display: flex; gap: 12px; align-items: center; margin-top: 8px; font: 600 11px/1 var(--mono); color: var(--muted); }
+.s3-lamps em { font: 700 9px/1 var(--hud); font-style: normal; letter-spacing: .18em; text-transform: uppercase; }
+.s3-gl { display: inline-flex; gap: 4px; align-items: center; } .s3-gl i { width: 9px; height: 9px; border-radius: 50%; background: #2a333c; } .s3-gl i.on { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+.s3-tot { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; align-items: end; gap: 10px; margin-top: 10px; padding: 10px 14px; border-radius: 8px; background: linear-gradient(#0a1820, #050c11); box-shadow: inset 0 0 0 1px #58d2f055; }
+.s3-tot span { font: 700 11px/1.3 var(--hud); letter-spacing: .2em; text-transform: uppercase; color: var(--ink); } .s3-tot b { font-size: 20px; color: var(--ink); }
+.s3-r > * { position: absolute; }

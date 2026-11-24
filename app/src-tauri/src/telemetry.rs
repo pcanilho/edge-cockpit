@@ -218,6 +218,9 @@ pub mod pb {
     }
     #[derive(Clone, PartialEq, prost::Message, Serialize)]
     pub struct Weapon {
+        /// The item's class name, e.g. "KLWE_LaserRepeater_S1".
+        #[prost(string, tag = "1")]
+        pub name: String,
         #[prost(bool, tag = "2")]
         pub is_powered: bool,
         #[prost(bool, tag = "3")]
@@ -272,6 +275,9 @@ pub mod pb {
         /// 1 pilot, 2 gunner, 3 crew.
         #[prost(int32, tag = "2")]
         pub crew_role: i32,
+        /// The seat's entity name, e.g. "AEGS_Avenger_SCItem_Seat_Pilot_877343717572".
+        #[prost(string, tag = "3")]
+        pub seat_name: String,
         /// aUEC.
         #[prost(int64, optional, tag = "4")]
         pub uec_balance: Option<i64>,
@@ -285,6 +291,11 @@ pub mod pb {
         #[prost(message, optional, tag = "3")]
         pub environment: Option<Environment>,
     }
+    #[derive(Clone, PartialEq, prost::Message, Serialize)]
+    pub struct TurretFrame {
+        #[prost(bool, tag = "1")]
+        pub light_amplification: bool,
+    }
     #[derive(Clone, PartialEq, prost::Message)]
     pub struct StreamResponse {
         #[prost(message, optional, tag = "3")]
@@ -293,6 +304,8 @@ pub mod pb {
         pub weapons: Option<WeaponsFrame>,
         #[prost(message, optional, tag = "6")]
         pub actor: Option<ActorFrame>,
+        #[prost(message, optional, tag = "8")]
+        pub turret: Option<TurretFrame>,
     }
     #[derive(Clone, PartialEq, prost::Message)]
     pub struct Empty {}
@@ -329,6 +342,7 @@ pub struct Live {
     pub vehicle: Option<pb::Vehicle>,
     pub weapons: Option<pb::WeaponsFrame>,
     pub actor: Option<pb::ActorFrame>,
+    pub turret: Option<pb::TurretFrame>,
 }
 
 /// The link as the UI sees it.
@@ -347,6 +361,7 @@ struct Sections {
     vehicle: Option<(Instant, pb::Vehicle)>,
     weapons: Option<(Instant, pb::WeaponsFrame)>,
     actor: Option<(Instant, pb::ActorFrame)>,
+    turret: Option<(Instant, pb::TurretFrame)>,
 }
 
 impl Sections {
@@ -360,12 +375,15 @@ impl Sections {
         if let Some(a) = msg.actor {
             self.actor = Some((now, a));
         }
+        if let Some(t) = msg.turret {
+            self.turret = Some((now, t));
+        }
     }
     fn live(&self, now: Instant) -> Live {
         fn fresh<T: Clone>(s: &Option<(Instant, T)>, now: Instant) -> Option<T> {
             s.as_ref().filter(|(t, _)| now.duration_since(*t) < STALE).map(|(_, v)| v.clone())
         }
-        Live { vehicle: fresh(&self.vehicle, now), weapons: fresh(&self.weapons, now), actor: fresh(&self.actor, now) }
+        Live { vehicle: fresh(&self.vehicle, now), weapons: fresh(&self.weapons, now), actor: fresh(&self.actor, now), turret: fresh(&self.turret, now) }
     }
 }
 
@@ -682,7 +700,7 @@ mod tests {
             }),
             weapons: Some(pb::WeaponsFrame {
                 settings: Some(pb::WeaponsSettings { gimbals_locked: true, staggered_fire: false }),
-                weapons: vec![pb::Weapon { is_powered: true, ready_to_fire: true }; 2],
+                weapons: vec![pb::Weapon { name: "KLWE_LaserRepeater_S1".into(), is_powered: true, ready_to_fire: true }; 2],
                 countermeasures: vec![pb::Countermeasure { r#type: 1, amount: 48 }, pb::Countermeasure { r#type: 2, amount: 5 }],
             }),
             actor: None,
@@ -737,6 +755,18 @@ mod tests {
         while n >= 0x80 { a.push((n as u8) | 0x80); n >>= 7; }
         a.push(n as u8);
         assert_eq!(pb::ActorState::decode(&a[..]).unwrap().uec_balance, Some(15001986));
+        // A weapon's class name (1) and a seat name (3); a turret frame with light amplification on.
+        let mut w = vec![0x0a, 21];
+        w.extend_from_slice(b"KLWE_LaserRepeater_S1");
+        w.extend_from_slice(&[0x10, 1, 0x18, 1]);
+        let w = pb::Weapon::decode(&w[..]).unwrap();
+        assert_eq!((w.name.as_str(), w.is_powered, w.ready_to_fire), ("KLWE_LaserRepeater_S1", true, true));
+        let mut st = vec![0x10, 2, 0x1a, 11];
+        st.extend_from_slice(b"Turret_Seat");
+        let st = pb::ActorState::decode(&st[..]).unwrap();
+        assert_eq!((st.crew_role, st.seat_name.as_str()), (2, "Turret_Seat"));
+        let r = pb::StreamResponse::decode(&[0x42, 2, 0x08, 1][..]).unwrap();
+        assert!(r.turret.unwrap().light_amplification);
     }
 
     #[test]

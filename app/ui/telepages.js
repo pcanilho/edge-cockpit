@@ -2,12 +2,16 @@
 // the game link is live and the Telemetry layout is on; Classic never shows them. Every value is
 // one the game sent in this update. One it didn't send shows as "Not sent" or "—", never a guess.
 import * as G from './lib/gauges.js';
-import { plate, screen, keycap, h, icon, esc, pressable } from './controls.js';
+import { plate, screen, keycap, onOffKey, h, icon, esc, pressable } from './controls.js';
+import { model as fyModel, paints as fyPaints } from './outlines.js';
+import { gun as gunInfo, plainName } from './guns.js';
+import { view as shipView } from './ship3d.js';
 
 const { C, T, mono } = G;
 
 /** The pages, in the order the pager steps through them. */
 export const TELE_PAGES = [
+  { id: 'tl-ship', name: 'Ship', glyph: 'ship' },
   { id: 'tl-instruments', name: 'Instruments', glyph: 'gauge' },
   { id: 'tl-approach', name: 'Approach', glyph: 'land' },
   { id: 'tl-systems', name: 'Systems', glyph: 'power' },
@@ -19,7 +23,7 @@ export const TELE_PAGES = [
 export const isTele = id => typeof id === 'string' && id.startsWith('tl-');
 
 let K;
-/** ctx: go(id) shows a page, scale() is the stage scale, live() the latest update, repaint() redraws. */
+/** ctx: go(id) shows a page, scale() is the stage scale, tele() the latest update, repaint() redraws. */
 export const init = ctx => {
   K = ctx;
   // The gauges' glow filters, fades and hatching, defined once for every page.
@@ -96,13 +100,30 @@ const slot = (x, y, w, ht, k, glass = true) => {
 };
 // A tap on a lit master caution or warning quietens it until another light comes on.
 const ackable = el => {
-  el.addEventListener('pointerup', e => { if (e.target.closest('[data-ack]')) { acknowledge(K.live()); K.repaint(); } });
+  el.addEventListener('pointerup', e => { if (e.target.closest('[data-ack]')) { acknowledge(K.tele()); K.repaint(); } });
   return el;
 };
 const add = (p, ...els) => { for (const e of els) p.appendChild(e); return p; };
 
 // ---------- the plates ----------
 export function scene(id) {
+  if (id === 'tl-ship') {
+    const host = h(`<div class="s3" data-tk="ship3d" style="left:24px;top:52px;width:1382px;height:632px">
+      <div class="s3-msg"></div><div class="s3-l" data-tk="s3left"></div><div class="s3-name" data-tk="s3name"></div>
+      <div class="s3-hint"><span>↻</span>Drag to turn · pinch to zoom · double-tap to reset</div></div>`);
+    const keys = h('<div class="s3-r"></div>');
+    keys.append(onOffKey(0, 0, 200, 104, 'Power'), onOffKey(0, 116, 200, 104, 'Thrusters'), onOffKey(0, 232, 200, 104, 'Lights'), keycap(0, 348, 200, 104, 'Landing gear', { fs: 13, is: 22 }));
+    host.append(keys);
+    const side = plate(1818, 736, 'Paint & guns');
+    const pl = slot(24, 44, 688, 236, 'paints', false), lo = slot(24, 292, 688, 392, 'loadout', false);
+    pl.addEventListener('pointerup', e => {
+      const b = e.target.closest('[data-paint]'), cls = K.tele()?.vehicle?.class_name;
+      if (!b || !cls) return;
+      try { localStorage.setItem('xfd-paint:' + cls, b.dataset.paint); } catch { /* private mode */ }
+      K.repaint();
+    });
+    return [add(head(382, 1430, id), host), add(side, pl, lo)];
+  }
   if (id === 'tl-instruments') return [
     add(head(382, 900, id), slot(24, 52, 852, 632, 'air')),
     add(plate(1288, 600, 'Energy'), slot(24, 44, 552, 470, 'energy'), slot(24, 526, 552, 160, 'modes', false)),
@@ -448,11 +469,74 @@ function turretLamp(live) {
   return `<div class="tl-lamps">${t ? lamp(t.light_amplification ? 'on' : '', 'Light amp', t.light_amplification ? 'On' : 'Off') : lamp('na', 'Light amp', '—')}</div>`;
 }
 
+// ---------- ship in 3D ----------
+const models = new Map(), paintLists = new Map(), gunCache = new Map();
+/** A value fetched once per key; K.repaint() when it arrives. */
+function once(map, key, get) {
+  if (!map.has(key)) { map.set(key, undefined); get().then(v => { map.set(key, v ?? null); K.repaint(); }, () => map.delete(key)); }
+  return map.get(key);
+}
+const paintOf = cls => { try { return localStorage.getItem('xfd-paint:' + cls) || ''; } catch { return ''; } };
+let view3d = null;
+function ship3d(el, live) {
+  const v = live?.vehicle, cls = v?.class_name;
+  if (!view3d || view3d.host !== el) view3d = { host: el, v: shipView(el) };
+  if (!cls) { el.dataset.state = 'Not in a ship'; el.querySelector('.s3-msg').textContent = 'Not in a ship'; return; }
+  const m = once(models, cls, () => fyModel(cls));
+  if (m === undefined) { el.querySelector('.s3-msg').textContent = 'Finding the 3D model…'; return; }
+  const d = flightOf(live), landed = d.gear === 3 || (d.gear == null && d.landed === true);
+  const list = m?.paints ? once(paintLists, m.slug, () => fyPaints(m.slug)) : null;
+  const pick = paintOf(cls), paint = (list || []).find(p => p.name === pick)?.tex || null;
+  view3d.v.set({ url: m ? (landed ? m.landed || m.flight : m.flight || m.landed) : null, paint, shield: d.shields, hull: d.hull, power: v.power ? !!v.power.powerplants : null, landed });
+}
+function s3left(d) {
+  const sh = pct(d.shields), hu = pct(d.hull), b = d.boost;
+  const row = (n, val, c, extra = '') => `<div class="s3-co"><small>${n}</small>${val == null ? '<b class="na">—</b>' : `<b style="color:${c}">${val}<i>%</i>${extra}</b><span class="s3-bar"><i style="width:${val}%;background:${c}"></i></span>`}</div>`;
+  return row('Shields', sh, C.cyan) + row('Hull', hu, hu == null ? C.ok : lvl(hu)) + row('Boost', b ? pct(b.reserves) : null, C.amber, b?.engaged ? ' ▲' : '');
+}
+function s3name(live) {
+  const cls = live?.vehicle?.class_name, m = cls ? models.get(cls) : null;
+  if (!cls) return '';
+  const d = flightOf(live), landed = d.gear === 3 || (d.gear == null && d.landed === true);
+  return `<b>${esc(m?.name || cls.split('_').slice(1).join(' '))}</b><span>${esc([m?.maker, landed ? 'Landed model' : 'Flight model'].filter(Boolean).join(' · '))}</span>`;
+}
+function paintsPlate(live) {
+  const cls = live?.vehicle?.class_name, m = cls ? models.get(cls) : null;
+  const head = `<div class="s3-ph"><b>Paint</b><span>Your pick · the game doesn't say which paint you fly</span></div>`;
+  if (!cls) return head + `<div class="tl-src">Not in a ship.</div>`;
+  const list = m?.slug ? paintLists.get(m.slug) : null;
+  if (!m || !list?.length) return head + `<div class="tl-src">${m === undefined || list === undefined ? 'Looking up paints on FleetYards…' : 'FleetYards has no paint textures for this ship.'}</div>`;
+  const pick = paintOf(cls), chip = (name, img) => `<button class="s3-pp ${pick === name ? 'sel' : ''}" data-paint="${esc(name)}">${img ? `<img src="${esc(img)}" alt="">` : '<i></i>'}<b>${esc(name || 'Standard')}</b></button>`;
+  return head + `<div class="s3-paints">${chip('', null)}${list.map(p => chip(p.name, p.img)).join('')}</div>`;
+}
+const STAT = (k, v, u = '') => `<div><small>${k}</small><b>${v == null ? '—' : v}<i>${v == null ? '' : u}</i></b></div>`;
+function loadoutPlate(live) {
+  const list = live?.weapons?.weapons || [];
+  if (!list.length) return `<div class="s3-ph"><b>Guns</b><span>Not sent</span></div>`;
+  const byName = new Map();
+  list.forEach((g, i) => { const k = g.name || ''; if (!byName.has(k)) byName.set(k, []); byName.get(k).push({ ...g, n: i + 1 }); });
+  let patch = null, tot = { burst: 0, sustained: 0, alpha: 0 }, rated = true;
+  const cards = [...byName].map(([cls, gs]) => {
+    const info = cls ? once(gunCache, cls, () => gunInfo(cls)) : null, st = info?.stats;
+    if (info?.patch) patch = info.patch;
+    if (st) for (const k of Object.keys(tot)) tot[k] += (st[k] || 0) * gs.length; else rated = false;
+    const lamps = gs.map(g => `<span class="s3-gl"><i class="${g.is_powered ? 'on' : ''}"></i><i class="${g.ready_to_fire ? 'on' : ''}"></i>${g.n}</span>`).join('');
+    return `<div class="s3-gun">${info?.img ? `<img src="${esc(info.img)}" alt="">` : '<span class="s3-noimg"></span>'}<div>
+      <b>${gs.length > 1 ? gs.length + ' × ' : ''}${esc(info?.name || (cls ? plainName(cls) : 'Gun'))}</b><small>${esc([info?.maker, info?.size != null ? 'Size ' + info.size : null].filter(Boolean).join(' · ') || cls || 'No name sent')}</small>
+      <div class="s3-st">${STAT('Burst DPS', st?.burst?.toFixed(1))}${STAT('Sustained', st?.sustained?.toFixed(1), ' 60s')}${STAT('Alpha', st?.alpha?.toFixed(1))}${STAT('Rate', st?.rpm, ' rpm')}${STAT('Range', st?.range, ' m')}</div>
+      <div class="s3-lamps"><em>Power · ready</em>${lamps}</div></div></div>`;
+  });
+  const total = rated ? `<div class="s3-tot"><span>Ship total · ${list.length} guns</span>${STAT('Burst DPS', tot.burst.toFixed(1))}${STAT('Sustained', tot.sustained.toFixed(1), ' 60s')}${STAT('Alpha', tot.alpha.toFixed(1))}</div>` : '';
+  return `<div class="s3-ph"><b>Guns</b><span>As the game lists them${patch ? ' · rated · ' + esc(patch) : ''}</span></div><div class="s3-guns">${cards.slice(0, 3).join('')}</div>${total}
+    <div class="tl-src">Rated stats: api.star-citizen.wiki · pictures: FleetYards. They don't change with your pips or heat.</div>`;
+}
+
 const PAINT = {
   air: (d) => air(d), energy: (d) => energy(d), modes: (d) => modes(d), caution: (d) => caution(d), 'sh-hull': (d) => shHull(d),
   approach: (d) => approach(d), touchdown: (d) => touchdown(d), sink: (d) => sink(d),
   bus: (d) => bus(d), ifcs: (d) => ifcs(d), weapons: (d, l) => weapons(l),
   threat: (d) => threat(d), defence: (d) => defence(d), guns: (d, l) => guns(l),
+  s3left: (d) => s3left(d), s3name: (d, l) => s3name(l), paints: (d, l) => paintsPlate(l), loadout: (d, l) => loadoutPlate(l),
   qmode: (d) => qmode(d), fuel: (d) => fuelPlate(d), nav: (d) => navPlate(d),
   seat: (d, l) => seatCard(l), gunsmini: (d, l) => gunsMini(l), tlamp: (d, l) => turretLamp(l),
   vitals: (d, l) => vitals(l), env: (d, l) => env(l), breath: (d, l) => breath(l), wallet: (d, l) => wallet(l), where: (d, l) => where(l),
@@ -557,6 +641,7 @@ export function paint(root, live) {
   const d = flightOf(live);
   for (const el of root.querySelectorAll('[data-tk]')) {
     const k = el.dataset.tk;
+    if (k === 'ship3d') { ship3d(el, live); continue; }
     const html = PAINT[k]?.(d, live) ?? '';
     if (last.get(el) === html) continue;
     last.set(el, html);

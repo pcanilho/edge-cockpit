@@ -21,4 +21,15 @@ const fonts = { 'chakra-petch': [500, 600, 700], inter: [400, 500, 600], 'jetbra
 for (const [name, weights] of Object.entries(fonts))
   for (const w of weights)
     cpSync(join(app, 'node_modules/@fontsource', name, 'files', `${name}-latin-${w}-normal.woff2`), join(out, 'fonts', `${name}-${w}.woff2`));
+// three.js (MIT) for the 3D ship: the module build, the glTF and Draco loaders with their imports
+// pointed at the copies here, and the Draco decoder the loader runs in a worker.
+mkdirSync(join(out, 'three', 'draco'), { recursive: true });
+const three = join(app, 'node_modules/three');
+cpSync(join(three, 'build/three.module.min.js'), join(out, 'three', 'three.module.js'));
+for (const f of ['loaders/GLTFLoader.js', 'loaders/DRACOLoader.js', 'utils/BufferGeometryUtils.js'])
+  writeFileSync(join(out, 'three', f.split('/')[1]), readFileSync(join(three, 'examples/jsm', f), 'utf8')
+    .replace(/from 'three'/g, "from './three.module.js'").replace("'../utils/BufferGeometryUtils.js'", "'./BufferGeometryUtils.js'"));
+for (const f of ['draco_decoder.wasm', 'draco_wasm_wrapper.js', 'draco_decoder.js'])
+  cpSync(join(three, 'examples/jsm/libs/draco/gltf', f), join(out, 'three', 'draco', f));
+cpSync(join(three, 'LICENSE'), join(out, 'three', 'LICENSE'));
 console.log('ui/vendor synced');

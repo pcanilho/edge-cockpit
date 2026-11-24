@@ -769,7 +769,7 @@ const K = {
     show(!CUSTOM.has(base) && rolePage?.startsWith(base) ? rolePage : base);
   },
   go: id => { tick('page'); show(id); },
-  live: () => link.live,
+  tele: () => link.live,
   repaint: () => paintGauges(),
   /** A live value for a status screen on a page of yours: only what Game.log gave. */
   live: f => {
@@ -1050,6 +1050,7 @@ controls.pressable($('pick-close'), { up: () => { $('picker').hidden = true; pic
 
 controls.init(K);
 initScenes(K);
+tp.init(K);
 
 const cache = new Map(); // built plates by page, so switching back is instant
 function render() {
