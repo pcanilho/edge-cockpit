@@ -44,9 +44,11 @@ export function flightOf(live) {
   return {
     v,
     speed: i && finite(i.speed) ? i.speed : null,
-    vsi: i && finite(i.vertical_speed_indicator) ? i.vertical_speed_indicator : null,
-    // The largest float means no ground in range; 0 is what an unsent value looks like.
-    ralt: i && finite(i.radar_altitude) && i.radar_altitude > 0 ? i.radar_altitude : null,
+    // 4.10 never sends it, and an unsent value reads 0: exactly 0 counts as not sent.
+    vsi: i && finite(i.vertical_speed_indicator) && i.vertical_speed_indicator !== 0 ? i.vertical_speed_indicator : null,
+    // 0 is what an unsent value looks like, and 4.10 sends the largest float all the time,
+    // on the ground too, so neither is a reading.
+    ralt: i && finite(i.radar_altitude) && i.radar_altitude > 0 && i.radar_altitude < 1e30 ? i.radar_altitude : null,
     hdg: i && finite(i.heading) ? i.heading : null,
     g: i?.g_meter && finite(i.g_meter.current) && finite(i.g_meter.max) ? i.g_meter : null,
     boost: i?.boost || null,
@@ -185,7 +187,7 @@ function energy(d) {
 }
 function modes(d) {
   const m = (on, n) => lamp(on ? 'on' : '', n);
-  const na = n => lamp('na', n, '—');
+  const na = n => lamp('na', n, 'Not sent');
   return `<div class="tl-lamps">${d.mode == null ? na('Mode') : m(d.mode === 2, 'SCM') + m(d.mode === 1, 'NAV') + lamp(d.spooled ? 'on' : 'am', d.spooled ? 'Spooled' : 'Spooling')}</div>
     <div class="tl-lamps">${d.landed == null ? na('Landed') : m(d.landed, d.landed ? 'Landed' : 'Flying')}${d.gear == null ? na('Gear') : lamp(d.gear === 3 ? 'on' : 'am', 'Gear ' + DEP[d.gear])}</div>`;
 }
@@ -211,7 +213,7 @@ function approach(d) {
   for (const a of [0, 5, 10, 25, 50, 100, 250, 500, 1000]) { const y = lg(a); s += `<line x1="70" x2="${W - 20}" y1="${y}" y2="${y}" stroke="#fff" stroke-opacity=".05"/><line x1="58" x2="76" y1="${y}" y2="${y}" stroke="${C.paint}" stroke-width="2"/>` + mono(50, y, 15, a, { c: C.muted, a: 'end' }); }
   s += T(40, 40, 12, 'RADAR ALT · M', { c: C.muted, ls: 2, a: 'start' });
   const mx = 260;
-  if (d.ralt == null) return G.svg(W, H, s + T(W / 2, 300, 18, d.v ? 'NO GROUND IN RANGE' : 'NOT IN A SHIP', { c: C.dim, ls: 4 }));
+  if (d.ralt == null) return G.svg(W, H, s + T(W / 2, 300, 18, d.v ? 'NO RADAR ALTITUDE READING' : 'NOT IN A SHIP', { c: C.dim, ls: 4 }));
   const my = d.landed ? gy - 14 : lg(d.ralt);
   if (d.landed) s += `<g transform="translate(${W / 2} 250)">${T(0, 0, 46, 'TOUCHDOWN', { c: C.ok, ls: 10 })}${T(0, 50, 14, 'THE GAME REPORTS LANDED', { c: C.ok, ls: 4, op: 0.8 })}</g>`;
   else if (d.vsi != null && d.speed != null && d.vsi < -0.5 && d.speed > Math.abs(d.vsi)) {
@@ -234,7 +236,7 @@ function touchdown(d) {
   const yes = (v, a, b) => (v == null ? ['na', '—'] : [v ? 'on' : 'am', v ? a : b]);
   const prox = s?.ifcs_proximity_assist?.enabled ? !!s.ifcs_proximity_assist.active : null;
   const coupled = s?.ifcs_coupled?.enabled ? !!s.ifcs_coupled.active : null;
-  const rows = [['Gear', dep(d.gear)], ['VTOL', dep(d.vtol)], ['Lights', yes(d.v ? !!d.v.lights_enabled : null, 'On', 'Off')], ['Proximity assist', yes(prox, 'On', 'Off')], ['Flight', yes(coupled, 'Coupled', 'Decoupled')], ['State', d.landed == null ? ['na', '—'] : [d.landed ? 'on' : '', d.landed ? 'Landed' : 'Flying']]];
+  const rows = [['Gear', dep(d.gear)], ['VTOL', dep(d.vtol)], ['Lights', yes(d.v ? !!d.v.lights_enabled : null, 'On', 'Off')], ['Proximity assist', yes(prox, 'Active', 'Standby')], ['Flight', yes(coupled, 'Coupled', 'Decoupled')], ['State', d.landed == null ? ['na', '—'] : [d.landed ? 'on' : '', d.landed ? 'Landed' : 'Flying']]];
   return `<div class="cap-t">Touchdown check · live from the game</div><div class="tl-check">${rows.map(([n, [c, t]]) => `<b class="${c}"><span><i></i>${n}</span><em>${t}</em></b>`).join('')}</div>`;
 }
 function sink(d) {
@@ -277,7 +279,7 @@ function ifcs(d) {
     cell('Advanced<br>HUD', hud, hud === 'na' ? '—' : ''), cell('Light<br>amp', s.flight_light_amplification ? 'on' : 'off'), cell('Lights', v.lights_enabled ? 'on' : 'off'),
   ].join('')}</div>
   <div class="cap-t">Deploy</div><div class="tl-lamps">${d.gear == null ? lamp('na', 'Gear', '—') : lamp(d.gear === 3 ? 'on' : 'am', 'Gear ' + DEP[d.gear])}${d.vtol == null ? lamp('na', 'VTOL', '—') : lamp(d.vtol === 3 ? 'on' : 'am', 'VTOL ' + DEP[d.vtol])}${d.landed == null ? lamp('na', 'State', '—') : lamp(d.landed ? 'on' : '', d.landed ? 'Landed' : 'Flying')}</div>
-  <div class="cap-t">Master mode</div><div class="tl-lamps">${mode == null ? lamp('na', 'Mode', '—') : lamp(mode === 1 ? 'on' : '', 'NAV') + lamp(mode === 2 ? 'on' : '', 'SCM') + lamp(d.spooled ? 'on' : 'am', d.spooled ? 'Spooled' : 'Spooling')}</div>`;
+  <div class="cap-t">Master mode</div><div class="tl-lamps">${mode == null ? lamp('na', 'Mode', 'Not sent') : lamp(mode === 1 ? 'on' : '', 'NAV') + lamp(mode === 2 ? 'on' : '', 'SCM') + lamp(d.spooled ? 'on' : 'am', d.spooled ? 'Spooled' : 'Spooling')}</div>`;
 }
 // The game sends what's left but no capacity: bars are out of the most seen on this ship.
 const mostSeen = new Map();
@@ -491,7 +493,7 @@ function ship3d(el, live) {
 }
 function s3left(d) {
   const sh = pct(d.shields), hu = pct(d.hull), b = d.boost;
-  const row = (n, val, c, extra = '') => `<div class="s3-co"><small>${n}</small>${val == null ? '<b class="na">—</b>' : `<b style="color:${c}">${val}<i>%</i>${extra}</b><span class="s3-bar"><i style="width:${val}%;background:${c}"></i></span>`}</div>`;
+  const row = (n, val, c, extra = '') => val == null ? '' : `<div class="s3-co"><small>${n}</small>${`<b style="color:${c}">${val}<i>%</i>${extra}</b><span class="s3-bar"><i style="width:${val}%;background:${c}"></i></span>`}</div>`;
   return row('Shields', sh, C.cyan) + row('Hull', hu, hu == null ? C.ok : lvl(hu)) + row('Boost', b ? pct(b.reserves) : null, C.amber, b?.engaged ? ' ▲' : '');
 }
 function s3name(live) {
@@ -600,7 +602,7 @@ export function fieldGauge(f, live, w, h) {
     case 'speed': if (d.speed == null) return none('NOT SENT');
       return G.svg(w, H, hTape(w, H, d.speed, { ppu: Math.max(2, w / 160), minor: 10, major: 50, min: 0, c: C.cyan }) + mono(w / 2, Math.min(28, H / 3), 26, Math.round(d.speed) + `<tspan font-size="12" fill="${C.muted}"> m/s</tspan>`, { c: C.cyan }));
     case 'radarAlt': {
-      if (d.ralt == null) return none(d.v ? 'NO GROUND IN RANGE' : 'NOT SENT');
+      if (d.ralt == null) return none('NO READING');
       const x = v => 14 + Math.log10(1 + v) / 3 * (w - 28), y = H - 22;
       let s = `<rect x="14" y="${y - 6}" width="${w - 28}" height="12" rx="6" fill="#0c1a22"/><rect x="14" y="${y - 6}" width="${(x(Math.min(d.ralt, 999)) - 14).toFixed(1)}" height="12" rx="6" fill="${C.ok}" filter="url(#gx-gl)"/>`;
       for (const t of [0, 10, 100, 1000]) s += mono(x(t), y - 18, 11, t, { c: C.muted });
@@ -619,7 +621,7 @@ export function fieldGauge(f, live, w, h) {
       return G.svg(w, H, `<rect x="14" y="${y - 6}" width="${w - 28}" height="12" rx="6" fill="#0c1a22"/><rect x="14" y="${y - 6}" width="${(x(d.g.current) - 14).toFixed(1)}" height="12" rx="6" fill="${C.amber}" filter="url(#gx-gl)"/><line x1="${x(d.g.max)}" x2="${x(d.g.max)}" y1="${y - 12}" y2="${y + 12}" stroke="${C.red}" stroke-width="3"/>`
         + mono(w / 2, Math.min(26, H / 3), 26, d.g.current.toFixed(1) + `<tspan font-size="12" fill="${C.muted}"> g · peak ${d.g.max.toFixed(1)}</tspan>`, { c: C.amber }));
     }
-    case 'mode': return `<div class="tl-lamps fill">${d.mode == null ? lamp('na', 'Mode', '—') : lamp(d.mode === 1 ? 'on' : '', 'NAV') + lamp(d.mode === 2 ? 'on' : '', 'SCM') + lamp(d.spooled ? 'on' : 'am', d.spooled ? 'Spooled' : 'Spooling')}</div>`;
+    case 'mode': return `<div class="tl-lamps fill">${d.mode == null ? lamp('na', 'Mode', 'Not sent') : lamp(d.mode === 1 ? 'on' : '', 'NAV') + lamp(d.mode === 2 ? 'on' : '', 'SCM') + lamp(d.spooled ? 'on' : 'am', d.spooled ? 'Spooled' : 'Spooling')}</div>`;
     case 'gunsReady': {
       const l = live?.weapons?.weapons || [];
       if (!l.length) return none('NOT SENT');

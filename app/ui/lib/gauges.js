@@ -52,7 +52,7 @@ export function tape(x, y, w, h, val, o) {
   let s = `<g><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="#071119" stroke="#ffffff14"/>`;
   s += T(x + w / 2, y - 16, 12, o.title, { c: C.muted, ls: 3 });
   if (val == null) {
-    s += T(x + w / 2, cy - 10, 14, 'OUT OF', { c: C.dim, ls: 3 }) + T(x + w / 2, cy + 12, 14, 'RANGE', { c: C.dim, ls: 3 });
+    s += T(x + w / 2, cy - 10, 14, 'NO', { c: C.dim, ls: 3 }) + T(x + w / 2, cy + 12, 14, 'READING', { c: C.dim, ls: 3 });
     return s + '</g>';
   }
   const id = 'gx-c' + ++uid;
