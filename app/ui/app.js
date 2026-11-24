@@ -664,8 +664,12 @@ function paintTeleChip() {
   const st = link.link === 'live' ? ['ok', 'Telemetry live']
     : link.link === 'linked' ? ['info', 'Telemetry linked · waiting for spawn']
     : teleSet() && info.running ? ['warn', 'Telemetry: no answer'] : null;
+  // Only what changed, so the room the status screen made (squeezed) stays as it set it.
+  const was = c.hidden ? '' : c.querySelector('span').textContent;
+  if ((st ? st[1] : '') === was) return;
   c.hidden = !st;
-  if (st) { c.className = 'chip ' + st[0]; c.querySelector('span').textContent = st[1]; }
+  if (st) { for (const t of ['ok', 'info', 'warn']) c.classList.toggle(t, t === st[0]); c.querySelector('span').textContent = st[1]; }
+  fitChips();
 }
 /** The status display's telemetry: the ship's instruments seated, your vitals on foot. */
 function paintTele() {
@@ -727,9 +731,9 @@ async function paintLink(fresh) {
   const set = teleSet(), all = teleAll();
   // Partly on (a channel added since): the button turns on the rest.
   $('tele-act').textContent = all ? 'Turn telemetry off' : 'Turn telemetry on';
-  const off = setupSeen ? [!setupSeen.env && '4.10', ...setupSeen.channels.filter(([, on]) => !on).map(([c]) => c)].filter(Boolean) : [];
+  const off = setupSeen ? [!setupSeen.env && '4.10', ...setupSeen.channels.filter(([, on]) => !on).map(([c]) => `${c}'s user.cfg`)].filter(Boolean) : [];
   $('tele-act-note').textContent = set
-    ? `On for ${[setupSeen.env && '4.10', ...setupSeen.channels.filter(([, on]) => on).map(([c]) => c + ' (user.cfg)')].filter(Boolean).join(', ')}${off.length ? `, not yet for ${off.join(', ')}` : ''}. The game reads it when it starts`
+    ? `On for ${[setupSeen.env && '4.10', ...setupSeen.channels.filter(([, on]) => on).map(([c]) => c + ' (user.cfg)')].filter(Boolean).join(', ')}${off.length ? `. Not yet in ${off.join(', ')}` : ''}. The game reads it when it starts`
     : 'For 4.10 and 5.0. Restart the RSI Launcher and the game afterwards';
   const WHY = { unknown: 'it doesn\'t know the action', inactive: 'not in this seat or mode', 'rate-limited': 'too many at once', filtered: 'it refused', hold: 'no holds', failed: 'it failed', 'no-link': 'no link', timeout: 'no answer' };
   $('press-note').textContent = !lastPress ? 'Nothing pressed yet' : lastPress.via === 'ok' ? `${lastPress.label}: through the game`
