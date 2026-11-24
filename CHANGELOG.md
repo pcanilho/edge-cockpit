@@ -5,6 +5,7 @@
 - **Lighter on your PC.** Gauge pages now change only the parts that moved: a needle turns, a number updates, and the rest of the drawing stays put. The Instruments page costs about 40 % less per update, and the status screen's telemetry block about 20 % less. The 3D Ship page redraws only when something you can see changes, so a still ship costs a small fraction of what it did, and it no longer downloads the model again for every update that arrives while it loads.
 - **Only pages the game can fill.** Approach joins the swipe once the game sends radar altitude or vertical speed (4.10 sends neither), and Turret only in a gunner seat. **Settings > Game link > Gauge pages** takes any page out of the swipe or puts it back. The page count counts only the pages shown.
 - **Which way the fight is going (5.0).** Shields show how fast they're falling or recharging and about when they'll be empty or full. Hull shows when the last hit landed and how much it took. The shield bar on the status screen shows ▼ or ▲ while shields move.
+- **Gauges fit on a phone.** On a phone, a gauge that is wider than the screen shrinks to fit instead of being cut off, and its tab carries the page's name.
 
 ## 0.11.0
 
