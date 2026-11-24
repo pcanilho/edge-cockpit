@@ -642,16 +642,61 @@ export function fieldGauge(f, live, w, h) {
   return null;
 }
 const last = new WeakMap();
+// The child elements of a piece of markup, as strings: our own markup, so counting tags is enough.
+const TAG = /<(\/?)([a-zA-Z][\w-]*)[^>]*?(\/?)>/g;
+function kids(html) {
+  const out = [];
+  let depth = 0, start = -1, m;
+  const re = new RegExp(TAG);
+  while ((m = re.exec(html))) {
+    if (m[1]) { if (--depth === 0) out.push(html.slice(start, re.lastIndex)); continue; }
+    if (depth === 0) start = m.index;
+    if (m[3]) { if (depth === 0) out.push(html.slice(start, re.lastIndex)); } else depth++;
+  }
+  return out;
+}
+const headOf = h => h.slice(0, h.indexOf('>') + 1);
+const ATTR = /([\w:-]+)="([^"]*)"/g;
+const attrs = head => Object.fromEntries([...head.matchAll(ATTR)].map(m => [m[1], m[2]]));
+/**
+ * Changes node (drawn from was) to now, touching only what differs: a moved needle is one
+ * attribute, a new number one text, and the dial face under them stays as it is. Rebuilding
+ * whole plates on every update made the gauge pages cost the PC far more than a control page.
+ */
+function patch(node, was, now) {
+  if (was === now) return;
+  const hw = headOf(was), hn = headOf(now), tag = hn.match(/^<([\w-]+)/)?.[1];
+  if (!tag || tag !== hw.match(/^<([\w-]+)/)?.[1] || hw.endsWith('/>') !== hn.endsWith('/>') || hn.includes('&')) { node.outerHTML = now; return; }
+  if (hw !== hn) {
+    const o = attrs(hw), n = attrs(hn);
+    for (const k of Object.keys(o)) if (!(k in n)) node.removeAttribute(k);
+    for (const [k, v] of Object.entries(n)) if (o[k] !== v) node.setAttribute(k, v);
+  }
+  if (hn.endsWith('/>')) return;
+  const close = `</${tag}>`, iw = was.slice(hw.length, -close.length), inn = now.slice(hn.length, -close.length);
+  if (iw === inn) return;
+  const kw = kids(iw), kn = kids(inn);
+  // Text, or text around elements: put it in whole.
+  const bare = (s, k) => k.reduce((r, c) => r.replace(c, ''), s);
+  if (!kn.length || kn.length !== kw.length || node.childElementCount !== kn.length || node.childNodes.length !== kn.length) {
+    if (!kn.length && !inn.includes('&')) node.textContent = inn; else node.innerHTML = inn;
+    return;
+  }
+  if (bare(inn, kn) !== bare(iw, kw)) { node.innerHTML = inn; return; }
+  kn.forEach((c, i) => patch(node.children[i], kw[i], c));
+}
 /** Fills the page's slots from a live update; slots whose drawing didn't change are left alone. */
 export function paint(root, live) {
   const d = flightOf(live);
   for (const el of root.querySelectorAll('[data-tk]')) {
     const k = el.dataset.tk;
     if (k === 'ship3d') { ship3d(el, live); continue; }
-    const html = PAINT[k]?.(d, live) ?? '';
-    if (last.get(el) === html) continue;
+    const html = PAINT[k]?.(d, live) ?? '', was = last.get(el);
+    if (was === html) continue;
+    // The first drawing goes in whole; after that only what changed.
+    if (was != null && el.childElementCount === 1 && el.childNodes.length === 1 && kids(html).length === 1 && kids(was).length === 1) patch(el.firstElementChild, was, html);
+    else el.innerHTML = html;
     last.set(el, html);
-    el.innerHTML = html;
   }
 }
 /** A tap on master caution or warning acknowledges what is lit now. */

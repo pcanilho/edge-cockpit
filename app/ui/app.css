@@ -1268,6 +1268,7 @@ body.calm .tlm .ann b.fl { animation: none; }
 .softkeys.with-gauges .well:nth-child(n+5) { grid-column: span 3; }
 .softkeys .well[hidden] { display: none; }
 svg.gx { display: block; overflow: visible; }
+
 .tl-slot.bare { position: absolute; }
 .tl-slot > svg.gx { position: relative; z-index: 1; }
 .cap-t { display: block; margin: 18px 0 10px; font: 700 12px/1 var(--hud); letter-spacing: .28em; color: var(--muted); text-transform: uppercase; }
