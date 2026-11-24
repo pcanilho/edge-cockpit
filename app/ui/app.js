@@ -7,7 +7,7 @@ import { lookup } from './lib/ships.js';
 import * as bridge from './bridge.js';
 import * as controls from './controls.js';
 import { scene, init as initScenes, moduleOf, MODULE_NAMES, CUSTOM, swipeList, swipeIndex } from './scenes.js';
-import { cleanPage, refuseItem, pageForShip, FIELDS, duplicate, blank as blankPage, newId } from './lib/custom.js';
+import { cleanPage, refuseItem, pageForShip, FIELDS, LIVE_FIELDS, duplicate, blank as blankPage, newId } from './lib/custom.js';
 import { outline, render as shipRender } from './outlines.js';
 import { ART } from './backdrops.js';
 import * as arrange from './arrange.js';
@@ -593,9 +593,22 @@ function applyTelemetry(u) {
 }
 let lastGauges = 'tl-instruments', gaugesShown = null;
 /** The Telemetry pages: filled from each update; when telemetry goes away, back to the ship. */
+let seatSeen = '';
 function paintGauges() {
   const on = teleOn();
+  if (on) {
+    tp.observe(link.live);
+    // Into a gunner's seat: the Turret page; out of it: back to the ship.
+    const st = link.live?.actor?.state, seat = st ? `${st.crew_role}:${st.seat_name || ''}` : '';
+    if (seat !== seatSeen) {
+      seatSeen = seat;
+      if (tp.isGunner(link.live)) { if (current !== 'tl-turret') show('tl-turret'); }
+      else if (current === 'tl-turret' && seat) show(rolePage || lastShip);
+    }
+  } else seatSeen = '';
   if (on !== gaugesShown) { gaugesShown = on; paintSoftkeys(); }
+  // Status screens of yours that show game values follow every update.
+  if (CUSTOM.has(current)) for (const node of document.querySelectorAll('#console .custom-screen.painted')) node.paint();
   if (!tp.isTele(current)) return;
   if (!on) { show(rolePage || lastShip); return; }
   tp.paint($('console'), link.live);
@@ -748,6 +761,7 @@ const K = {
   repaint: () => paintGauges(),
   /** A live value for a status screen on a page of yours: only what Game.log gave. */
   live: f => {
+    if (LIVE_FIELDS.has(f)) return teleOn() ? tp.fieldValue(f, link.live) : null;
     if (f === 'armistice') return game.armistice ? 'Armistice zone' : 'Weapons free';
     if (f === 'ship') return game.seated && game.ship ? shipName(game.ship) : null;
     if (f === 'location') {  // as the status display words it: the place, else the jurisdiction
@@ -762,6 +776,8 @@ const K = {
     return v == null ? null : String(typeof v === 'object' ? v.name ?? '' : v) || null;
   },
   fieldName: f => FIELDS[f] || '',
+  /** A game value on a status screen of yours, as an instrument; null for text. */
+  gauge: (f, w, h) => (LIVE_FIELDS.has(f) && teleOn() ? tp.fieldGauge(f, link.live, w, h) : null),
   /** The role module you put on this ship page in arrange mode, if not its own. */
   moduleFor: id => { const role = moduleOf(id), m = role && store.get(`module:${role}`, null); return m && MODULE_NAMES[m] && m !== role ? m : null; },
 };

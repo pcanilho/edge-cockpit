@@ -13,6 +13,8 @@ export const TELE_PAGES = [
   { id: 'tl-systems', name: 'Systems', glyph: 'power' },
   { id: 'tl-combat', name: 'Combat', glyph: 'target' },
   { id: 'tl-suit', name: 'Suit', glyph: 'helmet' },
+  { id: 'tl-quantum', name: 'Quantum', glyph: 'quantum' },
+  { id: 'tl-turret', name: 'Turret', glyph: 'target' },
 ];
 export const isTele = id => typeof id === 'string' && id.startsWith('tl-');
 
@@ -125,6 +127,19 @@ export function scene(id) {
     add(head(382, 900, id), slot(24, 52, 852, 632, 'vitals')),
     add(plate(1288, 600, 'Environment'), slot(24, 44, 552, 470, 'env'), slot(24, 530, 552, 150, 'breath', false)),
     add(plate(1894, 660, 'Wallet'), slot(24, 44, 612, 260, 'wallet'), slot(24, 330, 612, 354, 'where', false)),
+  ];
+  if (id === 'tl-quantum') return [
+    add(head(382, 900, id), slot(24, 52, 852, 400, 'qmode', false), keycap(24, 470, 414, 214, 'NAV / SCM', { fs: 16, is: 30 }), keycap(462, 470, 414, 214, 'Quantum', { fs: 16, is: 30 })),
+    add(plate(1288, 600, 'Fuel'), slot(24, 44, 552, 640, 'fuel')),
+    add(plate(1894, 660, 'Heading'), slot(24, 44, 612, 640, 'nav')),
+  ];
+  if (id === 'tl-turret') return [
+    add(head(382, 760, id), slot(24, 52, 712, 300, 'seat', false),
+      keycap(24, 366, 344, 152, 'Gyro mode', { fs: 15, is: 26 }), keycap(392, 366, 344, 152, 'Mouse mode', { fs: 15, is: 26 }),
+      keycap(24, 532, 344, 152, 'Recenter turret', { fs: 15, is: 26 }), keycap(392, 532, 344, 152, 'Change position', { fs: 15, is: 26 })),
+    add(plate(1148, 700, 'Defence'), slot(24, 44, 652, 400, 'defence'), slot(24, 460, 652, 224, 'gunsmini', false)),
+    add(plate(1854, 700, 'Remote turrets'), keycap(24, 44, 314, 200, 'Previous turret', { fs: 15, is: 28 }), keycap(362, 44, 314, 200, 'Next turret', { fs: 15, is: 28 }),
+      keycap(24, 262, 652, 170, 'Exit turret', { fs: 15, is: 28 }), slot(24, 452, 652, 232, 'tlamp', false)),
   ];
   return [];
 }
@@ -327,13 +342,215 @@ function where(live) {
     <div class="tl-src">Radiation and intoxication join this page once a game build is seen sending them.</div>`;
 }
 
+// ---------- quantum and fuel ----------
+// The game says only whether the drive is spooled, so the console times the spool itself.
+let spool = { key: '', t0: null, last: null };
+// Hydrogen over the last two minutes, per ship, for the burn rate.
+let fuel = { ship: '', samples: [] };
+const FUEL_WINDOW = 120e3, FUEL_MIN = 20e3;
+/** Fed every update, whatever page is showing, so the timers and rates are ready. */
+export function observe(live, now = performance.now()) {
+  const d = flightOf(live), ship = d.v?.class_name || '';
+  const k = `${ship}:${d.mode}`;
+  if (d.mode == null) spool = { key: '', t0: null, last: null };
+  else if (k !== spool.key) spool = { key: k, t0: d.spooled ? null : now, last: spool.key.startsWith(ship + ':') ? spool.last : null };
+  else if (spool.t0 != null && d.spooled) spool = { ...spool, t0: null, last: (now - spool.t0) / 1000 };
+  if (ship !== fuel.ship) fuel = { ship, samples: [] };
+  if (d.h2 == null) { fuel.samples = []; return; }
+  const prev = fuel.samples.at(-1);
+  // Refuelled: start over.
+  if (prev && d.h2 > prev.h + 0.002) fuel.samples = [];
+  fuel.samples.push({ t: now, h: d.h2 });
+  while (fuel.samples.length && now - fuel.samples[0].t > FUEL_WINDOW) fuel.samples.shift();
+}
+/** Hydrogen burn: null while measuring, else fraction per second (0 when steady). */
+function burn() {
+  const s = fuel.samples;
+  if (s.length < 2 || s.at(-1).t - s[0].t < FUEL_MIN) return null;
+  const n = s.length, mt = s.reduce((a, p) => a + p.t, 0) / n, mh = s.reduce((a, p) => a + p.h, 0) / n;
+  let num = 0, den = 0;
+  for (const p of s) { num += (p.t - mt) * (p.h - mh); den += (p.t - mt) ** 2; }
+  const slope = den ? num / den * 1000 : 0;
+  return slope < -1e-6 ? -slope : 0;
+}
+const clock = sec => { const m = Math.floor(sec / 60), h = Math.floor(m / 60); return h ? `${h} h ${String(m % 60).padStart(2, '0')} min` : m ? `${m} min ${String(Math.floor(sec % 60)).padStart(2, '0')} s` : `${Math.floor(sec)} s`; };
+function qmode(d) {
+  if (d.mode == null) return `<div class="tl-mc"><b>NAV<small>Not sent</small></b><b>SCM<small>Not sent</small></b></div>`;
+  const now = performance.now(), spinning = spool.t0 != null;
+  const tm = spinning ? ((now - spool.t0) / 1000).toFixed(1) + ' s' : spool.last != null ? spool.last.toFixed(1) + ' s' : null;
+  return `<div class="tl-mc"><b class="${d.mode === 1 ? 'okl' : ''}">NAV<small>${d.mode === 1 ? 'Quantum and top speed' : '—'}</small></b><b class="${d.mode === 2 ? 'okl' : ''}">SCM<small>${d.mode === 2 ? 'Shields and guns' : '—'}</small></b></div>
+    <div class="tl-spool">${G.svg(852, 290, stopwatch(spinning ? (now - spool.t0) / 1000 : spool.last, spinning))}</div>`;
+}
+/** A stopwatch dial for the spool: the console's own timing, from the switch to spooled. */
+function stopwatch(sec, running) {
+  const cx = 150, cy = 150, r = 116, c = running ? C.amber : C.ok;
+  let s = sec == null ? `<circle cx="${cx}" cy="${cy}" r="${r + 14}" fill="#040b10" stroke="#ffffff10" stroke-width="2"/>` + T(cx, cy, 14, 'SWITCH MODES', { c: C.dim, ls: 2 }) + T(cx, cy + 24, 14, 'TO TIME IT', { c: C.dim, ls: 2 })
+    : G.dial(cx, cy, r, Math.min(sec, 30), { min: 0, max: 30, step: 5, c, unit: 'SECONDS', title: '', fmt: () => sec.toFixed(1) });
+  s += `<g transform="translate(330 70)">` + T(0, 0, 13, running ? 'SPOOLING' : 'SPOOLED', { c, ls: 4, a: 'start' })
+    + `<rect y="22" width="470" height="14" rx="7" fill="#0c1a22"/><rect y="22" width="${running ? 235 : 470}" height="14" rx="7" fill="${c}" filter="url(#gx-gl)" opacity="${running ? .6 : 1}"/>`
+    + T(0, 80, 13, sec == null ? 'SPOOL TIME · NOT MEASURED YET' : running ? 'TIMING THIS SPOOL' : 'LAST SPOOL TOOK ' + sec.toFixed(1) + ' S', { c: C.muted, ls: 2.4, a: 'start' })
+    + T(0, 130, 12, 'THE GAME SAYS ONLY SPOOLED OR NOT;', { c: C.dim, ls: 1.6, a: 'start' }) + T(0, 152, 12, 'THIS CONSOLE TIMES IT FROM THE SWITCH.', { c: C.dim, ls: 1.6, a: 'start' }) + '</g>';
+  return s;
+}
+/** Hydrogen time left on a 0 to 60 minute arc; past an hour it pins and the number says so. */
+function lasts(cx, cy, r, sec) {
+  const min = sec / 60, p = Math.min(100, min / 60 * 100), c = sec < 300 ? C.red : sec < 900 ? C.amber : C.cyan;
+  return G.semi(cx, cy, r, p, { title: '', c }) + `<rect x="${cx - 120}" y="${cy - 52}" width="240" height="44" fill="#02080c"/>` + mono(cx, cy - 30, 34, clock(sec), { c })
+    + T(cx - r, cy + 22, 12, '0', { c: C.muted }) + T(cx + r, cy + 22, 12, '60 MIN', { c: C.muted });
+}
+function fuelPlate(d) {
+  const W = 552, H = 640;
+  let s = G.hbar(30, 70, 492, 46, d.h2 == null ? null : pct(d.h2), { title: 'HYDROGEN FUEL', c: C.cyan, n: 26 });
+  s += G.hbar(30, 190, 492, 46, null, { title: 'QUANTUM FUEL', c: C.cyan, n: 26 });
+  s += T(276, 270, 12, 'THE GAME SENDS NO QUANTUM FUEL', { c: C.dim, ls: 2.4 });
+  s += `<rect x="30" y="310" width="492" height="300" rx="10" fill="#02080c" stroke="#ffffff16"/>` + T(276, 350, 13, 'HYDROGEN LASTS', { c: C.muted, ls: 4 });
+  if (d.h2 == null) s += T(276, 460, 18, d.v ? 'NOT SENT ON THIS SHIP' : 'NOT IN A SHIP', { c: C.dim, ls: 3 });
+  else {
+    const b = burn();
+    if (b == null) s += T(276, 450, 26, 'MEASURING…', { c: C.muted, ls: 4 }) + T(276, 500, 13, 'NEEDS 20 S OF READINGS', { c: C.dim, ls: 2.4 });
+    else if (b === 0) s += T(276, 450, 30, 'NOT BURNING', { c: C.ok, ls: 4 }) + T(276, 500, 13, 'HYDROGEN STEADY FOR 20 S', { c: C.dim, ls: 2.4 });
+    else s += lasts(276, 500, 130, d.h2 / b) + T(276, 545, 13, `AT THIS RATE · ${(b * 6000).toFixed(1)} % PER MIN`, { c: C.muted, ls: 2.4 });
+    s += T(276, 584, 11, 'FROM HOW FAST THE GAME\'S HYDROGEN READING DROPS', { c: C.dim, ls: 1.6 });
+  }
+  return G.svg(W, H, s);
+}
+function navPlate(d) {
+  return G.svg(612, 640, G.heading(30, 30, 552, 64, d.hdg)
+    + G.tape(40, 150, 200, 460, d.speed, { title: 'SPEED', unit: 'M/S', ppu: 4, minor: 5, major: 25, min: 0, c: C.cyan, fmt: v => Math.round(v), side: 'left' })
+    + G.tape(372, 150, 200, 460, d.ralt, { title: 'RADAR ALT', unit: 'METRES', ppu: 9, minor: 1, major: 5, c: C.ok, fmt: v => (v < 100 ? v.toFixed(1) : Math.round(v)), side: 'right', ground: true }));
+}
+
+// ---------- turret ----------
+const ROLE = { 1: 'Pilot', 2: 'Gunner', 3: 'Crew' };
+const SEAT_WORDS = [[/turret/i, 'Turret'], [/gunner/i, 'Gunner'], [/co-?pilot/i, 'Co-pilot'], [/pilot/i, 'Pilot'], [/engineer/i, 'Engineer']];
+/** A gunner's seat: the game's crew role, or a seat whose name says turret or gunner. */
+export function isGunner(live) {
+  const st = live?.actor?.state;
+  return !!st && (st.crew_role === 2 || /turret|gunner/i.test(st.seat_name || ''));
+}
+function seatCard(live) {
+  const st = live?.actor?.state;
+  const word = st?.seat_name ? SEAT_WORDS.find(([re]) => re.test(st.seat_name))?.[1] : null;
+  return `<div class="tl-seat"><small>Your seat</small><b>${esc(word || ROLE[st?.crew_role] || '—')}</b><span>${esc(ROLE[st?.crew_role] ? 'Crew role: ' + ROLE[st.crew_role] : 'Crew role not sent')}</span></div>
+    <div class="tl-src">Picked from the seat the game reports. Nothing here comes from a turret recording yet: values show once the game sends them in this seat.</div>`;
+}
+function gunsMini(live) {
+  const l = live?.weapons?.weapons || [];
+  if (!l.length) return G.svg(652, 224, `<rect width="652" height="224" rx="10" fill="#070b0e" stroke="#ffffff12"/>` + T(326, 112, 15, 'GUNS · NOT SENT IN THIS SEAT', { c: C.dim, ls: 3 }));
+  const r = l.filter(g => g.is_powered && g.ready_to_fire).length, st = live.weapons.settings || {};
+  return G.svg(652, 224, `<rect width="652" height="224" rx="10" fill="#070b0e" stroke="#ffffff12"/>` + G.ring(112, 112, 86, r / l.length * 100, { title: '', c: C.ok, glow: true, sw: 14, noNum: true }) + mono(112, 108, 40, `${r}/${l.length}`, { c: C.ok })
+    + T(240, 60, 13, 'GUNS READY', { c: C.muted, ls: 3, a: 'start' })
+    + l.map((g, i) => `<circle cx="${252 + i * 34}" cy="104" r="11" fill="${g.is_powered && g.ready_to_fire ? C.ok : '#2a333c'}" ${g.is_powered && g.ready_to_fire ? 'filter="url(#gx-gl)"' : ''}/>`).join('')
+    + T(240, 168, 13, 'GIMBALS', { c: C.muted, ls: 3, a: 'start' }) + T(370, 168, 17, st.gimbals_locked ? 'LOCKED' : 'FREE', { c: C.amber, ls: 3, a: 'start' }));
+}
+function turretLamp(live) {
+  const t = live?.turret;
+  return `<div class="tl-lamps">${t ? lamp(t.light_amplification ? 'on' : '', 'Light amp', t.light_amplification ? 'On' : 'Off') : lamp('na', 'Light amp', '—')}</div>`;
+}
+
 const PAINT = {
   air: (d) => air(d), energy: (d) => energy(d), modes: (d) => modes(d), caution: (d) => caution(d), 'sh-hull': (d) => shHull(d),
   approach: (d) => approach(d), touchdown: (d) => touchdown(d), sink: (d) => sink(d),
   bus: (d) => bus(d), ifcs: (d) => ifcs(d), weapons: (d, l) => weapons(l),
   threat: (d) => threat(d), defence: (d) => defence(d), guns: (d, l) => guns(l),
+  qmode: (d) => qmode(d), fuel: (d) => fuelPlate(d), nav: (d) => navPlate(d),
+  seat: (d, l) => seatCard(l), gunsmini: (d, l) => gunsMini(l), tlamp: (d, l) => turretLamp(l),
   vitals: (d, l) => vitals(l), env: (d, l) => env(l), breath: (d, l) => breath(l), wallet: (d, l) => wallet(l), where: (d, l) => where(l),
 };
+/** A game-link value for a status screen on a page of yours, as text; null when not sent. */
+export function fieldValue(f, live) {
+  const d = flightOf(live), pc = v => (pct(v) == null ? null : pct(v) + '%');
+  const n = (v, unit, dp = 0) => (v == null ? null : `${v.toFixed(dp)} ${unit}`);
+  const w = live?.weapons, vt = live?.actor?.vitals;
+  const cm = t => w?.countermeasures?.find(c => c.type === t)?.amount;
+  switch (f) {
+    case 'speed': return n(d.speed, 'm/s');
+    case 'radarAlt': return d.ralt == null ? null : n(d.ralt, 'm', d.ralt < 100 ? 1 : 0);
+    case 'vsi': return n(d.vsi, 'm/s', 1);
+    case 'heading': return d.hdg == null ? null : String(Math.round(d.hdg) % 360).padStart(3, '0') + '°';
+    case 'shields': return pc(d.shields);
+    case 'hull': return pc(d.hull);
+    case 'hydrogen': return pc(d.h2);
+    case 'boost': return pc(d.boost?.reserves);
+    case 'gforce': return d.g ? n(d.g.current, 'g', 1) : null;
+    case 'mode': return d.mode == null ? null : (d.mode === 1 ? 'NAV' : 'SCM') + (d.spooled ? '' : ' · spooling');
+    case 'gunsReady': { const l = w?.weapons || []; return l.length ? `${l.filter(g => g.is_powered && g.ready_to_fire).length}/${l.length}` : null; }
+    case 'decoys': return cm(1) == null ? null : String(cm(1));
+    case 'noise': return cm(2) == null ? null : String(cm(2));
+    case 'health': return gp(vt?.health) == null ? null : gp(vt.health) + '%';
+    case 'oxygen': return gp(vt?.oxygen) == null ? null : gp(vt.oxygen) + '%';
+    case 'balance': { const b = live?.actor?.state?.uec_balance; return b == null ? null : Number(b).toLocaleString('en-US') + ' aUEC'; }
+  }
+  return null;
+}
+// ---------- your pages: game values as instruments sized to the screen you drew ----------
+const PCT = { shields: d => d.shields, hull: d => d.hull, hydrogen: d => d.h2, boost: d => d.boost?.reserves, health: (d, l) => gpf(l?.actor?.vitals?.health), oxygen: (d, l) => gpf(l?.actor?.vitals?.oxygen) };
+const gpf = g => (gp(g) == null ? null : gp(g) / 100);
+const PCT_C = { shields: C.cyan, hydrogen: C.cyan, boost: C.amber, oxygen: C.cyan };
+const lvl = p => (p < 25 ? C.red : p < 50 ? C.amber : C.ok);
+/** A moving horizontal scale: the value sits under the centre mark. */
+function hTape(w, h, v, o) {
+  const cx = w / 2, y = h - 8;
+  let s = '';
+  const span = w / o.ppu / 2;
+  for (let t = Math.ceil((v - span) / o.minor) * o.minor; t <= v + span; t += o.minor) {
+    if (o.min != null && t < o.min) continue;
+    const x = cx + (t - v) * o.ppu, big = Math.abs(t % o.major) < 1e-6;
+    s += `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${y}" y2="${y - (big ? 16 : 8)}" stroke="${C.paint}" stroke-width="${big ? 2 : 1}" opacity="${big ? .9 : .5}"/>` + (big ? mono(x, y - 28, 13, t, { c: C.muted }) : '');
+  }
+  return s + `<rect width="${w}" height="${h}" fill="url(#gx-fadeH)"/><path d="M${cx} ${y - 18}l-8 -10h16z" fill="${o.c}"/>`;
+}
+/** An instrument for a game value in a w x h status screen; null for a plain readout. */
+export function fieldGauge(f, live, w, h) {
+  const d = flightOf(live), H = h - 30;
+  const none = what => G.svg(w, H, T(w / 2, H / 2, 13, what, { c: C.dim, ls: 2 }));
+  if (PCT[f]) {
+    const p = pct(PCT[f](d, live));
+    if (p == null) return none('NOT SENT');
+    const c = PCT_C[f] || lvl(p);
+    if (H >= w * 0.6) { const r = Math.min(w, H) / 2 - 22; return G.svg(w, H, G.ring(w / 2, H / 2 + 4, r, p, { title: '', c, glow: true, fs: Math.max(20, r * .5), sw: Math.max(8, r * .16) })); }
+    return G.svg(w, H, G.hbar(14, Math.max(8, H / 2 - 18), w - 28, Math.min(36, H - 24), p, { title: '', c, n: Math.max(8, Math.round((w - 140) / 18)) }));
+  }
+  switch (f) {
+    case 'heading': return G.svg(w, H, G.heading(12, Math.max(4, H / 2 - 28), w - 24, Math.min(56, H - 8), d.hdg));
+    case 'speed': if (d.speed == null) return none('NOT SENT');
+      return G.svg(w, H, hTape(w, H, d.speed, { ppu: Math.max(2, w / 160), minor: 10, major: 50, min: 0, c: C.cyan }) + mono(w / 2, Math.min(28, H / 3), 26, Math.round(d.speed) + `<tspan font-size="12" fill="${C.muted}"> m/s</tspan>`, { c: C.cyan }));
+    case 'radarAlt': {
+      if (d.ralt == null) return none(d.v ? 'NO GROUND IN RANGE' : 'NOT SENT');
+      const x = v => 14 + Math.log10(1 + v) / 3 * (w - 28), y = H - 22;
+      let s = `<rect x="14" y="${y - 6}" width="${w - 28}" height="12" rx="6" fill="#0c1a22"/><rect x="14" y="${y - 6}" width="${(x(Math.min(d.ralt, 999)) - 14).toFixed(1)}" height="12" rx="6" fill="${C.ok}" filter="url(#gx-gl)"/>`;
+      for (const t of [0, 10, 100, 1000]) s += mono(x(t), y - 18, 11, t, { c: C.muted });
+      return G.svg(w, H, s + mono(w / 2, Math.min(26, H / 3), 26, (d.ralt < 100 ? d.ralt.toFixed(1) : Math.round(d.ralt)) + `<tspan font-size="12" fill="${C.muted}"> m</tspan>`, { c: C.ok }));
+    }
+    case 'vsi': {
+      if (d.vsi == null) return none('NOT SENT');
+      const cx = w / 2, y = H - 20, sc = (w / 2 - 20) / 20, v = Math.max(-20, Math.min(20, d.vsi)), col = d.vsi < -0.5 ? C.amber : d.vsi > 0.5 ? C.ok : C.paint;
+      return G.svg(w, H, `<rect x="14" y="${y - 6}" width="${w - 28}" height="12" rx="6" fill="#0c1a22"/><rect x="${Math.min(cx, cx + v * sc).toFixed(1)}" y="${y - 6}" width="${Math.max(2, Math.abs(v * sc)).toFixed(1)}" height="12" fill="${col}" filter="url(#gx-gl)"/><line x1="${cx}" x2="${cx}" y1="${y - 12}" y2="${y + 12}" stroke="${C.ink}" stroke-width="2"/>`
+        + T(20, y - 18, 11, 'DOWN', { c: C.muted, ls: 2, a: 'start' }) + T(w - 20, y - 18, 11, 'UP', { c: C.muted, ls: 2, a: 'end' }) + mono(cx, Math.min(26, H / 3), 26, (Math.abs(d.vsi) < 0.05 ? '0.0' : (d.vsi > 0 ? '+' : '') + d.vsi.toFixed(1)) + `<tspan font-size="12" fill="${C.muted}"> m/s</tspan>`, { c: col }));
+    }
+    case 'gforce': {
+      if (!d.g) return none('NOT SENT');
+      if (H >= w * 0.6 && Math.min(w, H) >= 300) return G.svg(w, H, G.gmeter(w / 2, H / 2, Math.min(w, H) / 2 - 24, d.g));
+      const x = v => 14 + Math.min(v, 10) / 10 * (w - 28), y = H - 22;
+      return G.svg(w, H, `<rect x="14" y="${y - 6}" width="${w - 28}" height="12" rx="6" fill="#0c1a22"/><rect x="14" y="${y - 6}" width="${(x(d.g.current) - 14).toFixed(1)}" height="12" rx="6" fill="${C.amber}" filter="url(#gx-gl)"/><line x1="${x(d.g.max)}" x2="${x(d.g.max)}" y1="${y - 12}" y2="${y + 12}" stroke="${C.red}" stroke-width="3"/>`
+        + mono(w / 2, Math.min(26, H / 3), 26, d.g.current.toFixed(1) + `<tspan font-size="12" fill="${C.muted}"> g · peak ${d.g.max.toFixed(1)}</tspan>`, { c: C.amber }));
+    }
+    case 'mode': return `<div class="tl-lamps fill">${d.mode == null ? lamp('na', 'Mode', '—') : lamp(d.mode === 1 ? 'on' : '', 'NAV') + lamp(d.mode === 2 ? 'on' : '', 'SCM') + lamp(d.spooled ? 'on' : 'am', d.spooled ? 'Spooled' : 'Spooling')}</div>`;
+    case 'gunsReady': {
+      const l = live?.weapons?.weapons || [];
+      if (!l.length) return none('NOT SENT');
+      const r = l.filter(g => g.is_powered && g.ready_to_fire).length, gap = Math.min(40, (w - 120) / l.length);
+      return G.svg(w, H, mono(48, H / 2, 28, `${r}/${l.length}`, { c: C.ok }) + l.map((g, i) => `<circle cx="${110 + i * gap}" cy="${H / 2}" r="${Math.min(12, gap / 2 - 3)}" fill="${g.is_powered && g.ready_to_fire ? C.ok : '#2a333c'}" ${g.is_powered && g.ready_to_fire ? 'filter="url(#gx-gl)"' : ''}/>`).join(''));
+    }
+    case 'decoys': case 'noise': {
+      const t = f === 'decoys' ? 1 : 2, n = live?.weapons?.countermeasures?.find(c => c.type === t)?.amount;
+      if (n == null) return none('NOT SENT');
+      const most = seen(live?.vehicle?.class_name || '', t, n), segs = Math.max(6, Math.min(24, Math.round((w - 120) / 14))), lit = most ? Math.round(n / most * segs) : 0, sw = (w - 120) / segs;
+      return G.svg(w, H, mono(52, H / 2, 30, n, { c: C.ink }) + Array.from({ length: segs }, (_, i) => `<rect x="${(104 + i * sw).toFixed(1)}" y="${H / 2 - 8}" width="${(sw - 3).toFixed(1)}" height="16" rx="2" fill="${i < lit ? C.cyan : '#13212b'}"/>`).join(''));
+    }
+  }
+  return null;
+}
 const last = new WeakMap();
 /** Fills the page's slots from a live update; slots whose drawing didn't change are left alone. */
 export function paint(root, live) {

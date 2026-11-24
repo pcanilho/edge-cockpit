@@ -457,7 +457,16 @@ export function item(it) {
     case 'placard': return placard(x, y, it.text || '');
     case 'screen': {
       const el = screen(x, y, w, ht, `<small class="cs-f"></small><b class="cs-v"></b>`, 'custom-screen');
-      el.paint = () => { const v = K.live?.(it.field); el.querySelector('.cs-f').textContent = K.fieldName?.(it.field) || ''; el.querySelector('.cs-v').textContent = v ?? '–'; };
+      el.paint = () => {
+        const f = el.querySelector('.cs-f'), b = el.querySelector('.cs-v'), name = K.fieldName?.(it.field) || '';
+        if (f.textContent !== name) f.textContent = name;
+        // A game value draws as an instrument; the rest, and anything not live, as text.
+        const g = K.gauge?.(it.field, w, ht);
+        if (g != null) { if (el.dataset.g !== g) { el.dataset.g = g; b.innerHTML = g; } el.classList.add('gauged'); return; }
+        el.classList.remove('gauged'); delete el.dataset.g;
+        const v = K.live?.(it.field) ?? '–';
+        if (b.textContent !== v) b.textContent = v;
+      };
       el.classList.add('painted');
       el.paint();
       return el;

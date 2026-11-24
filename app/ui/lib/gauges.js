@@ -19,6 +19,7 @@ export const DEFS = `<defs>
   <filter id="gx-gl2" filterUnits="userSpaceOnUse" x="-500" y="-500" width="3000" height="2000"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   <linearGradient id="gx-fadeV" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity="1"/><stop offset=".18" stop-color="#000" stop-opacity="0"/><stop offset=".82" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="1"/></linearGradient>
   <linearGradient id="gx-fadeH" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity="1"/><stop offset=".2" stop-color="#000" stop-opacity="0"/><stop offset=".8" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="1"/></linearGradient>
+  <radialGradient id="gx-nut" cx=".35" cy=".35" r=".8"><stop offset="0" stop-color="#5a6670"/><stop offset=".6" stop-color="#232a30"/><stop offset="1" stop-color="#0b0e11"/></radialGradient>
   <pattern id="gx-hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="10" height="10" fill="#1a1208"/><rect width="4" height="10" fill="#3a2a10"/></pattern>
 </defs>`;
 export const svg = (w, h, body) => `<svg class="gx" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>`;
@@ -89,7 +90,7 @@ export function vsi(cx, cy, r, v) {
   const vr0 = Math.round(v), t0 = vr0 > 0 ? '+' + vr0 : vr0 < 0 ? '−' + Math.abs(vr0) : '0', col = vr0 < 0 ? C.amber : vr0 > 0 ? C.ok : C.paint;
   s += `<rect x="${cx + r * .42 - 56}" y="${cy - 26}" width="112" height="52" rx="6" fill="#02080c" stroke="${col}" stroke-width="2"/>` + mono(cx + r * .42, cy + 1, 30, t0, { c: vr0 ? col : C.ink });
   const a = ang(v), [nx, ny] = P(cx, cy, r - 16, a), [bx, by] = P(cx, cy, 34, a + 180);
-  s += `<line x1="${f1(bx)}" y1="${f1(by)}" x2="${f1(nx)}" y2="${f1(ny)}" stroke="${C.ink}" stroke-width="7" stroke-linecap="round" filter="url(#gx-gl)"/><circle cx="${cx}" cy="${cy}" r="16" fill="url(#nut)" stroke="#000" stroke-width="2"/>`;
+  s += `<line x1="${f1(bx)}" y1="${f1(by)}" x2="${f1(nx)}" y2="${f1(ny)}" stroke="${C.ink}" stroke-width="7" stroke-linecap="round" filter="url(#gx-gl)"/><circle cx="${cx}" cy="${cy}" r="16" fill="url(#gx-nut)" stroke="#000" stroke-width="2"/>`;
   return s + '</g>';
 }
 
@@ -105,7 +106,7 @@ export function gmeter(cx, cy, r, g) {
   const pk = ang(g.max), [px, py] = P(cx, cy, r + 4, pk), [p1x, p1y] = P(cx, cy, r + 18, pk - 4), [p2x, p2y] = P(cx, cy, r + 18, pk + 4);
   s += `<path d="M${f1(px)} ${f1(py)}L${f1(p1x)} ${f1(p1y)}L${f1(p2x)} ${f1(p2y)}z" fill="${C.amber}" filter="url(#gx-gl)"/>`;
   const a = ang(g.current), [nx, ny] = P(cx, cy, r - 18, a);
-  s += `<line x1="${cx}" y1="${cy}" x2="${f1(nx)}" y2="${f1(ny)}" stroke="${C.ink}" stroke-width="5" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="11" fill="url(#nut)" stroke="#000" stroke-width="2"/>`;
+  s += `<line x1="${cx}" y1="${cy}" x2="${f1(nx)}" y2="${f1(ny)}" stroke="${C.ink}" stroke-width="5" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="11" fill="url(#gx-nut)" stroke="#000" stroke-width="2"/>`;
   s += mono(cx, cy + r * .42, 34, g.current.toFixed(1), { c: C.cyan }) + T(cx, cy + r * .42 + 26, 12, 'G NOW', { c: C.muted, ls: 3 });
   s += T(cx, cy + r + 34, 12, `PEAK  ${g.max.toFixed(1)} G${g.max > max ? '  ▲' : ''}`, { c: C.amber, ls: 2 });
   return s + '</g>';
@@ -154,7 +155,7 @@ export function dial(cx, cy, r, v, o) {
   for (let t = o.min; t <= o.max; t += o.step) { const a = ang(t), [x0, y0] = P(cx, cy, r - 12, a), [x1, y1] = P(cx, cy, r - 26, a), [lx, ly] = P(cx, cy, r - 44, a);
     s += `<line x1="${f1(x0)}" y1="${f1(y0)}" x2="${f1(x1)}" y2="${f1(y1)}" stroke="${C.ink}" stroke-width="2.5"/>` + mono(lx, ly, 15, t, { c: C.paint }); }
   const [nx, ny] = P(cx, cy, r - 16, ang(v));
-  s += `<line x1="${cx}" y1="${cy}" x2="${f1(nx)}" y2="${f1(ny)}" stroke="${C.ink}" stroke-width="5" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="11" fill="url(#nut)" stroke="#000" stroke-width="2"/>`;
+  s += `<line x1="${cx}" y1="${cy}" x2="${f1(nx)}" y2="${f1(ny)}" stroke="${C.ink}" stroke-width="5" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="11" fill="url(#gx-nut)" stroke="#000" stroke-width="2"/>`;
   return s + mono(cx, cy + r * .74, 34, o.fmt(v), { c: o.c }) + T(cx, cy + r * .74 + 26, 12, o.unit, { c: C.muted, ls: 3 }) + T(cx, cy + r + 36, 13, o.title, { c: C.paint, ls: 3 });
 }
 
