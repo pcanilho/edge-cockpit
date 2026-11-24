@@ -1273,6 +1273,8 @@ svg.gx { display: block; overflow: visible; }
 
 .tl-slot.bare { position: absolute; }
 .tl-slot > svg.gx { position: relative; z-index: 1; }
+/* On a phone the glass behind a split gauge is gone, so each instrument takes its own. */
+.ph-folded > .tl-part { border-radius: 10px; background: radial-gradient(120% 90% at 30% 0%, #0f1c26, #050a0e 70%); box-shadow: 0 0 0 3px #08090b, 0 0 0 4px #ffffff14, inset 0 0 30px #000; }
 .cap-t { display: block; margin: 18px 0 10px; font: 700 12px/1 var(--hud); letter-spacing: .28em; color: var(--muted); text-transform: uppercase; }
 .tl-src { margin-top: 14px; font: 500 12px/1.4 var(--body); color: var(--dim); }
 .tl-lamps { display: flex; gap: 10px; margin-top: 10px; }
