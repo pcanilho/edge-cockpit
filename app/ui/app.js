@@ -17,6 +17,7 @@ import * as world from './world.js';
 import * as phone from './phone.js';
 import { keepAwake } from './awake.js';
 import * as haptics from './haptics.js';
+import * as tele from './lib/telemetry.js';
 import { reportText, issueBody } from './lib/report.js';
 
 const $ = id => document.getElementById(id);
@@ -112,7 +113,13 @@ const platesMode = v => (Array.isArray(v) && v.some(x => SHIP_PLATES.includes(x)
 // Night backlight in percent; 0 leaves the backlight alone.
 const nightLevel = v => [0, 10, 30, 50].includes(+v) ? +v : 30;
 const nightMode = v => (v === true ? 'on' : ['on', 'auto'].includes(v) ? v : 'off');
-const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), mute: store.get('mute', false), anywhere: store.get('anywhere', false), stack: store.get('stack', true), large: store.get('large', false), shapes: store.get('shapes', false), calm: store.get('calm', false), plates: platesMode(store.get('plates', null)), size: store.get('size', 'fit') === 'actual' ? 'actual' : 'fit', makerTheme: themeMode(store.get('makerTheme', 'auto')), vibrate: store.get('vibrate', true), nightLight: nightLevel(store.get('nightLight', 30)) };
+const opts = { night: nightMode(store.get('night', 'off')), sound: store.get('sound', true), flash: store.get('flash', true), auto: store.get('auto', true), recap: store.get('recap', true), alertSound: store.get('alertSound', true), mute: store.get('mute', false), anywhere: store.get('anywhere', false), stack: store.get('stack', true), large: store.get('large', false), shapes: store.get('shapes', false), calm: store.get('calm', false), plates: platesMode(store.get('plates', null)), size: store.get('size', 'fit') === 'actual' ? 'actual' : 'fit', makerTheme: themeMode(store.get('makerTheme', 'auto')), vibrate: store.get('vibrate', true), nightLight: nightLevel(store.get('nightLight', 30)), layout: store.get('layout', 'telemetry') === 'classic' ? 'classic' : 'telemetry', gameSend: store.get('gameSend', true) };
+// The game link (see the game link section): off until the game shares its telemetry.
+let link = { link: 'off', port: 2942, actions: [], live: {} };
+/** A key the game takes through the link, so it needs no keyboard bind (5.0, taps only). */
+const byGame = k => !!k && k.role !== 'hold' && tele.viaGame(link, k, 'tap', opts.gameSend);
+/** A key the console can press: a keyboard bind, or the game takes it. */
+const reach = k => !!k && (!!bindOf(k) || byGame(k));
 // Vibration is for paired phones and tablets only; the Edge has no motor.
 if (onPhone) haptics.enable(opts.vibrate);
 stage.classList.toggle('large', opts.large);
@@ -234,13 +241,13 @@ function bindHealth() {
   const byAction = new Map();
   const add = k => { if (k?.action && !byAction.has(k.action)) byAction.set(k.action, k); };
   for (const k of KEYS.values()) { add(k); k.steps?.forEach(st => add(st.key)); }
-  const missing = [], stick = [], shared = [], mouse = [], held = [], seen = new Map();
+  const missing = [], stick = [], shared = [], mouse = [], held = [], game = [], seen = new Map();
   for (const k of byAction.values()) {
     const spec = bindOf(k);
     // Our key took the slot of a default mouse button and the button didn't move to the mouse.
     const button = consoleMouse[k.action];
     if (button && Object.hasOwn(mine.kb, k.action) && spec === consoleBinds[k.action] && !mine.mouse[k.action]) mouse.push(`${k.label} (${mouseText(button)})`);
-    if (!spec) { (mine.stick[k.action] ? stick : missing).push(k.label); continue; }
+    if (!spec) { (byGame(k) ? game : mine.stick[k.action] ? stick : missing).push(k.label); continue; }
     // The game fires a modifier's own action even mid-chord: right Shift alone is Lock rotation.
     const parts = spec.split('+'), lone = parts.find(p => Object.hasOwn(LONE_MODIFIERS, p));
     if (parts.length > 1 && lone && spec !== k.defaultKey) held.push(`${k.label} (${keyText(spec)}, also ${LONE_MODIFIERS[lone]})`);
@@ -250,7 +257,7 @@ function bindHealth() {
     if (other && !(spec === k.defaultKey && spec === other.defaultKey)) shared.push(`${other.label} and ${k.label} (${keyText(spec)})`);
     else seen.set(id, k);
   }
-  return { total: byAction.size, missing, stick, shared, mouse, held };
+  return { total: byAction.size, missing, stick, shared, mouse, held, game };
 }
 function mouseText(spec) { return spec.split('+').map(p => ({ mouse1: 'left mouse button', mouse2: 'right mouse button', mouse3: 'middle mouse button' }[p] || keyText(p))).join(' + '); }
 const listOf = (a, n = 4) => a.slice(0, n).join(', ') + (a.length > n ? ` and ${a.length - n} more` : '');
@@ -262,10 +269,11 @@ function paintBindHealth() {
   row.className = `health ${bad || odd ? 'warn' : h.shared.length ? 'info' : 'ok'}`;
   row.querySelector('b').textContent = bad
     ? `${bad} of ${h.total} keys can't be pressed from the console`
-    : `All ${h.total} keys the console uses have a keyboard bind`;
+    : h.game.length ? `All ${h.total} keys the console uses can be pressed` : `All ${h.total} keys the console uses have a keyboard bind`;
   const lines = [];
   if (h.missing.length) lines.push(`No keyboard key: ${listOf(h.missing)}.`);
   if (h.stick.length) lines.push(`Joystick only: ${listOf(h.stick)}.`);
+  if (h.game.length) lines.push(`No keyboard key, so only through the game while telemetry is live: ${listOf(h.game)}.`);
   if (h.shared.length) lines.push(`Sharing a key: ${listOf(h.shared, 2)}.`);
   if (h.mouse.length) lines.push(`Lost their mouse button in game: ${listOf(h.mouse)}.`);
   if (h.held.length) lines.push(`Shift or left Ctrl in these keys also fires its own action in game: ${listOf(h.held, 2)}.`);
@@ -355,7 +363,21 @@ function failed(err, k, node) {
 
 async function send(k, mode, ms, node) {
   if (K.dry) return true;  // the page editor's Try it: presses light up, nothing is sent
+  // Through the game when it takes this action: no keybind or focus needed. Anything but
+  // "ok" (an action it refuses, a dropped link) falls back to the key.
+  let refused = null;
+  if (tele.viaGame(link, k, mode, opts.gameSend)) {
+    const r = await bridge.gameAction(k.action).catch(() => 'failed');
+    if (r !== 'ok') refused = r;
+    else lastPress = { label: k.label, via: 'ok' };
+    if (r === 'ok') {
+      if (info.focused && /^spaceship|^vehicle/.test(k.actionmap || '')) { watch.shipKeys++; paintPatch(); }
+      if (!$('sheet').hidden) paintLink();
+      return true;
+    }
+  }
   const spec = bindOf(k);
+  if (mode !== 'up') lastPress = { label: k.label, via: refused || 'key' };
   if (!spec) { failed('unbound', k, node); return false; }
   try { await bridge.sendKey(spec, mode, ms, opts.anywhere); } catch (e) { failed(e, k, node); return false; }
   if (mode !== 'up' && info.focused && /^spaceship|^vehicle/.test(k.actionmap || '')) { watch.shipKeys++; paintPatch(); }
@@ -473,9 +495,11 @@ const tracked = st => st.kind === 'set';
 const isOn = st => st.kind === 'set' && states[st.key] === st.value;
 const known = key => key in states;
 function flip(st) {
+  // The game reports a switch a moment after it moves: until then, what the console just set stands.
+  if (teleKeys.has(st.key)) holdoff[st.key] = performance.now() + HOLDOFF_MS;
   if (tracked(st)) { states[st.key] = st.value; repaint(); bridge.share({ st: { [st.key]: st.value } }); return; }
-  // A toggle flips whatever the game had, so the matching switch no longer knows.
-  if (st.key in states) { delete states[st.key]; repaint(); bridge.share({ st: { [st.key]: null } }); }
+  // A toggle flips whatever the game had, so the matching switch no longer knows, unless the game says.
+  if (st.key in states && !teleKeys.has(st.key)) { delete states[st.key]; repaint(); bridge.share({ st: { [st.key]: null } }); }
   for (const node of document.querySelectorAll(`#console [data-state]`)) {
     if (JSON.parse(node.dataset.state).key !== st.key) continue;
     node.classList.add('on');
@@ -509,6 +533,8 @@ function shared(s) {
     for (const id of CUSTOM.keys()) cache.delete(id);
     if (CUSTOM.has(current)) render();
   }
+  if (s.gl && onPhone) { link = { ...link, link: s.gl.link, actions: s.gl.actions || [] }; gameBinds(); }
+  if (Array.isArray(s.tk)) teleKeys = new Set(s.tk);
   if ('st' in s) {
     if (s.st === null) for (const key of Object.keys(states)) delete states[key];
     else for (const [k, v] of Object.entries(s.st)) { if (v === null) delete states[k]; else states[k] = v; }
@@ -519,13 +545,194 @@ function shared(s) {
 function repaint() {
   for (const node of document.querySelectorAll('#console [data-state]')) {
     const st = JSON.parse(node.dataset.state);
-    if (!tracked(st)) continue;
+    if (!tracked(st)) { paintLamp(node, st); continue; }
     const on = isOn(st);
     node.classList.toggle('on', on);
     const s = node.querySelector(':scope > .cap > .st, :scope > .st');
     if (s && st.labels) s.textContent = st.labels[on ? 0 : 1];
   }
   for (const node of document.querySelectorAll('#console .painted')) node.paint();
+  paintCounts();
+}
+
+// ---------- game link: Star Citizen's own telemetry ----------
+// With the game sharing its state, switches show where the ship really is, push-buttons for
+// what the game reports get a lamp, and the status display shows the game's instruments. What
+// the game doesn't send keeps the classic behaviour. With telemetry off, nothing changes.
+const teleOn = () => link.link === 'live' && opts.layout !== 'classic';
+let teleKeys = new Set();           // state keys whose value came from the game
+const holdoff = {};                 // key -> until when the game's value waits
+const HOLDOFF_MS = 800;
+let linkShared = '', byGameNow = '';
+/** Keys with no keyboard bind that the game takes: the bind health, and GAME on their caps. */
+function gameBinds() {
+  const g = paintBindHealth().game.join('|');
+  if (g !== byGameNow) { byGameNow = g; cache.clear(); render(); }
+}
+function applyTelemetry(u) {
+  if (u) link = u;
+  if (onPhone) return;
+  const want = {};
+  if (teleOn()) {
+    Object.assign(want, tele.switchesOf(link.live));
+    const cm = tele.countermeasures(link.live), g = tele.guns(link.live);
+    if (cm.decoy != null) want.cm_decoy = cm.decoy;
+    if (cm.noise != null) want.cm_noise = cm.noise;
+    if (g) want.guns_ready = `${g.ready}/${g.total}`;
+  }
+  const now = performance.now(), changed = {};
+  for (const k of teleKeys) if (!(k in want)) { delete states[k]; changed[k] = null; }
+  for (const [k, v] of Object.entries(want)) {
+    if ((holdoff[k] || 0) > now) continue;
+    if (states[k] !== v) { states[k] = v; changed[k] = v; }
+  }
+  const keys = Object.keys(want), moved = keys.length !== teleKeys.size || keys.some(k => !teleKeys.has(k));
+  teleKeys = new Set(keys);
+  const gl = JSON.stringify({ link: link.link, actions: link.actions });
+  if (gl !== linkShared) gameBinds();
+  if (Object.keys(changed).length || moved || gl !== linkShared) {
+    repaint();
+    bridge.share({ st: changed, tk: keys, gl: JSON.parse(gl) });
+    linkShared = gl;
+  }
+  paintTele();
+  if (!$('sheet').hidden) paintLink();
+}
+/** A push-button whose state the game reports: a lamp, and the state under its label. */
+function paintLamp(node, st) {
+  const cap = node.matches('.cap') ? node : node.querySelector(':scope > .cap');
+  if (!cap) return;
+  const show = teleKeys.has(st.key) && typeof states[st.key] === 'boolean';
+  cap.classList.toggle('glamp', show);
+  cap.classList.toggle('glamp-on', show && states[st.key]);
+  let t = cap.querySelector(':scope > .lvt');
+  if (!show) { t?.remove(); cap.querySelector(':scope > .lv')?.remove(); return; }
+  if (!t) { cap.insertAdjacentHTML('beforeend', '<span class="lv"></span><span class="lvt"></span>'); t = cap.querySelector(':scope > .lvt'); }
+  t.textContent = (st.labels || ['On', 'Off'])[states[st.key] ? 0 : 1];
+}
+/** Decoys and noise left on their keys, and guns ready over the gun groups. */
+function paintCounts() {
+  for (const [label, key] of [['Decoy', 'cm_decoy'], ['Noise', 'cm_noise']]) {
+    for (const cap of document.querySelectorAll(`#console [data-k="${label}"] > .cap`)) {
+      const v = teleKeys.has(key) ? states[key] : null;
+      let c = cap.querySelector(':scope > .cnt');
+      if (v == null) { c?.remove(); continue; }
+      if (!c) { cap.insertAdjacentHTML('beforeend', '<span class="cnt"></span>'); c = cap.querySelector(':scope > .cnt'); }
+      c.textContent = v;
+    }
+  }
+  for (const p of document.querySelectorAll('#console .guns-placard')) p.textContent = teleKeys.has('guns_ready') ? `Guns ${states.guns_ready} ready` : 'Gun groups';
+}
+let baseRole = '', teleShown = '';
+const teleSet = () => !!setupSeen && (setupSeen.env || setupSeen.channels.some(([, on]) => on));
+// On everywhere it can be: 4.10's variable and each channel's user.cfg (PTU added later counts).
+const teleAll = () => !!setupSeen && setupSeen.env && setupSeen.channels.every(([, on]) => on);
+/**
+ * Whether the game link works, on the status screen: live, linked (the game answers but shares
+ * nothing until your character spawns), or no answer while the game runs with telemetry turned on.
+ * Nothing when it is off and not turned on, so the classic console looks as it did.
+ */
+function paintTeleChip() {
+  const c = $('tele-chip');
+  const st = link.link === 'live' ? ['ok', 'Telemetry live']
+    : link.link === 'linked' ? ['info', 'Telemetry linked · waiting for spawn']
+    : teleSet() && info.running ? ['warn', 'Telemetry: no answer'] : null;
+  // Only what changed, so the room the status screen made (squeezed) stays as it set it.
+  const was = c.hidden ? '' : c.querySelector('span').textContent;
+  if ((st ? st[1] : '') === was) return;
+  c.hidden = !st;
+  if (st) { for (const t of ['ok', 'info', 'warn']) c.classList.toggle(t, t === st[0]); c.querySelector('span').textContent = st[1]; }
+  fitChips();
+}
+/** The status display's telemetry: the ship's instruments seated, your vitals on foot. */
+function paintTele() {
+  const mfd = $('mfd'), facts = mfd.querySelector('.facts');
+  paintTeleChip();
+  const on = teleOn() && !game.menu && !game.down;
+  const v = on ? link.live.vehicle : null, body = on && !v ? tele.vitals(link.live) : null;
+  const esc = controls.esc;
+  let html = '', role = baseRole;
+  if (v) {
+    const ins = tele.instruments(v), ann = v.annunciators;
+    const line = tele.shipLine(link.live);
+    if (line && game.seated) role = baseRole.replace(/ · pilot seat$/, '') + ' · ' + line;
+    // What this game version doesn't send (4.10: shields, hull, vertical speed) is left out, not shown as a dash.
+    const bar = (n, val, c) => val == null ? '' : `<span>${n}</span><i style="--v:${val}%;--c:${c}"></i><em>${val}%</em>`;
+    const num = (n, val, unit) => val == null ? '' : `<span>${n}<b>${esc(String(val))}<small> ${unit}</small></b></span>`;
+    const bars = bar('Shields', ins.shields, 'var(--cyan)') + bar('Hull', ins.hull, 'var(--ok)') + bar('Boost', ins.boost, 'var(--hold)');
+    const nums = num('Speed', ins.speed, 'm/s') + num('Radar alt', ins.radarAlt == null ? null : ins.radarAlt < 100 ? ins.radarAlt.toFixed(1) : Math.round(ins.radarAlt), 'm') + num('Vertical', ins.vertical, 'm/s');
+    html = (ann ? `<div class="ann">${tele.ANNUNCIATORS.map(k => { const l = tele.lamp(ann[k]); return `<b class="${l.cls}${l.flash ? ' fl' : ''}">${k.toUpperCase()}</b>`; }).join('')}</div>` : '')
+      + (bars ? `<div class="bars">${bars}</div>` : '') + (nums ? `<div class="rd">${nums}</div>` : '');
+  } else if (body) {
+    if (body.breathable != null) role = `${body.eva ? 'EVA' : 'On foot'} · ${body.breathable ? 'Breathable air outside' : 'No breathable air'}`;
+    const g = (n, val, unit, p, c) => `<div>${n}<b>${val == null ? '—' : esc(String(val))}${val == null ? '' : `<small>${unit}</small>`}</b>${p != null ? `<i style="--v:${p}%;--c:${c}"></i>` : ''}</div>`;
+    const level = p => p < 25 ? 'var(--danger)' : p < 50 ? 'var(--hold)' : 'var(--ok)';
+    const gauge = (n, x, unit, fmt) => g(n, x ? fmt(x) : null, unit, x?.pct, x ? level(x.pct) : '');
+    html = `<div class="vit">${gauge('Health', body.health, '%', x => x.pct)}${gauge('Oxygen', body.oxygen, '%', x => x.pct)}`
+      + `${gauge('Hunger', body.hunger, '%', x => x.pct)}${gauge('Thirst', body.thirst, '%', x => x.pct)}`
+      + `${g('Body temp', body.body == null ? null : body.body.toFixed(1), '°C')}${g('Heart rate', body.heart, 'bpm')}`
+      + `${g('Outside', body.outside == null ? null : Math.round(body.outside), '°C')}${g('Gravity', body.gravity == null ? null : body.gravity.toFixed(2), 'g')}</div>`;
+  }
+  if ($('ship-role').textContent !== role) $('ship-role').textContent = role;
+  if (html === teleShown) return;
+  const had = !!teleShown;
+  teleShown = html;
+  let box = $('tlm');
+  if (!html) { box?.remove(); mfd.classList.remove('tlm-on'); }
+  else {
+    if (!box) { box = document.createElement('div'); box.id = 'tlm'; box.className = 'tlm'; facts.prepend(box); }
+    box.innerHTML = html;
+    mfd.classList.add('tlm-on');
+  }
+  if (had !== !!html) fitChips();
+}
+/** Settings › Game link. With `fresh`, asks the PC how telemetry is set up. */
+let setupSeen = null;
+async function paintLink(fresh) {
+  if (onPhone) return;
+  if (fresh) setupSeen = await bridge.telemetrySetup().catch(() => null);
+  const live = link.link === 'live', linked = link.link === 'linked', sends = link.actions.length > 0;
+  const state = $('link-state');
+  state.className = 'chip ' + (live ? 'ok' : linked ? 'info' : 'warn');
+  state.querySelector('span').textContent = live ? 'Live' : linked ? 'Linked' : 'Off';
+  $('link-note').textContent = live
+    ? `Star Citizen on 127.0.0.1:${link.port}. ${sends ? 'Reading the ship and taking commands' : 'Reading the ship. This game version takes no commands'}`
+    : linked ? `Star Citizen answers on 127.0.0.1:${link.port}. It starts sharing once your character spawns`
+    : teleSet() && info.running ? `Turned on, but the game doesn't answer on 127.0.0.1:${link.port}. Restart the RSI Launcher and the game`
+    : 'The game isn\'t sharing it. The console runs from Game.log and your keys, as before';
+  document.querySelectorAll('#layout-seg button').forEach(b => b.classList.toggle('cur', b.dataset.v === opts.layout));
+  const set = teleSet(), all = teleAll();
+  // Partly on (a channel added since): the button turns on the rest.
+  $('tele-act').textContent = all ? 'Turn telemetry off' : 'Turn telemetry on';
+  const off = setupSeen ? [!setupSeen.env && '4.10', ...setupSeen.channels.filter(([, on]) => !on).map(([c]) => `${c}'s user.cfg`)].filter(Boolean) : [];
+  $('tele-act-note').textContent = set
+    ? `On for ${[setupSeen.env && '4.10', ...setupSeen.channels.filter(([, on]) => on).map(([c]) => c + ' (user.cfg)')].filter(Boolean).join(', ')}${off.length ? `. Not yet in ${off.join(', ')}` : ''}. The game reads it when it starts`
+    : 'For 4.10 and 5.0. Restart the RSI Launcher and the game afterwards';
+  const WHY = { unknown: 'it doesn\'t know the action', inactive: 'not in this seat or mode', 'rate-limited': 'too many at once', filtered: 'it refused', hold: 'no holds', failed: 'it failed', 'no-link': 'no link', timeout: 'no answer' };
+  $('press-note').textContent = !lastPress ? 'Nothing pressed yet' : lastPress.via === 'ok' ? `${lastPress.label}: through the game`
+    : lastPress.via === 'key' ? `${lastPress.label}: your key` : `${lastPress.label}: your key (the game: ${WHY[lastPress.via] || lastPress.via})`;
+  $('rec-act').textContent = recording ? 'Stop and save the recording' : 'Record telemetry';
+  $('rec-note').textContent = recording ? 'Recording what the game sends. Saves to Documents\\Edge Cockpit' : live ? 'Saves up to ten minutes of what the game sends, for a bug report' : 'Works while the game shares telemetry';
+}
+async function toggleTelemetry() {
+  const set = teleAll();
+  try {
+    setupSeen = await bridge.telemetryEnable(!set);
+    toast(set ? 'Telemetry off from the next game start' : 'Telemetry on. Restart the RSI Launcher and the game');
+  } catch (e) { toast(`Not changed: ${e?.message || e}`); }
+  paintLink();
+  paintTeleChip();
+}
+let recording = false;
+let lastPress = null;
+async function toggleRecord() {
+  if (!recording && link.link === 'off') { toast('Start the game with telemetry on first'); return; }
+  try {
+    const file = await bridge.telemetryRecord(!recording);
+    recording = !recording;
+    if (file) toast(`Saved to ${file}`);
+  } catch (e) { recording = false; toast(`No recording: ${e?.message || e}`); }
+  paintLink();
 }
 
 // ---------- the console ----------
@@ -549,7 +756,7 @@ const K = {
     const lacks = pageById(layout, current)?.role?.lacks || [];
     return !lacks.some(kit => KIT_KEYS[kit]?.includes(k.label));
   },
-  bindText: k => (k.role === 'macro' ? '' : mine.stick[k.action] ? 'STICK' : keyText(bindOf(k))),
+  bindText: k => (k.role === 'macro' ? '' : mine.stick[k.action] ? 'STICK' : !bindOf(k) && byGame(k) ? 'GAME' : keyText(bindOf(k))),
   isWeapon,
   family,
   bind, fire, wheel, flip, isOn, known, local, tick, toast, theme,
@@ -722,7 +929,7 @@ function editorTile({ label, keys }, hit) {
   const pickLabel = base ? (keys.some(([, t]) => t === 'On') ? label : k0.label.replace(BASE, '$1')) : null;
   const segs = base ? [] : keys.filter(([, t]) => t);
   const why = base ? pickFor.refuse(pickLabel) : keys.map(([k]) => pickFor.refuse(k.label)).every(Boolean) ? pickFor.refuse(k0.label) : '';
-  const unbound = !why && (base ? !(bindOf(KEYS.get(`${pickLabel} on`) || {}) && bindOf(KEYS.get(`${pickLabel} off`) || {})) : !bindOf(k0));
+  const unbound = !why && (base ? !(reach(KEYS.get(`${pickLabel} on`)) && reach(KEYS.get(`${pickLabel} off`))) : !reach(k0));
   const isNow = base ? pickFor.now === pickLabel : keys.some(([k]) => k === pickNow);
   const b = controls.h(`<div class="pick fam-${family(k0)} ${isNow ? 'cur' : ''} ${segs.length > 1 ? 'fold' : ''} ${why ? 'no' : ''}" role="button">${controls.icon(k0.icon, 22)}<span class="pn">${name}${
     why ? `<small class="why">${controls.esc(why.split(/[,.;]/)[0])}</small>` : unbound ? '<small class="amber">Not bound in your game yet</small>' : ''}</span>${segs.length > 1
@@ -916,6 +1123,8 @@ function setOpt(name, v) {
   $('auto').classList.toggle('on', opts.auto);
   if (name === 'anywhere') paintIdle();
   if (name === 'auto' && v) follow(true);
+  if (name === 'layout') { applyTelemetry(); paintLink(); }
+  if (name === 'gameSend') gameBinds();
 }
 const isNight = (d = new Date()) => opts.night === 'on' || (opts.night === 'auto' && (d.getHours() >= NIGHT_FROM || d.getHours() < NIGHT_TO));
 // The backlight level last asked of the PC (undefined: not yet), and whether the screen answered.
@@ -974,12 +1183,13 @@ async function refit() {
   paintDisplays(); paintSetup();
 }
 bridge.onDisplays(() => { paintDisplays(); paintSetup(); });
-const TAB_ICONS = { general: 'cog', screen: 'bulb', feedback: 'pulse', phones: 'phone', binds: 'list', profile: 'person', about: 'download' };
+const TAB_ICONS = { link: 'radar', general: 'cog', screen: 'bulb', feedback: 'pulse', phones: 'phone', binds: 'list', profile: 'person', about: 'download' };
 function showSection(sec) {
   document.querySelectorAll('.tab[data-sec]').forEach(t => t.classList.toggle('cur', t.dataset.sec === sec));
   document.querySelectorAll('.pane').forEach(p => { p.hidden = p.dataset.sec !== sec; });
   if (sec === 'screen') paintDisplays();
   if (sec === 'phones') paintPhones();
+  if (sec === 'link') paintLink(true);
 }
 function openSheet(open, sec) {
   if (onPhone) { if (open) phone.openSettings({ set: (plate, mode) => bridge.phoneSet(plate, mode), opts, setOpt, vibrates: !!haptics.can }); return; }
@@ -994,6 +1204,7 @@ document.querySelectorAll('.opt[data-opt]').forEach(o => controls.pressable(o, {
 document.querySelectorAll('#night-seg button').forEach(b => controls.pressable(b, { up: () => { tick('toggle'); setOpt('night', b.dataset.v); } }));
 document.querySelectorAll('#nightlight-seg button').forEach(b => controls.pressable(b, { up: () => { tick('toggle'); setOpt('nightLight', +b.dataset.v); } }));
 document.querySelectorAll('#theme-seg button').forEach(b => controls.pressable(b, { up: () => { tick('toggle'); setOpt('makerTheme', b.dataset.v); } }));
+document.querySelectorAll('#layout-seg button').forEach(b => controls.pressable(b, { up: () => { tick('toggle'); setOpt('layout', b.dataset.v); } }));
 document.querySelectorAll('#plates-seg button').forEach(b => controls.pressable(b, { up: () => {
   const v = b.dataset.v, on = opts.plates.includes(v);
   if (on && opts.plates.length === 1) { tick('arm'); toast('Keep at least one plate on this screen'); return; }
@@ -1074,7 +1285,7 @@ async function reportProblem(title = 'Bug: ') {
 const acts = { 'act-binds': [() => reloadBinds().then(() => toast('Binds reloaded')), 'reload'], 'act-install': [installBinds, 'layers'],
   'act-restore': [restoreBinds, 'back'], 'act-keep': [keepBinds, 'x'], 'act-report': [() => reportProblem(), 'chat'],
   'act-admin': [bridge.runAsAdmin, 'shield'], 'act-sleep': [() => { openSheet(false); bridge.sleepScreen(); }, 'moon'],
-  'act-refit': [refit, 'reload'], 'act-update': [installUpdate, 'download'], 'act-touch': [() => bridge.fixTouch().then(ok => ok || toast('Windows did not open its touchscreen setup. Open Tablet PC Settings, then Setup.')), 'hand'], 'act-save': [saveProfile, 'download'], 'act-load': [loadProfile, 'reload'], 'act-quit': [bridge.quit, 'power'], 'act-setup': [() => { openSheet(false); showSetup(); }, 'hand'], 'act-wipe': [() => { openSheet(false); wipe(true); }, 'wiper'], 'act-legend': [() => { openSheet(false); showLegend(); }, 'help'] };
+  'act-refit': [refit, 'reload'], 'act-update': [installUpdate, 'download'], 'act-touch': [() => bridge.fixTouch().then(ok => ok || toast('Windows did not open its touchscreen setup. Open Tablet PC Settings, then Setup.')), 'hand'], 'act-save': [saveProfile, 'download'], 'act-load': [loadProfile, 'reload'], 'act-quit': [bridge.quit, 'power'], 'act-setup': [() => { openSheet(false); showSetup(); }, 'hand'], 'act-wipe': [() => { openSheet(false); wipe(true); }, 'wiper'], 'act-legend': [() => { openSheet(false); showLegend(); }, 'help'], 'act-telemetry': [toggleTelemetry, 'power'], 'act-record': [toggleRecord, 'camera'] };
 for (const [id, [run, icon]] of Object.entries(acts)) {
   $(id).querySelector('svg').innerHTML = GLYPHS[icon] || '';
   controls.pressable($(id), { up: () => { tick('tap'); run(); } });
@@ -1083,8 +1294,8 @@ $('qt').querySelector('svg').innerHTML = GLYPHS.quantum;
 
 // ---------- profile: settings, plate order, ship roles and keyboard binds in one file ----------
 // Saved as Documents\Edge Cockpit\profile.json, to copy to another PC or keep as a backup.
-const PROFILE_OPTS = ['night', 'nightLight', 'sound', 'flash', 'auto', 'recap', 'alertSound', 'mute', 'anywhere', 'stack', 'large', 'shapes', 'calm', 'makerTheme', 'plates', 'size', 'autostart', 'screen_off'];
-const KEPT_AS_IS = new Set(['night', 'nightLight', 'makerTheme', 'plates', 'size']);
+const PROFILE_OPTS = ['layout', 'gameSend', 'night', 'nightLight', 'sound', 'flash', 'auto', 'recap', 'alertSound', 'mute', 'anywhere', 'stack', 'large', 'shapes', 'calm', 'makerTheme', 'plates', 'size', 'autostart', 'screen_off'];
+const KEPT_AS_IS = new Set(['layout', 'night', 'nightLight', 'makerTheme', 'plates', 'size']);
 /** The keyboard binds in an actionmaps.xml, as a Control Profile the game can load. */
 function bindsProfile(text) {
   const doc = new DOMParser().parseFromString(text, 'application/xml');
@@ -1271,7 +1482,8 @@ const LEGEND = [
   ['<div class="well key fam-wpn"><div class="cap"><span class="lg">Fire</span><svg class="ring-h" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><circle class="f" cx="8" cy="8" r="6" pathLength="1"/></svg></div></div>', 'Ring: hold', 'The key stays down while your finger does, like holding it in game. The ring fills while held.'],
   ['<div class="well key fam-wpn"><div class="cap"><span class="lg">Decoy</span><span class="tg">LONG</span></div></div>', 'LONG or 2×', 'Press and hold, or tap twice, for a second action. Its name shows at the bottom of the screen when it goes.'],
   ['<div class="well key fam-sys cut"><div class="cap"><span class="lg">Flight ready</span><span class="notch"></span></div></div>', 'Notched corner: macro', 'Several keys in turn, such as power on and Flight Ready.'],
-  ['<div class="well pair fam-flt"><div class="cap half a"><span class="lg">On</span><span class="led"></span></div><div class="cap half b"><span class="lg">Off</span><span class="led"></span></div></div>', 'On and off', 'Sets it on or off in game. Dark until you set it here, as the game never says which it is.'],
+  ['<div class="well pair fam-flt"><div class="cap half a"><span class="lg">On</span><span class="led"></span></div><div class="cap half b"><span class="lg">Off</span><span class="led"></span></div></div>', 'On and off', 'Sets it on or off in game. Dark until you set it here, as the game never says which it is.', 'Sets it on or off in game. Lit with the game\'s own state while telemetry is live; dark for what the game doesn\'t send (doors, port locks).'],
+  ['<div class="well key fam-flt"><div class="cap glamp glamp-on"><span class="lg">G-safe</span><span class="lv"></span><span class="lvt">On</span></div></div>', 'Lamp: the game says', 'A toggle with its state from the game. Only while telemetry is live.', null, true],
   ['<div class="well key fam-emg"><div class="cap"><span class="lg">Self destruct</span><span class="tg">GUARD</span></div></div>', 'GUARD', 'Tap twice within 3 s. The first tap only arms it.'],
   ['<div class="guard"><div class="cover"><span class="hinge"></span><span>LIFT COVER</span></div></div>', 'Cover', 'The first tap lifts it, a second within 3 s sends the key.'],
   ['<div class="well key fam-flt"><div class="cap"><span class="lg">Ping</span><span class="mine"></span></div></div>', 'Cyan dot: your key', 'A key you swapped in. Long press it to change it again or go back to stock.'],
@@ -1280,7 +1492,9 @@ const LEGEND = [
 ];
 function showLegend() {
   const esc = controls.esc;
-  $('lgd-rows').innerHTML = LEGEND.map(([sample, b, p]) => `<div class="lgd-row"><div class="lgd-s" aria-hidden="true">${sample}</div><div class="txt"><b>${esc(b)}</b><p>${esc(p)}</p></div></div>`).join('');
+  // With telemetry live, the switches show the game's state, so the legend says so.
+  const live = teleOn();
+  $('lgd-rows').innerHTML = LEGEND.filter(r => live || !r[4]).map(([sample, b, p0, p1]) => [sample, b, live && p1 ? p1 : p0]).map(([sample, b, p]) => `<div class="lgd-row"><div class="lgd-s" aria-hidden="true">${sample}</div><div class="txt"><b>${esc(b)}</b><p>${esc(p)}</p></div></div>`).join('');
   $('legend').hidden = false;
 }
 controls.pressable($('lgd-done'), { up: () => { tick('tap'); $('legend').hidden = true; store.set('legend-seen', true); } });
@@ -1321,6 +1535,7 @@ async function installUpdate() {
 }
 controls.pressable($('update'), { up: () => { tick('tap'); openSheet(true, 'about'); } });
 controls.pressable($('binds-chip'), { up: () => { tick('tap'); openSheet(true, 'binds'); } });
+controls.pressable($('tele-chip'), { up: () => { tick('tap'); openSheet(true, 'link'); } });
 controls.pressable($('touch-chip'), { up: () => { tick('tap'); openSheet(true, 'screen'); } });
 $('touch-chip').querySelector('span').textContent = 'Touch on another display';
 controls.pressable($('fit-chip'), { up: () => { tick('tap'); refit(); } });
@@ -1436,6 +1651,7 @@ function paintStatus() {
   paintIdle();
   // Long names (Constellation Andromeda) shrink to one line rather than run into the role below.
   if ($('ship-name').textContent !== name) { $('ship-name').textContent = name; fitText($('ship-name'), 28, 16); }
+  baseRole = role;
   $('ship-role').textContent = role;
 
   // Law: red for CrimeStat; amber outside monitored space, with comms down or in lawless
@@ -1525,12 +1741,13 @@ function paintStatus() {
   paintQuantum();
   paintLog();
   paintPatch();
+  paintTele();
   fitChips();
   requestAnimationFrame(fitMakerName);
 }
 // Chips that would run off the status screen give way, the least pressing first, so Follow game
 // and the ones that need you stay in sight.
-const CHIP_ORDER = ['kills', 'build', 'update', 'binds-chip', 'patch', 'touch-chip', 'fit-chip', 'lag', 'party', 'hangar', 'fuel', 'injury', 'wreck', 'dropped', 'law'];
+const CHIP_ORDER = ['tele-chip', 'kills', 'build', 'update', 'binds-chip', 'patch', 'touch-chip', 'fit-chip', 'lag', 'party', 'hangar', 'fuel', 'injury', 'wreck', 'dropped', 'law'];
 function fitChips() {
   const screen = $('auto').closest('.facts')?.parentElement, r = screen?.getBoundingClientRect();
   if (!r?.height) return;
@@ -1657,15 +1874,20 @@ function paintQuantum() {
 }
 
 /** Opens the page for the moment when that changes, unless you turned auto pages off. */
-// Switches show what the console last set. A different ship, or none, starts unknown again.
+// Switches show what the console last set. A different ship, or none, starts unknown again,
+// except what the game reports.
 let stateShip = null;
 function forgetStates() {
   const ship = game.seated ? game.ship : null;
   if (ship === stateShip) return;
   stateShip = ship;
+  // What the game reports stays: it is about the ship you're in now, not the last one.
+  const kept = Object.fromEntries([...teleKeys].filter(k => k in states).map(k => [k, states[k]]));
   for (const key of Object.keys(states)) delete states[key];
+  Object.assign(states, kept);
   repaint();
   bridge.share({ st: null });
+  if (Object.keys(kept).length) bridge.share({ st: kept });
 }
 function follow(force) {
   forgetStates();
@@ -1751,6 +1973,8 @@ async function poll() {
   link.classList.toggle('running', info.running);
   link.classList.toggle('focused', info.focused);
   paintChannel();
+  // Turned on or off outside the console: read it again when the game starts.
+  if (info.running && !JSON.parse(was).running && !onPhone) setupSeen = await bridge.telemetrySetup().catch(() => setupSeen);
   $('act-admin').hidden = info.elevated;
   if (!info.running && !game.menu) { game = { ...EMPTY, me: game.me, dropped: game.dropped }; follow(false); showRecap(); }
   paintPrompt();
@@ -1986,7 +2210,7 @@ function newPage(spec) {
 editor.init({
   K, keys: KEYS, store, tick, toast, scale: K.scale, size: () => opts.size,
   pageName: id => pageById(layout, id)?.name,
-  bound: (label, base) => (base ? !!(bindOf(KEYS.get(`${label} on`) || {}) && bindOf(KEYS.get(`${label} off`) || {})) : !!bindOf(KEYS.get(label) || {})),
+  bound: (label, base) => (base ? reach(KEYS.get(`${label} on`)) && reach(KEYS.get(`${label} off`)) : reach(KEYS.get(label))),
   openPicker: openEditorPicker,
   ships: () => {
     shipGroups ||= groupShips();
@@ -2032,6 +2256,8 @@ bridge.onTray?.(what => {
 bridge.onAutostart?.(on => { opts.autostart = on; document.querySelectorAll('.opt[data-opt="autostart"]').forEach(o => o.classList.toggle('on', on)); });
 setOpt('night', opts.night);
 bridge.onShared?.(shared);
+if (!onPhone) { bridge.onTelemetry?.(applyTelemetry); bridge.telemetryNow().then(u => u && applyTelemetry(u)).catch(() => {});
+  bridge.telemetrySetup().then(s => { setupSeen = s; paintTeleChip(); }).catch(() => {}); }
 // The PC holds the pages of yours: every Device gets them, and no stale edit from a closed one.
 if (!onPhone) bridge.share({ pages: Object.fromEntries(storedPages().filter(p => p?.id).map(p => [p.id, p])), preview: null });
 if (onPhone) startPhone(); else startPhones();
@@ -2057,5 +2283,6 @@ window.xfd = {
     return CUSTOM.get(spec.id) || null;
   },
   deletePage: id => { putPage(id, null); pageGone(id); },
+  telemetry: applyTelemetry,
   show, raise, setup: showSetup, legend: showLegend, feed: (lines, live = true) => onLog({ lines, live }), recap: t => { session = { ...NEW_TALLY, ...t }; showRecap(); }, perf: perf.toggle, showSection, bindHealth, reloadBinds, bindsProfile, reportProblem, backupProfile, paintBackups, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
 document.body.dataset.ready = '1';

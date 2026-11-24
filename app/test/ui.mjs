@@ -1037,6 +1037,123 @@ for (const [W, H] of [[1920, 1080], [1180, 820]]) {
   await ctx.close();
 }
 
+// The game link: a real Prospector frame (5.0 PTU). Switches show where the ship is, push-buttons
+// the game reports get a lamp, the status shows the game's instruments; Classic and a dropped link
+// take it all back, and presses go through the game when it takes the action.
+{
+  const U = JSON.parse(await readFile(join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'telemetry-prospector.json'), 'utf8'));
+  const ctx = await browser.newContext({ viewport: { width: 2560, height: 720 } });
+  const pg = await ctx.newPage();
+  pg.on('pageerror', e => errors.push('telemetry: ' + e.message));
+  await pg.route(/fleetyards|fltyrd/, r => r.abort());
+  await pg.goto(base + '?demo=ship');
+  await pg.waitForSelector('body[data-ready]');
+  await pg.waitForTimeout(300);
+  await pg.evaluate(() => window.xfd.feed(["CVehicleMovementBase::SetDriver: Local client node [1] granted control token for 'MISC_Prospector_877602860529' [877602860529]"]));
+  await pg.evaluate(() => window.xfd.show('mining'));
+  const sw = () => pg.evaluate(() => Object.fromEntries([...document.querySelectorAll('#console .tgl.dual')].map(e => [e.querySelector('.placard').textContent.trim(), e.classList.contains('on') ? 'on' : e.classList.contains('off') ? 'off' : '-'])));
+  const before = await sw();
+  if (Object.values(before).some(v => v !== '-')) problems.push(`telemetry: switches show a side before the game said: ${JSON.stringify(before)}`);
+  await pg.evaluate(u => window.xfd.telemetry(u), U);
+  await pg.waitForTimeout(100);
+  const after = await sw();
+  const want = { Power: 'on', Thrusters: 'off', Shields: 'on', Weapons: 'on' };
+  for (const [k, v] of Object.entries(want)) if (after[k] !== v) problems.push(`telemetry: ${k} shows ${after[k]}, the game said ${v}`);
+  const st = await pg.evaluate(() => ({
+    gear: document.querySelector('#console .gear').classList.contains('on'),
+    ann: document.querySelectorAll('#tlm .ann b').length, amber: document.querySelector('#tlm .ann b.m')?.textContent,
+    decoy: document.querySelector('#console [data-k="Decoy"] .cnt')?.textContent, noise: document.querySelector('#console [data-k="Noise"] .cnt')?.textContent,
+    role: document.getElementById('ship-role').textContent, chip: !document.getElementById('tele-chip').hidden,
+  }));
+  if (!st.gear || st.ann !== 10 || st.amber !== 'SHLD' || st.decoy !== '48' || st.noise !== '5' || !/Pilot seat · Landed · SCM spooled/.test(st.role) || !st.chip)
+    problems.push(`telemetry status: ${JSON.stringify(st)}`);
+  await checkLabels('telemetry mining', false, pg);
+  if (shots) await pg.screenshot({ path: join(shots, 'telemetry-mining.png') });
+  await pg.evaluate(() => window.xfd.show('flight'));
+  const fl = await pg.evaluate(() => ({
+    esp: document.querySelector('#console [data-k="ESP"] .lvt')?.textContent,
+    locks: [...document.querySelectorAll('#console .tgl.dual')].find(e => /door locks/i.test(e.textContent))?.className,
+  }));
+  if (fl.esp !== 'OFF') problems.push(`telemetry: ESP lamp reads ${fl.esp}`);
+  // A key with no keyboard bind still works when the game takes its action: GAME on the cap, not unbound.
+  const noEsp = `<ActionMaps><ActionProfiles profileName="default"><actionmap name="spaceship_movement"><action name="v_ifcs_toggle_esp"><rebind input="kb1_ "/></action></actionmap></ActionProfiles></ActionMaps>`;
+  const gb = await pg.evaluate(async xml => { window.xfdTestBinds = xml; await window.xfd.reloadBinds(); const h = window.xfd.bindHealth(); return { game: h.game, missing: h.missing, kb: document.querySelector('#console [data-k="ESP"] .kb')?.textContent, chip: !document.getElementById('binds-chip').hidden }; }, noEsp);
+  if (!gb.game.includes('ESP') || gb.missing.includes('ESP') || gb.kb !== 'GAME' || gb.chip) problems.push(`telemetry: an unbound key the game takes: ${JSON.stringify(gb)}`);
+  await pg.evaluate(async () => { window.xfdTestBinds = null; await window.xfd.reloadBinds(); });
+  if (fl.locks && /\b(on|off)\b/.test(fl.locks)) problems.push('telemetry: door locks show a side the game never sent');
+  await checkLabels('telemetry flight', false, pg);
+  if (shots) await pg.screenshot({ path: join(shots, 'telemetry-flight.png') });
+  await pg.evaluate(() => window.xfd.show('light-fighter'));
+  const gp = await pg.evaluate(() => document.querySelector('#console .guns-placard')?.textContent);
+  if (gp !== 'Guns 2/2 ready') problems.push(`telemetry: gun placard reads ${gp}`);
+  await checkLabels('telemetry fighter', false, pg);
+  if (shots) await pg.screenshot({ path: join(shots, 'telemetry-fighter.png') });
+  // Presses: through the game when it takes the action, the key when it refuses.
+  await pg.evaluate(() => { window.__keys = []; window.__acts = []; window.xfdTestAction = a => { window.__acts.push(a); return window.__answer; }; window.__answer = 'ok'; window.xfd.show('flight'); });
+  const press = async sel => { const b = await (await pg.$(sel)).boundingBox(); await pg.mouse.click(b.x + b.width / 2, b.y + b.height / 2); await pg.waitForTimeout(400); };
+  await press('#console [data-k="ESP"] .cap');
+  let r = await pg.evaluate(() => ({ acts: window.__acts.slice(), keys: window.__keys.length }));
+  if (r.acts.join() !== 'v_ifcs_toggle_esp' || r.keys !== 0) problems.push(`telemetry: ESP through the game sent ${JSON.stringify(r)}`);
+  await pg.evaluate(() => { window.__answer = 'filtered'; window.__acts = []; window.__keys = []; });
+  await press('#console [data-k="ESP"] .cap');
+  r = await pg.evaluate(() => ({ acts: window.__acts.slice(), keys: window.__keys.length }));
+  if (r.acts.length !== 1 || r.keys !== 1) problems.push(`telemetry: a refused ESP did not fall back to the key: ${JSON.stringify(r)}`);
+  // On foot: vitals.
+  const foot = structuredClone(U); foot.live.vehicle = null; foot.live.weapons = null; foot.live.actor.state.locomotion = 1;
+  await pg.evaluate(u => { window.xfd.feed(['<Context Establisher Done>', 'Entering Armistice Zone']); window.xfd.telemetry(u); window.xfd.show('onfoot'); }, foot);
+  await pg.waitForTimeout(100);
+  const vit = await pg.evaluate(() => [...document.querySelectorAll('#tlm .vit > div')].map(d => d.textContent.replace(/\s+/g, ' ').trim()));
+  if (vit.length !== 8 || !vit.includes('Hunger73%')) problems.push(`telemetry vitals: ${JSON.stringify(vit)}`);
+  await checkLabels('telemetry on foot', false, pg);
+  if (shots) await pg.screenshot({ path: join(shots, 'telemetry-onfoot.png') });
+  // Classic, then a dropped link: back to the console without telemetry.
+  await pg.evaluate(u => { window.xfd.feed(["CVehicleMovementBase::SetDriver: Local client node [1] granted control token for 'MISC_Prospector_877602860529' [877602860529]"]); window.xfd.telemetry(u); window.xfd.show('mining'); }, U);
+  await pg.evaluate(() => { document.getElementById('sheet').hidden = false; window.xfd.showSection('link'); });
+  await pg.waitForTimeout(100);
+  await checkLabels('settings game link', true, pg);
+  if (shots) await pg.screenshot({ path: join(shots, 'settings-link.png') });
+  // On for 4.10 and LIVE, but a PTU folder came later: the button turns on the rest, not off.
+  const part = await pg.evaluate(async () => {
+    window.xfdTestTelemetrySetup = { env: true, channels: [['LIVE', true], ['PTU', false]] };
+    window.xfd.showSection('link'); await new Promise(r => setTimeout(r, 100));
+    const out = [document.getElementById('tele-act').textContent, document.getElementById('tele-act-note').textContent];
+    window.xfdTestTelemetrySetup = null; window.xfd.showSection('link'); await new Promise(r => setTimeout(r, 100));
+    return out;
+  });
+  if (part[0] !== 'Turn telemetry on' || !/Not yet in PTU's user\.cfg/.test(part[1])) problems.push(`telemetry: partly on reads ${JSON.stringify(part)}`);
+  await pg.click('#layout-seg [data-v="classic"]');
+  await pg.evaluate(() => { document.getElementById('sheet').hidden = true; });
+  const classic = await sw();
+  if (Object.values(classic).some(v => v !== '-') || await pg.$('#tlm')) problems.push(`telemetry: Classic still shows the game's state ${JSON.stringify(classic)}`);
+  await pg.evaluate(() => { document.getElementById('sheet').hidden = false; window.xfd.showSection('link'); });
+  await pg.click('#layout-seg [data-v="telemetry"]');
+  await pg.evaluate(() => { document.getElementById('sheet').hidden = true; });
+  await pg.evaluate(u => window.xfd.telemetry({ ...u, link: 'off', actions: [], live: { vehicle: null, weapons: null, actor: null } }), U);
+  const dropped = await sw();
+  if (Object.values(dropped).some(v => v !== '-') || await pg.$('#tlm')) problems.push(`telemetry: a dropped link left ${JSON.stringify(dropped)}`);
+  const chip = () => pg.evaluate(() => { const c = document.getElementById('tele-chip'); return c.hidden ? null : c.textContent.trim(); });
+  if (await chip()) problems.push(`telemetry: the link chip shows with telemetry off and not turned on: ${await chip()}`);
+  // The game answers before your character spawns: linked, with nothing claimed yet.
+  await pg.evaluate(u => window.xfd.telemetry({ ...u, link: 'linked', live: { vehicle: null, weapons: null, actor: null } }), U);
+  const linked = await sw();
+  if (await chip() !== 'Telemetry linked · waiting for spawn' || Object.values(linked).some(v => v !== '-')) problems.push(`telemetry: linked shows ${await chip()} ${JSON.stringify(linked)}`);
+  // A real 4.10.3 LIVE frame (RSI Galaxy, flying): no shields, hull, master mode or vertical speed,
+  // so the status shows only what came.
+  const G = JSON.parse(await readFile(join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'telemetry-galaxy-410.json'), 'utf8'));
+  await pg.evaluate(() => window.xfd.feed(["CVehicleMovementBase::SetDriver: Local client node [1] granted control token for 'RSI_Galaxy_929237689784' [929237689784]"]));
+  await pg.evaluate(u => window.xfd.telemetry(u), G);
+  await pg.evaluate(() => window.xfd.show('flight'));
+  await pg.waitForTimeout(100);
+  const g410 = await pg.evaluate(() => ({ text: document.getElementById('tlm')?.innerText.replace(/\s+/g, ' '), chip: document.getElementById('tele-chip').textContent.trim() }));
+  if (!/BOOST 100%/i.test(g410.text) || /shields|hull|vertical|radar/i.test(g410.text) || !/Speed 339 m\/s/i.test(g410.text) || g410.chip !== 'Telemetry live')
+    problems.push(`telemetry 4.10: ${JSON.stringify(g410)}`);
+  if (shots) await pg.screenshot({ path: join(shots, 'telemetry-410.png') });
+  // Updates arrive ten times a second: the chip keeps the room the status screen gave it, or it blinks.
+  const keeps = await pg.evaluate(u => { const c = document.getElementById('tele-chip'); c.classList.add('squeezed'); window.xfd.telemetry(u); window.xfd.telemetry(u); const kept = c.classList.contains('squeezed'); c.classList.remove('squeezed'); return kept; }, G);
+  if (!keeps) problems.push('telemetry: an update undoes the chip squeeze, so it blinks');
+  await ctx.close();
+}
+
 const heap = await page.evaluate(() => performance.memory?.usedJSHeapSize || 0);
 
 report.push(`pages checked: ${ids.length}`, `slowest first build: ${worstBuild.toFixed(1)} ms (budget ${BUDGET.firstBuildMs})`,

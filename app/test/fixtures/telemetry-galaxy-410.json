@@ -1,0 +1,152 @@
+{
+ "link": "live",
+ "port": 2942,
+ "actions": [],
+ "live": {
+  "vehicle": {
+   "name": "RSI_Galaxy_929237689784",
+   "class_name": "RSI_Galaxy",
+   "annunciators": {
+    "pwr": 1,
+    "wpn": 2,
+    "thr": 1,
+    "shld": 2,
+    "cool": 2,
+    "qdrv": 1,
+    "radr": 1,
+    "prox": 1,
+    "hit": 1,
+    "misl": 1
+   },
+   "flight": {
+    "state": {
+     "gear": 1,
+     "vtol": 1
+    },
+    "settings": {
+     "ifcs_coupled": {
+      "enabled": true,
+      "active": true
+     },
+     "ifcs_esp": {
+      "enabled": true,
+      "active": true
+     },
+     "ifcs_gravity_compensation": {
+      "enabled": true,
+      "active": true
+     },
+     "ifcs_g_safe": {
+      "enabled": true,
+      "active": true
+     },
+     "ifcs_cruise_mode": {
+      "enabled": true,
+      "active": true
+     },
+     "ifcs_spacebreak_enables_boost": true,
+     "ifcs_speed_limiter": {
+      "enabled": true,
+      "active": true
+     },
+     "ifcs_proximity_assist": {
+      "enabled": true
+     },
+     "ifcs_proximity_assist_landing": {
+      "enabled": true
+     },
+     "ifcs_stability": {
+      "enabled": true,
+      "active": true
+     },
+     "ifcs_core": {
+      "enabled": true,
+      "active": true
+     },
+     "course_prediction": true,
+     "ifcs_wind_compensation": {
+      "enabled": true,
+      "active": true
+     },
+     "ifcs_g_safe_disabled_by_boost": true,
+     "ifcs_command_behaviour": {
+      "enabled": true,
+      "active": true
+     }
+    },
+    "instruments": {
+     "speed": 339.0400085449219,
+     "hydrogen_fuel": 0.9242473840713501,
+     "g_meter": {
+      "current": 4.013250827789307,
+      "max": 6.019876003265381
+     },
+     "boost": {
+      "reserves": 1.0
+     },
+     "altitude": 3.4028234663852886e+38,
+     "radar_altitude": 3.4028234663852886e+38
+    }
+   },
+   "power": {
+    "powerplants": true,
+    "engines": true,
+    "coolers": true,
+    "life_support": true,
+    "sensors": true
+   }
+  },
+  "weapons": {
+   "settings": {
+    "staggered_fire": true,
+    "gimbals_locked": true
+   },
+   "countermeasures": [
+    {
+     "type": 1,
+     "amount": 46
+    },
+    {
+     "type": 2,
+     "amount": 20
+    }
+   ]
+  },
+  "actor": {
+   "vitals": {
+    "health": {
+     "current": 95.16128540039062,
+     "max": 95.16128540039062
+    },
+    "oxygen": {
+     "current": 1.0,
+     "max": 1.0
+    },
+    "hunger": {
+     "current": 85.31529998779297,
+     "max": 100.0
+    },
+    "thirst": {
+     "current": 54.1789436340332,
+     "max": 100.0
+    },
+    "body_temperature": {
+     "current": 36.5,
+     "max": 100.0
+    },
+    "heart_rate": 60.30406951904297,
+    "gravity": 1.0003416538238525,
+    "pressure": 1.0
+   },
+   "state": {
+    "locomotion": 3,
+    "crew_role": 1,
+    "seat_name": "RSI_Galaxy_Pilot_SeatDashboard_929237689865"
+   },
+   "environment": {
+    "external_temperature": 20.9999942779541,
+    "breathable_atmosphere": true
+   }
+  }
+ }
+}

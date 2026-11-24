@@ -32,6 +32,14 @@ sha2 = "0.10"
 getrandom = "0.3"
 qrcode = { version = "0.14", default-features = false, features = ["svg"] }
 mdns-sd = { version = "0.22", default-features = false }
+# The game link: Star Citizen's local telemetry service (gRPC over HTTP/2, on 127.0.0.1).
+h2 = "0.4"
+http = "1"
+bytes = "1"
+prost = { version = "0.14", default-features = false, features = ["derive", "std"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.62", features = [

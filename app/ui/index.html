@@ -53,6 +53,7 @@
           <button class="chip warn" id="binds-chip" hidden><i></i><span></span></button>
           <button class="chip warn" id="touch-chip" hidden><i></i><span></span></button>
           <button class="chip warn" id="fit-chip" hidden><i></i><span></span></button>
+          <button class="chip ok" id="tele-chip" hidden><i></i><span>Telemetry live</span></button>
           <button class="chip auto" id="auto"><i></i><span>Follow game</span></button>
         </div>
       </div>
@@ -80,6 +81,7 @@
     <nav class="tabs" id="tabs">
       <h2>Settings</h2>
       <button class="tab" data-sec="general"><svg class="i" viewBox="0 0 24 24"></svg><span>General</span></button>
+      <button class="tab" data-sec="link"><svg class="i" viewBox="0 0 24 24"></svg><span>Game link</span></button>
       <button class="tab" data-sec="screen"><svg class="i" viewBox="0 0 24 24"></svg><span>Screen</span></button>
       <button class="tab" data-sec="feedback"><svg class="i" viewBox="0 0 24 24"></svg><span>Feedback</span></button>
       <button class="tab" data-sec="phones"><svg class="i" viewBox="0 0 24 24"></svg><span>Devices</span><i class="dot" id="phones-dot" hidden></i></button>
@@ -102,6 +104,17 @@
           <button class="act" id="act-sleep"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Screen off now<small>Touch the screen to wake it</small></span></button>
           <button class="act" id="act-setup"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">Setup check<small>Touchscreen, game, control profile and admin rights</small></span></button>
           <button class="act" id="act-legend"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt">How the keys work<small>Hold ring, long press, macros, switches and covers. Or tap the ? on the status screen</small></span></button>
+        </div>
+      </section>
+      <section class="pane" data-sec="link" hidden>
+        <h3>Game link</h3>
+        <div class="rows">
+          <div class="opt choice" id="link-row"><span class="txt">Telemetry<small id="link-note">The game isn't sharing it. The console runs from Game.log and your keys, as before</small></span><span class="chip warn" id="link-state"><i></i><span>Off</span></span></div>
+          <div class="opt choice" id="layout-row"><span class="txt">Layout<small>Telemetry shows the game's own switch states and instruments while it shares them. Classic is the console without them</small></span><span class="seg" id="layout-seg"><button data-v="telemetry">Telemetry</button><button data-v="classic">Classic</button></span></div>
+          <div class="opt choice" id="press-row"><span class="txt">Last press<small id="press-note">Nothing pressed yet</small></span></div>
+          <button class="opt" data-opt="gameSend"><span class="txt">Send commands through the game<small>On 5.0, presses go to the game directly. Your keys stay as the fallback. 4.10 only shares state</small></span><span class="knob"></span></button>
+          <button class="act" id="act-telemetry"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt"><span id="tele-act">Turn telemetry on</span><small id="tele-act-note">For 4.10 and 5.0. Restart the RSI Launcher and the game afterwards</small></span></button>
+          <button class="act" id="act-record"><svg class="i" viewBox="0 0 24 24"></svg><span class="txt"><span id="rec-act">Record telemetry</span><small id="rec-note">Saves up to ten minutes of what the game sends, for a bug report</small></span></button>
         </div>
       </section>
       <section class="pane" data-sec="screen" hidden>

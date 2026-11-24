@@ -101,7 +101,7 @@ function fighter() {
     keycap(20, 564, 128, 122, 'Combat prep', { label: 'Battle stations', fs: 12, ...cut }),
     placard(670, 54, 'Gimbals'),
     rotary(670, 80, 68, [{ label: 'Locked', angle: -48, key: 'Gimbals locked' }, { label: 'Free', angle: 48, key: 'Gimbals free' }], { radius: 60 }),
-    placard(670, 252, 'Gun groups'),
+    tag(placard(670, 252, 'Gun groups'), 'guns-placard'),
     keycap(670, 278, 62, 220, 'Guns group 1', { label: '1', fs: 26, r: 31, icon: 'guns' }),
     keycap(738, 278, 62, 220, 'Guns group 2', { label: '2', fs: 26, r: 31, icon: 'guns' }),
     onOffKey(670, 508, 130, 84, 'Staggered fire', { label: 'Stagger' }),
