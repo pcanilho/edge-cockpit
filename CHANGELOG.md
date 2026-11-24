@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.11.2
 
 - Gauge pages: colour only where it needs attention. Flight control shows On and Off as outlines, gear and VTOL stowed in flight are dark, a normal heart rate is no longer red, breathable air turns red only when it isn't, and the current master mode is a green rim. Vertical speed, speed and radar altitude keep their units inside the readout, clear of the scale. Combat shows decoys and noise left in big numbers on the keys.
 - Caution lamps: a flashing lamp alternates between filled and outlined, so its name stays readable. Working systems show a grey name under a small green bar, so only warnings carry colour, and a system the game reports as switched off says Off.
