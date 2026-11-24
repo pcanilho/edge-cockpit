@@ -637,8 +637,12 @@ function paintTeleChip() {
   const st = link.link === 'live' ? ['ok', 'Telemetry live']
     : link.link === 'linked' ? ['info', 'Telemetry linked · waiting for spawn']
     : teleSet() && info.running ? ['warn', 'Telemetry: no answer'] : null;
+  // Only what changed, so the room the status screen made (squeezed) stays as it set it.
+  const was = c.hidden ? '' : c.querySelector('span').textContent;
+  if ((st ? st[1] : '') === was) return;
   c.hidden = !st;
-  if (st) { c.className = 'chip ' + st[0]; c.querySelector('span').textContent = st[1]; }
+  if (st) { for (const t of ['ok', 'info', 'warn']) c.classList.toggle(t, t === st[0]); c.querySelector('span').textContent = st[1]; }
+  fitChips();
 }
 /** The status display's telemetry: the ship's instruments seated, your vitals on foot. */
 function paintTele() {

@@ -1148,6 +1148,9 @@ for (const [W, H] of [[1920, 1080], [1180, 820]]) {
   if (!/BOOST 100%/i.test(g410.text) || /shields|hull|vertical|radar/i.test(g410.text) || !/Speed 339 m\/s/i.test(g410.text) || g410.chip !== 'Telemetry live')
     problems.push(`telemetry 4.10: ${JSON.stringify(g410)}`);
   if (shots) await pg.screenshot({ path: join(shots, 'telemetry-410.png') });
+  // Updates arrive ten times a second: the chip keeps the room the status screen gave it, or it blinks.
+  const keeps = await pg.evaluate(u => { const c = document.getElementById('tele-chip'); c.classList.add('squeezed'); window.xfd.telemetry(u); window.xfd.telemetry(u); const kept = c.classList.contains('squeezed'); c.classList.remove('squeezed'); return kept; }, G);
+  if (!keeps) problems.push('telemetry: an update undoes the chip squeeze, so it blinks');
   await ctx.close();
 }
 
