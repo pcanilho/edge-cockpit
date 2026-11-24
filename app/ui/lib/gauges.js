@@ -74,7 +74,9 @@ export function tape(x, y, w, h, val, o) {
     const py = cy - (u - q) * ppu, big = Math.abs(u % o.major) < 1e-6;
     const tx = right ? x : x + w, len = big ? 22 : 11;
     marks += `<line x1="${tx}" x2="${right ? tx + len : tx - len}" y1="${f1(py)}" y2="${f1(py)}" stroke="${C.paint}" stroke-width="${big ? 2 : 1.2}" opacity="${big ? .9 : .45}"/>`;
-    if (big) marks += mono(right ? x + 34 : x + w - 34, py, 17, u, { c: C.paint, a: right ? 'start' : 'end' });
+    // A number that would sit half under the readout box is left out rather than shown cut.
+    const ly = py + (val - q) * ppu;
+    if (big && (ly < cy - 40 || ly > cy + 60)) marks += mono(right ? x + 34 : x + w - 34, py, 17, u, { c: C.paint, a: right ? 'start' : 'end' });
   }
   s += slide(0, (val - q) * ppu, marks);
   s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#gx-fadeV)"/></g>`;
