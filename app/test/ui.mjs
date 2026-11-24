@@ -1120,7 +1120,7 @@ for (const [W, H] of [[1920, 1080], [1180, 820]]) {
     window.xfdTestTelemetrySetup = null; window.xfd.showSection('link'); await new Promise(r => setTimeout(r, 100));
     return out;
   });
-  if (part[0] !== 'Turn telemetry on' || !/not yet for PTU/.test(part[1])) problems.push(`telemetry: partly on reads ${JSON.stringify(part)}`);
+  if (part[0] !== 'Turn telemetry on' || !/Not yet in PTU's user\.cfg/.test(part[1])) problems.push(`telemetry: partly on reads ${JSON.stringify(part)}`);
   await pg.click('#layout-seg [data-v="classic"]');
   await pg.evaluate(() => { document.getElementById('sheet').hidden = true; });
   const classic = await sw();
