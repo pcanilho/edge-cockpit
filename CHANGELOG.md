@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Phone: Instruments and Suit split into one tab per instrument, each at full width.
+
 ## 0.11.1
 
 - **Lighter on your PC.** Gauge pages now change only the parts that moved: a needle turns, a number updates, and the rest of the drawing stays put. The Instruments page costs about 40 % less per update, and the status screen's telemetry block about 20 % less. The 3D Ship page redraws only when something you can see changes, so a still ship costs a small fraction of what it did, and it no longer downloads the model again for every update that arrives while it loads.
