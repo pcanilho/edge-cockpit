@@ -340,7 +340,7 @@ function vitals(live) {
   const ring = (x, g, n, c) => (gp(g) == null ? T(x, 180, 14, n + ' · NOT SENT', { c: C.dim, ls: 2 }) : G.ring(x, 180, 112, gp(g), { title: n, c: c || lvl(gp(g)), glow: true }));
   const bar = (y, g, n) => G.hbar(40, y, 772, 44, gp(g), { title: n, c: gp(g) == null ? C.ok : lvl(gp(g)), n: 34 });
   return G.svg(852, 632, ring(150, vt.health, 'HEALTH') + ring(426, vt.oxygen, 'OXYGEN', C.cyan)
-    + (vt.heart_rate > 0 ? G.dial(702, 180, 112, vt.heart_rate, { min: 40, max: 200, step: 40, c: '#ff6a7a', unit: 'BPM', title: 'HEART RATE', fmt: x => Math.round(x) }) : T(702, 180, 14, 'HEART RATE · NOT SENT', { c: C.dim, ls: 2 }))
+    + (vt.heart_rate > 0 ? G.dial(702, 180, 112, vt.heart_rate, { min: 40, max: 200, step: 40, c: '#ff6a7a', unit: 'BEATS A MINUTE', title: 'HEART RATE', fmt: x => Math.round(x) }) : T(702, 180, 14, 'HEART RATE · NOT SENT', { c: C.dim, ls: 2 }))
     + bar(440, vt.hunger, 'HUNGER') + bar(548, vt.thirst, 'THIRST'));
 }
 function env(live) {
@@ -423,7 +423,7 @@ function stopwatch(sec, running) {
 function lasts(cx, cy, r, sec) {
   const min = sec / 60, p = Math.min(100, min / 60 * 100), c = sec < 300 ? C.red : sec < 900 ? C.amber : C.cyan;
   return G.semi(cx, cy, r, p, { title: '', c }) + `<rect x="${cx - 120}" y="${cy - 52}" width="240" height="44" fill="#02080c"/>` + mono(cx, cy - 30, 34, clock(sec), { c })
-    + T(cx - r, cy + 22, 12, '0', { c: C.muted }) + T(cx + r, cy + 22, 12, '60 MIN', { c: C.muted });
+    + T(cx - r, cy + 22, 12, '0', { c: C.muted }) + T(cx + r, cy + 22, 12, '60 MINUTES', { c: C.muted });
 }
 function fuelPlate(d) {
   const W = 552, H = 640;
@@ -529,10 +529,10 @@ function loadoutPlate(live) {
     const lamps = gs.map(g => `<span class="s3-gl"><i class="${g.is_powered ? 'on' : ''}"></i><i class="${g.ready_to_fire ? 'on' : ''}"></i>${g.n}</span>`).join('');
     return `<div class="s3-gun">${info?.img ? `<img src="${esc(info.img)}" alt="">` : '<span class="s3-noimg"></span>'}<div>
       <b>${gs.length > 1 ? gs.length + ' × ' : ''}${esc(info?.name || (cls ? plainName(cls) : 'Gun'))}</b><small>${esc([info?.maker, info?.size != null ? 'Size ' + info.size : null].filter(Boolean).join(' · ') || cls || 'No name sent')}</small>
-      <div class="s3-st">${STAT('Burst DPS', st?.burst?.toFixed(1))}${STAT('Sustained', st?.sustained?.toFixed(1), ' 60s')}${STAT('Alpha', st?.alpha?.toFixed(1))}${STAT('Rate', st?.rpm, ' rpm')}${STAT('Range', st?.range, ' m')}</div>
+      <div class="s3-st">${STAT('Burst damage', st?.burst?.toFixed(1), ' a second')}${STAT('Sustained', st?.sustained?.toFixed(1), ' a second')}${STAT('Alpha', st?.alpha?.toFixed(1))}${STAT('Shots', st?.rpm, ' a minute')}${STAT('Range', st?.range, ' m')}</div>
       <div class="s3-lamps"><em>Power · ready</em>${lamps}</div></div></div>`;
   });
-  const total = rated ? `<div class="s3-tot"><span>Ship total · ${list.length} guns</span>${STAT('Burst DPS', tot.burst.toFixed(1))}${STAT('Sustained', tot.sustained.toFixed(1), ' 60s')}${STAT('Alpha', tot.alpha.toFixed(1))}</div>` : '';
+  const total = rated ? `<div class="s3-tot"><span>Ship total · ${list.length} guns</span>${STAT('Burst damage', tot.burst.toFixed(1), ' a second')}${STAT('Sustained', tot.sustained.toFixed(1), ' a second')}${STAT('Alpha', tot.alpha.toFixed(1))}</div>` : '';
   return `<div class="s3-ph"><b>Guns</b><span>As the game lists them${patch ? ' · rated · ' + esc(patch) : ''}</span></div><div class="s3-guns">${cards.slice(0, 3).join('')}</div>${total}
     <div class="tl-src">Rated stats: api.star-citizen.wiki · pictures: FleetYards. They don't change with your pips or heat.</div>`;
 }

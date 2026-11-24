@@ -650,7 +650,7 @@ function paintCounts() {
   }
   for (const p of document.querySelectorAll('#console .guns-placard')) p.textContent = teleKeys.has('guns_ready') ? `Guns ${states.guns_ready} ready` : 'Gun groups';
 }
-let baseRole = '', teleShown = '';
+let baseRole = '', teleShown = '', teleShape = '';
 const teleSet = () => !!setupSeen && (setupSeen.env || setupSeen.channels.some(([, on]) => on));
 // On everywhere it can be: 4.10's variable and each channel's user.cfg (PTU added later counts).
 const teleAll = () => !!setupSeen && setupSeen.env && setupSeen.channels.every(([, on]) => on);
@@ -687,8 +687,10 @@ function paintTele() {
     const bar = (n, val, c) => val == null ? '' : `<span>${n}</span><i style="--v:${val}%;--c:${c}"></i><em>${val}%</em>`;
     const num = (n, val, unit) => val == null ? '' : `<span>${n}<b>${esc(String(val))}<small> ${unit}</small></b></span>`;
     const bars = bar('Shields', ins.shields, 'var(--cyan)') + bar('Hull', ins.hull, 'var(--ok)') + bar('Boost', ins.boost, 'var(--hold)');
-    const nums = num('Speed', ins.speed, 'm/s') + num('Radar alt', ins.radarAlt == null ? null : ins.radarAlt < 100 ? ins.radarAlt.toFixed(1) : Math.round(ins.radarAlt), 'm') + num('Vertical', ins.vertical, 'm/s');
-    html = (ann ? `<div class="ann">${tele.ANNUNCIATORS.map(k => { const l = tele.lamp(ann[k]); return `<b class="${l.cls}${l.flash ? ' fl' : ''}">${k.toUpperCase()}</b>`; }).join('')}</div>` : '')
+    const nums = num('Speed', ins.speed, 'm/s') + num('Radar altitude', ins.radarAlt == null ? null : ins.radarAlt < 100 ? ins.radarAlt.toFixed(1) : Math.round(ins.radarAlt), 'm') + num('Vertical', ins.vertical, 'm/s');
+    // The warning lights that are lit, in words; ten in full don't fit here, so the rest stay out.
+    const lit = ann ? tele.ANNUNCIATORS.map(k => ({ k, l: tele.lamp(ann[k]) })).filter(x => x.l.cls === 'm' || x.l.cls === 'x') : [];
+    html = (ann ? `<div class="ann">${lit.length ? lit.map(({ k, l }) => `<b class="${l.cls}${l.flash ? ' fl' : ''}">${tele.ANNUNCIATOR_NAMES[k]}</b>`).join('') : '<span class="clear">Warning lights clear</span>'}</div>` : '')
       + (bars ? `<div class="bars">${bars}</div>` : '') + (nums ? `<div class="rd">${nums}</div>` : '');
   } else if (body) {
     if (body.breathable != null) role = `${body.eva ? 'EVA' : 'On foot'} · ${body.breathable ? 'Breathable air outside' : 'No breathable air'}`;
@@ -697,11 +699,15 @@ function paintTele() {
     const gauge = (n, x, unit, fmt) => g(n, x ? fmt(x) : null, unit, x?.pct, x ? level(x.pct) : '');
     html = `<div class="vit">${gauge('Health', body.health, '%', x => x.pct)}${gauge('Oxygen', body.oxygen, '%', x => x.pct)}`
       + `${gauge('Hunger', body.hunger, '%', x => x.pct)}${gauge('Thirst', body.thirst, '%', x => x.pct)}`
-      + `${g('Body temp', body.body == null ? null : body.body.toFixed(1), '°C')}${g('Heart rate', body.heart, 'bpm')}`
+      + `${g('Body temperature', body.body == null ? null : body.body.toFixed(1), '°C')}${g('Heart rate', body.heart, 'a minute')}`
       + `${g('Outside', body.outside == null ? null : Math.round(body.outside), '°C')}${g('Gravity', body.gravity == null ? null : body.gravity.toFixed(2), 'g')}</div>`;
   }
+  // A role line or a row of warning lights that wraps differently moves what's under it.
+  const shape = role + '|' + (html.match(/<div class="ann">.*?<\/div>/)?.[0] || '');
+  const reshaped = shape !== teleShape;
+  teleShape = shape;
   if ($('ship-role').textContent !== role) $('ship-role').textContent = role;
-  if (html === teleShown) return;
+  if (html === teleShown) { if (reshaped) fitChips(); return; }
   const had = !!teleShown;
   teleShown = html;
   let box = $('tlm');
@@ -711,7 +717,7 @@ function paintTele() {
     box.innerHTML = html;
     mfd.classList.add('tlm-on');
   }
-  if (had !== !!html) fitChips();
+  if (had !== !!html || reshaped) fitChips();
 }
 /** Settings › Game link. With `fresh`, asks the PC how telemetry is set up. */
 let setupSeen = null;
@@ -1790,6 +1796,9 @@ const CHIP_ORDER = ['tele-chip', 'kills', 'build', 'update', 'binds-chip', 'patc
 function fitChips() {
   const screen = $('auto').closest('.facts')?.parentElement, r = screen?.getBoundingClientRect();
   if (!r?.height) return;
+  // A role line long enough to wrap (seat, flying, mode) pushes the facts down instead of under it.
+  const role = screen.querySelector(':scope > .role');
+  if (role) screen.style.setProperty('--role-x', Math.max(0, role.offsetHeight - 13) + 'px');
   // First the ship shrinks, then gives way, until the facts and Follow game fit; the other chips after.
   CHIP_ORDER.forEach(id => $(id).classList.add('squeezed'));
   for (const fit of ['', 'tight', 'tighter']) {
