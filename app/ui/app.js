@@ -1442,7 +1442,8 @@ const LEGEND = [
   ['<div class="well key fam-wpn"><div class="cap"><span class="lg">Fire</span><svg class="ring-h" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><circle class="f" cx="8" cy="8" r="6" pathLength="1"/></svg></div></div>', 'Ring: hold', 'The key stays down while your finger does, like holding it in game. The ring fills while held.'],
   ['<div class="well key fam-wpn"><div class="cap"><span class="lg">Decoy</span><span class="tg">LONG</span></div></div>', 'LONG or 2×', 'Press and hold, or tap twice, for a second action. Its name shows at the bottom of the screen when it goes.'],
   ['<div class="well key fam-sys cut"><div class="cap"><span class="lg">Flight ready</span><span class="notch"></span></div></div>', 'Notched corner: macro', 'Several keys in turn, such as power on and Flight Ready.'],
-  ['<div class="well pair fam-flt"><div class="cap half a"><span class="lg">On</span><span class="led"></span></div><div class="cap half b"><span class="lg">Off</span><span class="led"></span></div></div>', 'On and off', 'Sets it on or off in game. Dark until you set it here, as the game never says which it is.'],
+  ['<div class="well pair fam-flt"><div class="cap half a"><span class="lg">On</span><span class="led"></span></div><div class="cap half b"><span class="lg">Off</span><span class="led"></span></div></div>', 'On and off', 'Sets it on or off in game. Dark until you set it here, as the game never says which it is.', 'Sets it on or off in game. Lit with the game\'s own state while telemetry is live; dark for what the game doesn\'t send (doors, port locks).'],
+  ['<div class="well key fam-flt"><div class="cap lamp lamp-on"><span class="lg">G-safe</span><span class="lv"></span><span class="lvt">On</span></div></div>', 'Lamp: the game says', 'A toggle with its state from the game. Only while telemetry is live.', null, true],
   ['<div class="well key fam-emg"><div class="cap"><span class="lg">Self destruct</span><span class="tg">GUARD</span></div></div>', 'GUARD', 'Tap twice within 3 s. The first tap only arms it.'],
   ['<div class="guard"><div class="cover"><span class="hinge"></span><span>LIFT COVER</span></div></div>', 'Cover', 'The first tap lifts it, a second within 3 s sends the key.'],
   ['<div class="well key fam-flt"><div class="cap"><span class="lg">Ping</span><span class="mine"></span></div></div>', 'Cyan dot: your key', 'A key you swapped in. Long press it to change it again or go back to stock.'],
@@ -1451,7 +1452,9 @@ const LEGEND = [
 ];
 function showLegend() {
   const esc = controls.esc;
-  $('lgd-rows').innerHTML = LEGEND.map(([sample, b, p]) => `<div class="lgd-row"><div class="lgd-s" aria-hidden="true">${sample}</div><div class="txt"><b>${esc(b)}</b><p>${esc(p)}</p></div></div>`).join('');
+  // With telemetry live, the switches show the game's state, so the legend says so.
+  const live = teleOn();
+  $('lgd-rows').innerHTML = LEGEND.filter(r => live || !r[4]).map(([sample, b, p0, p1]) => [sample, b, live && p1 ? p1 : p0]).map(([sample, b, p]) => `<div class="lgd-row"><div class="lgd-s" aria-hidden="true">${sample}</div><div class="txt"><b>${esc(b)}</b><p>${esc(p)}</p></div></div>`).join('');
   $('legend').hidden = false;
 }
 controls.pressable($('lgd-done'), { up: () => { tick('tap'); $('legend').hidden = true; store.set('legend-seen', true); } });
@@ -1830,15 +1833,20 @@ function paintQuantum() {
 }
 
 /** Opens the page for the moment when that changes, unless you turned auto pages off. */
-// Switches show what the console last set. A different ship, or none, starts unknown again.
+// Switches show what the console last set. A different ship, or none, starts unknown again,
+// except what the game reports.
 let stateShip = null;
 function forgetStates() {
   const ship = game.seated ? game.ship : null;
   if (ship === stateShip) return;
   stateShip = ship;
+  // What the game reports stays: it is about the ship you're in now, not the last one.
+  const kept = Object.fromEntries([...teleKeys].filter(k => k in states).map(k => [k, states[k]]));
   for (const key of Object.keys(states)) delete states[key];
+  Object.assign(states, kept);
   repaint();
   bridge.share({ st: null });
+  if (Object.keys(kept).length) bridge.share({ st: kept });
 }
 function follow(force) {
   forgetStates();
