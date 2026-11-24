@@ -1116,7 +1116,9 @@ for (const [W, H] of [[1920, 1080], [1180, 820]]) {
   const part = await pg.evaluate(async () => {
     window.xfdTestTelemetrySetup = { env: true, channels: [['LIVE', true], ['PTU', false]] };
     window.xfd.showSection('link'); await new Promise(r => setTimeout(r, 100));
-    return [document.getElementById('tele-act').textContent, document.getElementById('tele-act-note').textContent];
+    const out = [document.getElementById('tele-act').textContent, document.getElementById('tele-act-note').textContent];
+    window.xfdTestTelemetrySetup = null; window.xfd.showSection('link'); await new Promise(r => setTimeout(r, 100));
+    return out;
   });
   if (part[0] !== 'Turn telemetry on' || !/not yet for PTU/.test(part[1])) problems.push(`telemetry: partly on reads ${JSON.stringify(part)}`);
   await pg.click('#layout-seg [data-v="classic"]');
