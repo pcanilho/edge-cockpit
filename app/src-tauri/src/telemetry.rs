@@ -711,6 +711,7 @@ mod tests {
                 countermeasures: vec![pb::Countermeasure { r#type: 1, amount: 48 }, pb::Countermeasure { r#type: 2, amount: 5 }],
             }),
             actor: None,
+            turret: None,
         }
     }
 
