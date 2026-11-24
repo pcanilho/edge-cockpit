@@ -97,6 +97,12 @@ pub mod pb {
     pub struct Instruments {
         #[prost(float, tag = "1")]
         pub speed: f32,
+        /// 0 to 1. Not every ship sends it.
+        #[prost(float, optional, tag = "2")]
+        pub hydrogen_fuel: Option<f32>,
+        /// Current G and the peak the game recorded.
+        #[prost(message, optional, tag = "4")]
+        pub g_meter: Option<Gauge>,
         #[prost(message, optional, tag = "5")]
         pub boost: Option<Boost>,
         /// The largest float when no ground is in range.
@@ -104,6 +110,9 @@ pub mod pb {
         pub radar_altitude: f32,
         #[prost(float, tag = "8")]
         pub vertical_speed_indicator: f32,
+        /// Degrees.
+        #[prost(float, optional, tag = "10")]
+        pub heading: Option<f32>,
     }
     #[derive(Clone, PartialEq, prost::Message, Serialize)]
     pub struct Flight {
@@ -122,8 +131,18 @@ pub mod pb {
         pub engines: bool,
         #[prost(bool, tag = "3")]
         pub weapons: bool,
+        #[prost(bool, tag = "4")]
+        pub coolers: bool,
+        #[prost(bool, tag = "5")]
+        pub life_support: bool,
+        #[prost(bool, tag = "6")]
+        pub gravity_generators: bool,
+        #[prost(bool, tag = "7")]
+        pub sensors: bool,
         #[prost(bool, tag = "8")]
         pub shield_generators: bool,
+        #[prost(bool, tag = "9")]
+        pub shield_emitters: bool,
     }
     /// Warning lights. 1 nominal, 2 off, 3 minor flashing, 4 minor on, 5 major flashing, 6 major on.
     #[derive(Clone, PartialEq, prost::Message, Serialize)]
@@ -199,6 +218,9 @@ pub mod pb {
     }
     #[derive(Clone, PartialEq, prost::Message, Serialize)]
     pub struct Weapon {
+        /// The item's class name, e.g. "KLWE_LaserRepeater_S1".
+        #[prost(string, tag = "1")]
+        pub name: String,
         #[prost(bool, tag = "2")]
         pub is_powered: bool,
         #[prost(bool, tag = "3")]
@@ -253,6 +275,12 @@ pub mod pb {
         /// 1 pilot, 2 gunner, 3 crew.
         #[prost(int32, tag = "2")]
         pub crew_role: i32,
+        /// The seat's entity name, e.g. "AEGS_Avenger_SCItem_Seat_Pilot_877343717572".
+        #[prost(string, tag = "3")]
+        pub seat_name: String,
+        /// aUEC.
+        #[prost(int64, optional, tag = "4")]
+        pub uec_balance: Option<i64>,
     }
     #[derive(Clone, PartialEq, prost::Message, Serialize)]
     pub struct ActorFrame {
@@ -263,6 +291,11 @@ pub mod pb {
         #[prost(message, optional, tag = "3")]
         pub environment: Option<Environment>,
     }
+    #[derive(Clone, PartialEq, prost::Message, Serialize)]
+    pub struct TurretFrame {
+        #[prost(bool, tag = "1")]
+        pub light_amplification: bool,
+    }
     #[derive(Clone, PartialEq, prost::Message)]
     pub struct StreamResponse {
         #[prost(message, optional, tag = "3")]
@@ -271,6 +304,8 @@ pub mod pb {
         pub weapons: Option<WeaponsFrame>,
         #[prost(message, optional, tag = "6")]
         pub actor: Option<ActorFrame>,
+        #[prost(message, optional, tag = "8")]
+        pub turret: Option<TurretFrame>,
     }
     #[derive(Clone, PartialEq, prost::Message)]
     pub struct Empty {}
@@ -307,6 +342,7 @@ pub struct Live {
     pub vehicle: Option<pb::Vehicle>,
     pub weapons: Option<pb::WeaponsFrame>,
     pub actor: Option<pb::ActorFrame>,
+    pub turret: Option<pb::TurretFrame>,
 }
 
 /// The link as the UI sees it.
@@ -326,6 +362,7 @@ struct Sections {
     vehicle: Option<(Instant, pb::Vehicle)>,
     weapons: Option<(Instant, pb::WeaponsFrame)>,
     actor: Option<(Instant, pb::ActorFrame)>,
+    turret: Option<(Instant, pb::TurretFrame)>,
 }
 
 impl Sections {
@@ -339,12 +376,15 @@ impl Sections {
         if let Some(a) = msg.actor {
             self.actor = Some((now, a));
         }
+        if let Some(t) = msg.turret {
+            self.turret = Some((now, t));
+        }
     }
     fn live(&self, now: Instant) -> Live {
         fn fresh<T: Clone>(s: &Option<(Instant, T)>, now: Instant) -> Option<T> {
             s.as_ref().filter(|(t, _)| now.duration_since(*t) < STALE).map(|(_, v)| v.clone())
         }
-        Live { vehicle: fresh(&self.vehicle, now), weapons: fresh(&self.weapons, now), actor: fresh(&self.actor, now) }
+        Live { vehicle: fresh(&self.vehicle, now), weapons: fresh(&self.weapons, now), actor: fresh(&self.actor, now), turret: fresh(&self.turret, now) }
     }
 }
 
@@ -701,9 +741,9 @@ mod tests {
                     flight: Some(pb::Flight {
                         state: Some(pb::FlightState { is_landed: true, gear: Some(3), vtol: Some(3) }),
                         settings: Some(pb::FlightSettings { ifcs_coupled: av(true, true), ifcs_esp: av(true, false), ifcs_speed_limiter: av(true, true), ..Default::default() }),
-                        instruments: Some(pb::Instruments { speed: 0.0, boost: Some(pb::Boost { reserves: 1.0, ..Default::default() }), radar_altitude: 4.433704, vertical_speed_indicator: 0.0 }),
+                        instruments: Some(pb::Instruments { speed: 0.0, boost: Some(pb::Boost { reserves: 1.0, ..Default::default() }), radar_altitude: 4.433704, vertical_speed_indicator: 0.0, ..Default::default() }),
                     }),
-                    power: Some(pb::Power { powerplants: true, engines: false, weapons: true, shield_generators: true }),
+                    power: Some(pb::Power { powerplants: true, engines: false, weapons: true, shield_generators: true, ..Default::default() }),
                     shields: Some(pb::Shields { level: 1.0 }),
                     health: 1.0,
                     master_mode: Some(pb::MasterMode { mode: 2, spooled: true }),
@@ -712,10 +752,11 @@ mod tests {
             }),
             weapons: Some(pb::WeaponsFrame {
                 settings: Some(pb::WeaponsSettings { gimbals_locked: true, staggered_fire: false }),
-                weapons: vec![pb::Weapon { is_powered: true, ready_to_fire: true }; 2],
+                weapons: vec![pb::Weapon { name: "KLWE_LaserRepeater_S1".into(), is_powered: true, ready_to_fire: true }; 2],
                 countermeasures: vec![pb::Countermeasure { r#type: 1, amount: 48 }, pb::Countermeasure { r#type: 2, amount: 5 }],
             }),
             actor: None,
+            turret: None,
         }
     }
 
@@ -743,6 +784,42 @@ mod tests {
         let mut b = prospector().encode_to_vec();
         b.extend_from_slice(&[0x3a, 0x02, 0x25, 0x00]);
         assert_eq!(pb::StreamResponse::decode(&b[..]).unwrap(), prospector());
+    }
+
+    /// Fields as the game puts them on the wire, from a real Avenger Titan frame: hydrogen,
+    /// G meter (current 0 left out), heading, the full power set and the balance.
+    #[test]
+    fn reads_gauge_fields() {
+        let mut ins = Vec::new();
+        ins.extend_from_slice(&[0x15]); ins.extend_from_slice(&0.9986225f32.to_le_bytes()); // 2 hydrogen_fuel
+        ins.extend_from_slice(&[0x22, 0x05, 0x15]); ins.extend_from_slice(&3.4770613f32.to_le_bytes()); // 4 g_meter { max }
+        ins.extend_from_slice(&[0x55]); ins.extend_from_slice(&359.99857f32.to_le_bytes()); // 10 heading
+        let i = pb::Instruments::decode(&ins[..]).unwrap();
+        assert_eq!(i.hydrogen_fuel, Some(0.9986225));
+        assert_eq!(i.g_meter, Some(pb::Gauge { current: 0.0, max: 3.4770613 }));
+        assert_eq!(i.heading, Some(359.99857));
+        assert_eq!(pb::Instruments::decode(&[][..]).unwrap().hydrogen_fuel, None);
+        // powerplants, engines, weapons, coolers, life support, sensors, shield generators and emitters on; no gravity generators.
+        let p = pb::Power::decode(&[0x08, 1, 0x10, 1, 0x18, 1, 0x20, 1, 0x28, 1, 0x38, 1, 0x40, 1, 0x48, 1][..]).unwrap();
+        assert!(p.coolers && p.life_support && p.sensors && p.shield_emitters && !p.gravity_generators);
+        // uec_balance 15001986 as a varint.
+        let mut a = vec![0x20];
+        let mut n = 15001986u64;
+        while n >= 0x80 { a.push((n as u8) | 0x80); n >>= 7; }
+        a.push(n as u8);
+        assert_eq!(pb::ActorState::decode(&a[..]).unwrap().uec_balance, Some(15001986));
+        // A weapon's class name (1) and a seat name (3); a turret frame with light amplification on.
+        let mut w = vec![0x0a, 21];
+        w.extend_from_slice(b"KLWE_LaserRepeater_S1");
+        w.extend_from_slice(&[0x10, 1, 0x18, 1]);
+        let w = pb::Weapon::decode(&w[..]).unwrap();
+        assert_eq!((w.name.as_str(), w.is_powered, w.ready_to_fire), ("KLWE_LaserRepeater_S1", true, true));
+        let mut st = vec![0x10, 2, 0x1a, 11];
+        st.extend_from_slice(b"Turret_Seat");
+        let st = pb::ActorState::decode(&st[..]).unwrap();
+        assert_eq!((st.crew_role, st.seat_name.as_str()), (2, "Turret_Seat"));
+        let r = pb::StreamResponse::decode(&[0x42, 2, 0x08, 1][..]).unwrap();
+        assert!(r.turret.unwrap().light_amplification);
     }
 
     #[test]

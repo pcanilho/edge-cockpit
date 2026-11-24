@@ -34,7 +34,13 @@ export const TYPES = {
 export const FIELDS = {
   ship: 'Ship', location: 'Location', system: 'System', mission: 'Mission', qtTarget: 'Quantum target',
   armistice: 'Armistice', jurisdiction: 'Jurisdiction', kills: 'Kills this session', shard: 'Server',
+  // From the game link (Telemetry layout): '–' while the game isn't sending them.
+  speed: 'Speed', radarAlt: 'Radar altitude', vsi: 'Vertical speed', heading: 'Heading', shields: 'Shields', hull: 'Hull',
+  hydrogen: 'Hydrogen fuel', boost: 'Boost reserve', gforce: 'G force', mode: 'Master mode', gunsReady: 'Guns ready',
+  decoys: 'Decoys', noise: 'Noise', health: 'Health', oxygen: 'Oxygen', balance: 'Balance',
 };
+/** The fields that come from the game link rather than Game.log. */
+export const LIVE_FIELDS = new Set(['speed', 'radarAlt', 'vsi', 'heading', 'shields', 'hull', 'hydrogen', 'boost', 'gforce', 'mode', 'gunsReady', 'decoys', 'noise', 'health', 'oxygen', 'balance']);
 
 const DANGER = /eject|self_destruct|selfdestruct|jettison|emergency|panic/i;
 /** A key that ends a flight or dumps cargo: only behind a guarded cover or a slide. */

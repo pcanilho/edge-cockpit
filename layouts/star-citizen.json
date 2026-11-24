@@ -12689,6 +12689,50 @@
      "role": "action"
     },
     {
+     "label": "Gyro mode",
+     "action": "turret_gyromode",
+     "actionmap": "turret_movement",
+     "defaultKey": "e",
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": false,
+     "icon": "target",
+     "role": "action"
+    },
+    {
+     "label": "Mouse mode",
+     "action": "turret_mouse_mode_cycle",
+     "actionmap": "turret_movement",
+     "defaultKey": "q",
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": false,
+     "icon": "target",
+     "role": "action"
+    },
+    {
+     "label": "Recenter turret",
+     "action": "turret_recenter",
+     "actionmap": "turret_advanced",
+     "defaultKey": "c",
+     "activation": "hold_no_retrigger",
+     "press": "hold",
+     "needsKeyboardBind": false,
+     "icon": "target",
+     "role": "hold"
+    },
+    {
+     "label": "Change position",
+     "action": "turret_change_position",
+     "actionmap": "turret_advanced",
+     "defaultKey": "s",
+     "activation": "press",
+     "press": "tap",
+     "needsKeyboardBind": false,
+     "icon": "right",
+     "role": "action"
+    },
+    {
      "label": "Dance",
      "action": "emote_dance",
      "actionmap": "player_emotes",

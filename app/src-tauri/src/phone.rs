@@ -515,7 +515,7 @@ async fn serve<H: Host>(host: std::sync::Arc<H>, stream: tokio::net::TcpStream, 
         return reply(stream, 404, "text/plain", b"Not found".to_vec(), "").await;
     }
     let csp = format!(
-        "default-src 'self'; script-src 'self'; connect-src 'self' ws://{h} http://{n}:{p} https://api.fleetyards.net https://fleetyards.net https://storage.fltyrd.net; img-src 'self' data: https://api.fleetyards.net https://fleetyards.net https://storage.fltyrd.net; media-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+        "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' ws://{h} http://{n}:{p} https://api.fleetyards.net https://fleetyards.net https://storage.fltyrd.net https://api.star-citizen.wiki; img-src 'self' data: https://api.fleetyards.net https://fleetyards.net https://storage.fltyrd.net; media-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
         h = req.host,
         n = LOCAL_NAME,
         p = PORT
