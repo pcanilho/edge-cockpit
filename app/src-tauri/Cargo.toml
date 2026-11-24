@@ -28,8 +28,8 @@ reqwest = { version = "0.13", default-features = false, features = ["native-tls"
 tokio = { version = "1", features = ["net", "io-util", "time", "sync"] }
 tokio-tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
 futures-util = { version = "0.3", default-features = false, features = ["sink"] }
-sha2 = "0.10"
-getrandom = "0.3"
+sha2 = "0.11"
+getrandom = "0.4"
 qrcode = { version = "0.14", default-features = false, features = ["svg"] }
 mdns-sd = { version = "0.22", default-features = false }
 # The game link: Star Citizen's local telemetry service (gRPC over HTTP/2, on 127.0.0.1).

@@ -5,8 +5,14 @@ const C = { cyan: '#58d2f0', amber: '#ffb547', ok: '#5fe0a0', red: '#ff4232', in
 const rad = d => (d - 90) * Math.PI / 180;
 const P = (cx, cy, r, d) => [cx + r * Math.cos(rad(d)), cy + r * Math.sin(rad(d))];
 const f1 = n => n.toFixed(1);
-// Clip paths need ids unique on the page.
-let uid = 0;
+// Clip paths need ids unique on the page, and the same on every repaint so an unchanged
+// drawing stays unchanged: one per place.
+const clipId = (x, y, w, h) => `gx-c${Math.round(x)}-${Math.round(y)}-${Math.round(w)}-${Math.round(h)}`;
+// Parts that move with the value are drawn once and moved: a new reading changes one transform,
+// not every tick mark (the pages repaint only what changed). A tape's scale is redrawn only when
+// the value passes another major mark.
+const slide = (dx, dy, body) => `<g transform="translate(${f1(dx)} ${f1(dy)})">${body}</g>`;
+const turn = (cx, cy, deg, body) => `<g transform="rotate(${f1(deg)} ${cx} ${cy})">${body}</g>`;
 export function arc(cx, cy, r, a0, a1) {
   const [x0, y0] = P(cx, cy, r, a0), [x1, y1] = P(cx, cy, r, a1);
   return `M${f1(x0)} ${f1(y0)}A${r} ${r} 0 ${Math.abs(a1 - a0) > 180 ? 1 : 0} ${a1 > a0 ? 1 : 0} ${f1(x1)} ${f1(y1)}`;
@@ -33,13 +39,15 @@ export function heading(x, y, w, h, hdg) {
     return s + '</g>';
   }
   const names = { 0: 'N', 90: 'E', 180: 'S', 270: 'W' };
-  const id = 'gx-c' + ++uid;
+  const id = clipId(x, y, w, h), q = Math.round(hdg / 15) * 15;
   s += `<clipPath id="${id}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6"/></clipPath><g clip-path="url(#${id})">`;
-  for (let d = Math.ceil((hdg - 62) / 5) * 5; d <= hdg + 62; d += 5) {
-    const px = cx + (d - hdg) * ppd, dd = ((d % 360) + 360) % 360, big = dd % 15 === 0;
-    s += `<line x1="${f1(px)}" x2="${f1(px)}" y1="${y + h}" y2="${y + h - (big ? 18 : 9)}" stroke="${C.paint}" stroke-width="${big ? 2 : 1.2}" opacity="${big ? .9 : .5}"/>`;
-    if (big) s += names[dd] != null ? T(px, y + 22, 20, names[dd], { c: dd === 0 ? C.amber : C.cyan }) : mono(px, y + 22, 14, String(dd).padStart(3, '0'), { c: C.paint });
+  let marks = '';
+  for (let d = Math.ceil((q - 75) / 5) * 5; d <= q + 75; d += 5) {
+    const px = cx + (d - q) * ppd, dd = ((d % 360) + 360) % 360, big = dd % 15 === 0;
+    marks += `<line x1="${f1(px)}" x2="${f1(px)}" y1="${y + h}" y2="${y + h - (big ? 18 : 9)}" stroke="${C.paint}" stroke-width="${big ? 2 : 1.2}" opacity="${big ? .9 : .5}"/>`;
+    if (big) marks += names[dd] != null ? T(px, y + 22, 20, names[dd], { c: dd === 0 ? C.amber : C.cyan }) : mono(px, y + 22, 14, String(dd).padStart(3, '0'), { c: C.paint });
   }
+  s += slide((q - hdg) * ppd, 0, marks);
   s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#gx-fadeH)"/></g>`;
   const v = String(Math.round(hdg) % 360).padStart(3, '0');
   s += `<path d="M${cx - 38} ${y - 2}h76v34h-30l-8 9-8-9h-30z" fill="#02080c" stroke="${C.cyan}" stroke-width="2" filter="url(#gx-gl)"/>` + mono(cx, y + 16, 24, v + '°', { c: C.cyan });
@@ -55,17 +63,20 @@ export function tape(x, y, w, h, val, o) {
     s += T(x + w / 2, cy - 10, 14, 'NO', { c: C.dim, ls: 3 }) + T(x + w / 2, cy + 12, 14, 'READING', { c: C.dim, ls: 3 });
     return s + '</g>';
   }
-  const id = 'gx-c' + ++uid;
+  const id = clipId(x, y, w, h), q = Math.round(val / o.major) * o.major;
   s += `<clipPath id="${id}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8"/></clipPath><g clip-path="url(#${id})">`;
-  const span = h / 2 / ppu + o.minor;
-  if (o.ground) { const gy = cy + val * ppu; if (gy < y + h) s += `<rect x="${x}" y="${f1(gy)}" width="${w}" height="${h}" fill="url(#gx-hatch)"/><line x1="${x}" x2="${x + w}" y1="${f1(gy)}" y2="${f1(gy)}" stroke="${C.amber}" stroke-width="2"/>`; }
-  for (let u = Math.ceil((val - span) / o.minor) * o.minor; u <= val + span; u += o.minor) {
+  // The scale is drawn around the nearest major mark and slides by the rest.
+  const span = h / 2 / ppu + o.major + o.minor;
+  let marks = '';
+  if (o.ground) { const gy = cy + q * ppu; if (gy < y + h + o.major * ppu) marks += `<rect x="${x}" y="${f1(gy)}" width="${w}" height="${h}" fill="url(#gx-hatch)"/><line x1="${x}" x2="${x + w}" y1="${f1(gy)}" y2="${f1(gy)}" stroke="${C.amber}" stroke-width="2"/>`; }
+  for (let u = Math.ceil((q - span) / o.minor) * o.minor; u <= q + span; u += o.minor) {
     if (u < (o.min ?? -1e9)) continue;
-    const py = cy - (u - val) * ppu, big = Math.abs(u % o.major) < 1e-6;
+    const py = cy - (u - q) * ppu, big = Math.abs(u % o.major) < 1e-6;
     const tx = right ? x : x + w, len = big ? 22 : 11;
-    s += `<line x1="${tx}" x2="${right ? tx + len : tx - len}" y1="${f1(py)}" y2="${f1(py)}" stroke="${C.paint}" stroke-width="${big ? 2 : 1.2}" opacity="${big ? .9 : .45}"/>`;
-    if (big) s += mono(right ? x + 34 : x + w - 34, py, 17, u, { c: C.paint, a: right ? 'start' : 'end' });
+    marks += `<line x1="${tx}" x2="${right ? tx + len : tx - len}" y1="${f1(py)}" y2="${f1(py)}" stroke="${C.paint}" stroke-width="${big ? 2 : 1.2}" opacity="${big ? .9 : .45}"/>`;
+    if (big) marks += mono(right ? x + 34 : x + w - 34, py, 17, u, { c: C.paint, a: right ? 'start' : 'end' });
   }
+  s += slide(0, (val - q) * ppu, marks);
   s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#gx-fadeV)"/></g>`;
   // Readout box with a pointer toward the scale.
   const bw = w - 18, bx = right ? x + 18 : x, txt = o.fmt(val);
@@ -89,8 +100,7 @@ export function vsi(cx, cy, r, v) {
   s += T(cx, cy - r * .3, 13, 'VERTICAL SPEED', { c: C.muted, ls: 3 }) + T(cx + r * .42, cy + 40, 12, 'M/S', { c: C.muted, ls: 3 });
   const vr0 = Math.round(v), t0 = vr0 > 0 ? '+' + vr0 : vr0 < 0 ? '−' + Math.abs(vr0) : '0', col = vr0 < 0 ? C.amber : vr0 > 0 ? C.ok : C.paint;
   s += `<rect x="${cx + r * .42 - 56}" y="${cy - 26}" width="112" height="52" rx="6" fill="#02080c" stroke="${col}" stroke-width="2"/>` + mono(cx + r * .42, cy + 1, 30, t0, { c: vr0 ? col : C.ink });
-  const a = ang(v), [nx, ny] = P(cx, cy, r - 16, a), [bx, by] = P(cx, cy, 34, a + 180);
-  s += `<line x1="${f1(bx)}" y1="${f1(by)}" x2="${f1(nx)}" y2="${f1(ny)}" stroke="${C.ink}" stroke-width="7" stroke-linecap="round" filter="url(#gx-gl)"/><circle cx="${cx}" cy="${cy}" r="16" fill="url(#gx-nut)" stroke="#000" stroke-width="2"/>`;
+  s += turn(cx, cy, ang(v), `<line x1="${cx}" y1="${cy + 34}" x2="${cx}" y2="${cy - r + 16}" stroke="${C.ink}" stroke-width="7" stroke-linecap="round" filter="url(#gx-gl)"/>`) + `<circle cx="${cx}" cy="${cy}" r="16" fill="url(#gx-nut)" stroke="#000" stroke-width="2"/>`;
   return s + '</g>';
 }
 
@@ -105,8 +115,7 @@ export function gmeter(cx, cy, r, g) {
   if (!g) return s + T(cx, cy, 14, 'NOT SENT', { c: C.dim, ls: 3 }) + '</g>';
   const pk = ang(g.max), [px, py] = P(cx, cy, r + 4, pk), [p1x, p1y] = P(cx, cy, r + 18, pk - 4), [p2x, p2y] = P(cx, cy, r + 18, pk + 4);
   s += `<path d="M${f1(px)} ${f1(py)}L${f1(p1x)} ${f1(p1y)}L${f1(p2x)} ${f1(p2y)}z" fill="${C.amber}" filter="url(#gx-gl)"/>`;
-  const a = ang(g.current), [nx, ny] = P(cx, cy, r - 18, a);
-  s += `<line x1="${cx}" y1="${cy}" x2="${f1(nx)}" y2="${f1(ny)}" stroke="${C.ink}" stroke-width="5" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="11" fill="url(#gx-nut)" stroke="#000" stroke-width="2"/>`;
+  s += turn(cx, cy, ang(g.current), `<line x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy - r + 18}" stroke="${C.ink}" stroke-width="5" stroke-linecap="round"/>`) + `<circle cx="${cx}" cy="${cy}" r="11" fill="url(#gx-nut)" stroke="#000" stroke-width="2"/>`;
   s += mono(cx, cy + r * .42, 34, g.current.toFixed(1), { c: C.cyan }) + T(cx, cy + r * .42 + 26, 12, 'G NOW', { c: C.muted, ls: 3 });
   s += T(cx, cy + r + 34, 12, `PEAK  ${g.max.toFixed(1)} G${g.max > max ? '  ▲' : ''}`, { c: C.amber, ls: 2 });
   return s + '</g>';
@@ -154,8 +163,7 @@ export function dial(cx, cy, r, v, o) {
   s += `<path d="${arc(cx, cy, r - 4, A0, ang(v) + .01)}" stroke="${o.c}" stroke-width="10" fill="none" filter="url(#gx-gl)"/>`;
   for (let t = o.min; t <= o.max; t += o.step) { const a = ang(t), [x0, y0] = P(cx, cy, r - 12, a), [x1, y1] = P(cx, cy, r - 26, a), [lx, ly] = P(cx, cy, r - 44, a);
     s += `<line x1="${f1(x0)}" y1="${f1(y0)}" x2="${f1(x1)}" y2="${f1(y1)}" stroke="${C.ink}" stroke-width="2.5"/>` + mono(lx, ly, 15, t, { c: C.paint }); }
-  const [nx, ny] = P(cx, cy, r - 16, ang(v));
-  s += `<line x1="${cx}" y1="${cy}" x2="${f1(nx)}" y2="${f1(ny)}" stroke="${C.ink}" stroke-width="5" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="11" fill="url(#gx-nut)" stroke="#000" stroke-width="2"/>`;
+  s += turn(cx, cy, ang(v), `<line x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy - r + 16}" stroke="${C.ink}" stroke-width="5" stroke-linecap="round"/>`) + `<circle cx="${cx}" cy="${cy}" r="11" fill="url(#gx-nut)" stroke="#000" stroke-width="2"/>`;
   return s + mono(cx, cy + r * .74, 34, o.fmt(v), { c: o.c }) + T(cx, cy + r * .74 + 26, 12, o.unit, { c: C.muted, ls: 3 }) + T(cx, cy + r + 36, 13, o.title, { c: C.paint, ls: 3 });
 }
 
