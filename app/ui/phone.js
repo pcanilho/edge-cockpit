@@ -173,6 +173,17 @@ export function plan(plate, aw, ah) {
       Object.assign(it, { w: tw, h: nh, zoom: z });
       continue;
     }
+    // The system chart draws to whatever size it gets: it narrows to the phone, as tall as fits.
+    if (it.els.length === 1 && it.els[0].classList.contains('sc') && it.w > tw) {
+      const nh = Math.min(it.h, th), dw = it.w - tw, dh = nh - it.h, right = it.x + it.w, bottom = it.y + it.h;
+      for (const o of list) {
+        if (o === it) continue;
+        if (o.x >= right - 4 && o.y < bottom && o.y + o.h > it.y) o.x -= dw;
+        if (o.y >= bottom - 4) o.y += dh;
+      }
+      Object.assign(it, { w: tw, h: nh, rw: tw, rh: nh });
+      continue;
+    }
     if (it.els.length !== 1 || !FLOWS.test(it.els[0].className) || it.w <= tw) continue;
     const c = it.els[0].className, bar = /\bcm-(head|foot)\b/.test(c);
     it.rh = /\blab\b/.test(c) ? Math.ceil(it.h * 1.4 * Math.ceil(it.w / tw)) : bar ? Math.max(it.h, autoHeight(it.els[0], tw)) : it.h < 200 ? Math.min(th, Math.max(it.h, Math.round(it.h * it.w / tw * 0.7))) : it.h;

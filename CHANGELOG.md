@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **System chart.** Tap Map again (or the arrows on the Map plate) for a 3D chart of the system you're in: planets, moons, Lagrange points and gateways, drawn by the console from UEX's list of places. Drag to turn, pinch to zoom. It isn't to scale: the rings show the order of the planets, not distance.
+- **Where you are, from Game.log.** The game sends no coordinates, so the marker sits on the place Game.log last named (a quantum arrival, a hangar lift or opening your inventory) and the card says how long ago. Your last quantum route shows as a dashed line. With no place named yet, there's no marker.
+- **Tap a planet, moon or Lagrange point** to see its stations and cities and its best trades from World's prices. Routes are still set on the game's own Starmap; the keys for it sit beside the chart.
+- **World > Find > a commodity > Show on chart** lights the places in your system where it sells best, with their prices.
+- The chart loads only when you open it, draws only when something changes, and gives its graphics memory back when you leave it. The list of places is fetched once a week and kept for offline use.
+
 ## 0.11.4
 
 - The Gauges softkey is now **Telemetry**, and Settings > Game link > Gauge pages is **Telemetry pages**.
