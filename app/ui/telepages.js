@@ -6,6 +6,7 @@ import { plate, screen, keycap, onOffKey, h, icon, esc, pressable } from './cont
 import { model as fyModel, paints as fyPaints } from './outlines.js';
 import { gun as gunInfo, plainName, classOf } from './guns.js';
 import { view as shipView } from './ship3d.js';
+import { vitalStep, VITAL_STEPS, bodyStep, BODY_STEPS } from './lib/telemetry.js';
 
 const { C, T, mono } = G;
 
@@ -393,13 +394,16 @@ function guns(live) {
 }
 
 const gp = g => (g && g.max > 0 && finite(g.current) ? Math.floor(Math.max(0, Math.min(1, g.current / g.max)) * 100 + 1e-6) : null);
-const vring = (x, g, n, c) => (gp(g) == null ? T(x, 180, 14, n + ' · NOT SENT', { c: C.dim, ls: 2 }) : G.ring(x, 180, 112, gp(g), { title: n, c: c || lvl(gp(g)), glow: true }));
-const vbar = (y, g, n) => G.hbar(40, y, 772, 44, gp(g), { title: n, c: gp(g) == null ? C.ok : lvl(gp(g)), n: 34 });
+// Vitals step, not fade: light grey while fine, amber then red past the marks beside the scale.
+const STEP_C = { '': '#a9b4bf', caution: C.amber, warning: C.red };
+const vc = (k, p) => STEP_C[vitalStep(k, p)];
+const vring = (x, g, n, k) => (gp(g) == null ? T(x, 180, 14, n + ' · NOT SENT', { c: C.dim, ls: 2 }) : G.ring(x, 180, 112, gp(g), { title: n, c: vc(k, gp(g)), glow: true, marks: VITAL_STEPS[k] }));
+const vbar = (y, g, n, k) => G.hbar(40, y, 772, 44, gp(g), { title: n, c: vc(k, gp(g)), n: 34, marks: VITAL_STEPS[k] });
 const VITALS = {
-  health: vt => vring(150, vt.health, 'HEALTH'),
-  oxygen: vt => vring(426, vt.oxygen, 'OXYGEN', C.cyan),
+  health: vt => vring(150, vt.health, 'HEALTH', 'health'),
+  oxygen: vt => vring(426, vt.oxygen, 'OXYGEN', 'oxygen'),
   heart: vt => (vt.heart_rate > 0 ? G.dial(702, 180, 112, vt.heart_rate, { min: 40, max: 200, step: 40, c: '#e4ebf1', unit: 'BEATS A MINUTE', title: 'HEART RATE', fmt: x => Math.round(x) }) : T(702, 180, 14, 'HEART RATE · NOT SENT', { c: C.dim, ls: 2 })),
-  needs: vt => vbar(440, vt.hunger, 'HUNGER') + vbar(548, vt.thirst, 'THIRST'),
+  needs: vt => vbar(440, vt.hunger, 'HUNGER', 'hunger') + vbar(548, vt.thirst, 'THIRST', 'thirst'),
 };
 /** Each vital on its own part of the glass; the glass says so once when the game sends none. */
 function vitals(live, p) {
@@ -412,7 +416,7 @@ function env(live) {
   if (!vt && !e) return NOT(552, 470);
   const body = vt?.body_temperature && finite(vt.body_temperature.current) ? vt.body_temperature.current : null;
   const out = e && finite(e.external_temperature) ? e.external_temperature : null;
-  return G.svg(552, 470, (body == null ? T(110, 240, 13, 'BODY · NOT SENT', { c: C.dim, ls: 2 }) : G.thermo(110, 120, 230, body, { min: 30, max: 42, step: 2, c: '#ff9a5a', title: 'BODY', dp: 1 }))
+  return G.svg(552, 470, (body == null ? T(110, 240, 13, 'BODY · NOT SENT', { c: C.dim, ls: 2 }) : G.thermo(110, 120, 230, body, { min: 30, max: 42, step: 2, c: STEP_C[bodyStep(body)], title: 'BODY', dp: 1, marks: [...BODY_STEPS.cold, ...BODY_STEPS.hot] }))
     + (out == null ? T(300, 240, 13, 'OUTSIDE · NOT SENT', { c: C.dim, ls: 2 }) : G.thermo(300, 120, 230, out, { min: -40, max: 60, step: 20, c: C.cyan, title: 'OUTSIDE', dp: 0 }))
     + (vt && finite(vt.gravity) ? mono(470, 150, 40, vt.gravity.toFixed(2), { c: C.ink }) + T(470, 186, 12, 'GRAVITY · G', { c: C.muted, ls: 3 }) : ''));
 }
@@ -662,7 +666,7 @@ export function fieldValue(f, live) {
 // ---------- your pages: game values as instruments sized to the screen you drew ----------
 const PCT = { shields: d => d.shields, hull: d => d.hull, hydrogen: d => d.h2, boost: d => d.boost?.reserves, health: (d, l) => gpf(l?.actor?.vitals?.health), oxygen: (d, l) => gpf(l?.actor?.vitals?.oxygen) };
 const gpf = g => (gp(g) == null ? null : gp(g) / 100);
-const PCT_C = { shields: C.cyan, hydrogen: C.cyan, boost: C.amber, oxygen: C.cyan };
+const PCT_C = { shields: C.cyan, hydrogen: C.cyan, boost: C.amber };
 const lvl = p => (p < 25 ? C.red : p < 50 ? C.amber : C.ok);
 /** A moving horizontal scale: the value sits under the centre mark. */
 function hTape(w, h, v, o) {
@@ -683,7 +687,7 @@ export function fieldGauge(f, live, w, h) {
   if (PCT[f]) {
     const p = pct(PCT[f](d, live));
     if (p == null) return none('NOT SENT');
-    const c = PCT_C[f] || lvl(p);
+    const c = VITAL_STEPS[f] ? vc(f, p) : PCT_C[f] || lvl(p);
     if (H >= w * 0.6) { const r = Math.min(w, H) / 2 - 22; return G.svg(w, H, G.ring(w / 2, H / 2 + 4, r, p, { title: '', c, glow: true, fs: Math.max(20, r * .5), sw: Math.max(8, r * .16) })); }
     return G.svg(w, H, G.hbar(14, Math.max(8, H / 2 - 18), w - 28, Math.min(36, H - 24), p, { title: '', c, n: Math.max(8, Math.round((w - 140) / 18)) }));
   }
