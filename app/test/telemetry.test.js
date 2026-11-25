@@ -93,3 +93,21 @@ test('decoupled: 5.0 sends coupled as neither offered nor active', () => {
   assert.equal(at({ enabled: false, active: false }), true);
   assert.equal(at(null), undefined);
 });
+
+test('vitals take a colour only past their marks', async () => {
+  const { vitalStep, bodyStep } = await import('../ui/lib/telemetry.js');
+  assert.equal(vitalStep('health', 62), '');
+  assert.equal(vitalStep('health', 49), 'caution');
+  assert.equal(vitalStep('health', 24), 'warning');
+  assert.equal(vitalStep('oxygen', 18), 'caution');
+  assert.equal(vitalStep('oxygen', 14), 'warning');
+  assert.equal(vitalStep('thirst', 8), 'warning');
+  assert.equal(vitalStep('hunger', 30), '');
+  assert.equal(vitalStep('hunger', null), '');
+  assert.equal(bodyStep(36.5), '');
+  assert.equal(bodyStep(38.9), 'caution');
+  assert.equal(bodyStep(34), 'caution');
+  assert.equal(bodyStep(40.5), 'warning');
+  assert.equal(bodyStep(31), 'warning');
+  assert.equal(bodyStep(null), '');
+});
