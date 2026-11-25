@@ -19,6 +19,7 @@ import { keepAwake } from './awake.js';
 import * as haptics from './haptics.js';
 import * as tele from './lib/telemetry.js';
 import * as tp from './telepages.js';
+import * as approach from './lib/approach.js';
 import { reportText, issueBody } from './lib/report.js';
 
 const $ = id => document.getElementById(id);
@@ -617,13 +618,26 @@ function paintGauges() {
       if (tp.isGunner(link.live)) { if (current !== 'tl-turret' && !opts.tlHidden.includes('tl-turret')) show('tl-turret'); }
       else if (current === 'tl-turret' && seat) show(rolePage || lastShip);
     }
-  } else { seatSeen = ''; tp.forget(); }
+    autoApproach(st);
+  } else { seatSeen = ''; tp.forget(); approachState = approach.idle(); approachBack = null; }
   if (on !== gaugesShown) { gaugesShown = on; paintSoftkeys(); }
   // Status screens of yours that show game values follow every update.
   if (CUSTOM.has(current)) for (const node of document.querySelectorAll('#console .custom-screen.painted')) node.paint();
   if (!tp.isTele(current)) return;
   if (!on) { show(rolePage || lastShip); return; }
   tp.paint($('console'), link.live);
+}
+// Follow game, flying from the pilot seat: Approach around the ground (lib/approach.js), then back
+// to the page you were on. A page you pick meanwhile wins until the next landing or takeoff.
+let approachState = approach.idle(), approachBack = null;
+function autoApproach(st) {
+  const d = tp.flightOf(link.live);
+  if (!d.v || st?.crew_role !== 1) { approachState = approach.idle(); approachBack = null; return; }
+  const r = approach.step(approachState, d, performance.now());
+  approachState = r.state;
+  const can = opts.auto && tp.pages(link.live).some(p => p.id === 'tl-approach');
+  if (r.act === 'open' && can && current !== 'tl-approach') { const back = current; show('tl-approach'); approachBack = back; }
+  else if (r.act === 'close') { const back = approachBack; approachBack = null; if (back && current === 'tl-approach' && opts.auto) show(back); }
 }
 /** A push-button whose state the game reports: a lamp, and the state under its label. */
 function paintLamp(node, st) {
@@ -1140,6 +1154,8 @@ function show(id, remote) {
   if (!remote && id !== current) bridge.share({ page: id });
   if (moduleOf(id)) lastShip = id;
   if (tp.isTele(id)) lastGauges = id;
+  // A page picked during an automatic approach: stay there, nothing to hand back.
+  if (id !== 'tl-approach') approachBack = null;
   const changed = id !== current;
   if (changed && (current === 'world' || id === 'world')) world.showing(id === 'world');
   current = id;
@@ -2366,5 +2382,5 @@ window.xfd = {
   },
   deletePage: id => { putPage(id, null); pageGone(id); },
   telemetry: applyTelemetry,
-  show, raise, setup: showSetup, legend: showLegend, feed: (lines, live = true) => onLog({ lines, live }), recap: t => { session = { ...NEW_TALLY, ...t }; showRecap(); }, perf: perf.toggle, showSection, bindHealth, reloadBinds, bindsProfile, reportProblem, backupProfile, paintBackups, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
+  show, current: () => current, raise, setup: showSetup, legend: showLegend, feed: (lines, live = true) => onLog({ lines, live }), recap: t => { session = { ...NEW_TALLY, ...t }; showRecap(); }, perf: perf.toggle, showSection, bindHealth, reloadBinds, bindsProfile, reportProblem, backupProfile, paintBackups, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
 document.body.dataset.ready = '1';

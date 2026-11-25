@@ -1159,6 +1159,38 @@ for (const [W, H] of [[1920, 1080], [1180, 820]]) {
   await ctx.close();
 }
 
+// Follow game, pilot seat: Approach opens at takeoff and hands the page back once clear of the
+// ground; a page picked in between stays.
+{
+  const P = JSON.parse(await readFile(join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'telemetry-prospector.json'), 'utf8'));
+  const ctx = await browser.newContext({ viewport: { width: 2560, height: 720 } });
+  const pg = await ctx.newPage();
+  pg.on('pageerror', e => errors.push('auto Approach: ' + e.message));
+  await pg.route(/fleetyards|fltyrd/, r => r.abort());
+  await pg.goto(base + '?demo=ship');
+  await pg.waitForSelector('body[data-ready]');
+  await pg.evaluate(() => window.xfd.feed(["CVehicleMovementBase::SetDriver: Local client node [1] granted control token for 'MISC_Prospector_877602860529' [877602860529]"]));
+  const at = (landed, gear, ralt, vsi) => { const u = structuredClone(P); Object.assign(u.live.vehicle.flight.state, { is_landed: landed, gear }); Object.assign(u.live.vehicle.flight.instruments, { radar_altitude: ralt, vertical_speed_indicator: vsi }); return u; };
+  const send = (u, n = 1) => pg.evaluate(([u, n]) => { for (let i = 0; i < n; i++) window.xfd.telemetry(u); }, [u, n]);
+  await send(at(true, 3, 4.4, 0.001));
+  const start = await pg.evaluate(() => window.xfd.current());
+  await send(at(false, 3, 25, 6));
+  const up = await pg.evaluate(() => window.xfd.current());
+  await send(at(false, 1, 600, 4));
+  await pg.waitForTimeout(5300);
+  await send(at(false, 1, 620, 2));
+  const back = await pg.evaluate(() => window.xfd.current());
+  if (up !== 'tl-approach' || back !== start) problems.push(`auto Approach: takeoff went ${start} → ${up} → ${back}`);
+  // Coming in to land, then picking Systems: Systems stays after touchdown.
+  await send(at(false, 1, 350, -6)); await send(at(false, 2, 250, -6));
+  const down = await pg.evaluate(() => window.xfd.current());
+  await pg.evaluate(() => window.xfd.show('tl-systems'));
+  await send(at(true, 3, 4.4, 0)); await pg.waitForTimeout(5300); await send(at(true, 3, 4.4, 0));
+  const kept = await pg.evaluate(() => window.xfd.current());
+  if (down !== 'tl-approach' || kept !== 'tl-systems') problems.push(`auto Approach: landing went ${down}, then a picked page became ${kept}`);
+  await ctx.close();
+}
+
 // The Ship page's 3D model loads under the app's own content policy (the one Tauri serves), says
 // what went wrong when it can't, asks FleetYards once rather than on every telemetry update, and
 // loads after Retry.
