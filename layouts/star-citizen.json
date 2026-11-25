@@ -3554,7 +3554,7 @@
     },
     {
      "id": "world",
-     "name": "World",
+     "name": "Verse",
      "theme": {
       "accent": "#9fb4ff",
       "code": "NAV",

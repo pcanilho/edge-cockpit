@@ -383,7 +383,7 @@ test('patch watch: lines every session logs, and boarding once ship keys go out'
   assert.deepEqual(missingLines(w(lines.map(e => e.type), 1, 50), 1e9), []);
 });
 
-// ---------- World page ----------
+// ---------- Verse page ----------
 import * as W from '../ui/lib/world.js';
 const MARKET = JSON.parse(readFileSync(new URL('./fixtures/world-market.json', import.meta.url), 'utf8'));
 const MIN = 60_000;

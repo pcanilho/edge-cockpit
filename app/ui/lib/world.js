@@ -1,4 +1,4 @@
-// The World page's sums: the executive hangar cycle, your own timers and the commodity rows.
+// The Verse page's sums: the executive hangar cycle, your own timers and the commodity rows.
 // Nothing here guesses: the hangar shows times only after you sync it on the current game
 // build, and every price carries the age of its report.
 
