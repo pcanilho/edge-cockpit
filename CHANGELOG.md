@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Vitals in steps, not a gradient.** Health, oxygen, hunger and thirst are grey while fine, amber past the first mark and red past the second, with the marks beside each scale: health 50 / 25 %, oxygen 40 / 15 %, hunger and thirst 30 / 10 %. Body temperature turns amber under 35 °C or over 38.5 °C, red under 32 °C or over 40 °C. On the status card, the Suit page, the phone Suit tabs and page-builder tiles. The game publishes no thresholds, so these are ours.
+
 ## 0.11.4
 
 - The Gauges softkey is now **Telemetry**, and Settings > Game link > Gauge pages is **Telemetry pages**.
