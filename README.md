@@ -32,13 +32,13 @@ It starts with Windows, wakes when Star Citizen starts and goes dark when you qu
 - **Downed**: revive request.
 - **MFD & assists**: MFD screens, light amplification, auto precision, wind compensation, Self repair all.
 - **Log**: this session's stats, who downed you, region and shard, last jump, refinery jobs, a timeline, and past sessions from the game's log backups.
-- **World**: executive hangar cycle (you sync it; hidden after a patch until you sync again), keycard printer and Ruin vault door timers, RSI server status, and the market where you are: buy and sell here, nearby, or find any commodity. Prices and stock are player reports from [UEX](https://uexcorp.space), each with its age. If the page doesn't know where you are, **Locate** (on foot) opens your inventory for a moment so `Game.log` names the place.
+- **Verse**: executive hangar cycle (you sync it; hidden after a patch until you sync again), keycard printer and Ruin vault door timers, RSI server status, and the market where you are: buy and sell here, nearby, or find any commodity. Prices and stock are player reports from [UEX](https://uexcorp.space), each with its age. If the page doesn't know where you are, **Locate** (on foot) opens your inventory for a moment so `Game.log` names the place.
 
 | | |
 | --- | --- |
 | ![Mining](docs/panel-mining.png) | ![On foot](docs/panel-onfoot.png) |
 | ![Armistice](docs/panel-armistice.png) | ![Red alert](docs/panel-alert.png) |
-| ![Log](docs/panel-log.png) | ![World](docs/panel-world.png) |
+| ![Log](docs/panel-log.png) | ![Verse](docs/panel-world.png) |
 | ![Page editor](docs/panel-editor.png) | ![Telemetry pages](docs/panel-gauges.png) |
 
 | Control | How it works |
@@ -77,7 +77,7 @@ What the game doesn't send (door state, port locks, flashlight, the gun group) s
 
 If a patch changes the log lines it reads, an amber **Log lines missing** chip says so, with a button to report it.
 
-Nothing is sent about you. Network calls: FleetYards for ship images (once per ship) and, on the Telemetry Ship page, its 3D model and paints (kept in the app's cache), the Star Citizen Wiki for the stats of guns the game names (every 12 h), GitHub for updates, and while the World page is open, UEX for prices (every 30 min) and RSI's status page (every 5 min).
+Nothing is sent about you. Network calls: FleetYards for ship images (once per ship) and, on the Telemetry Ship page, its 3D model and paints (kept in the app's cache), the Star Citizen Wiki for the stats of guns the game names (every 12 h), GitHub for updates, and while the Verse page is open, UEX for prices (every 30 min) and RSI's status page (every 5 min).
 
 ## If keys do nothing
 

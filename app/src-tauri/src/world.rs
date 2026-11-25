@@ -1,4 +1,4 @@
-// The World page's data from the web: commodity prices that players report to UEX
+// The Verse page's data from the web: commodity prices that players report to UEX
 // (uexcorp.space) and the server status on RSI's status page. Fetched only while the
 // page is open, at most every 30 minutes for prices and 5 for the status, and cut down
 // here so the console gets a few kilobytes, not megabytes.

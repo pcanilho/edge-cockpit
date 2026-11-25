@@ -91,7 +91,7 @@ async function checkLabels(where, sheet = false, pg = page) {
   for (const f of new Set(found)) problems.push(`${where}: ${f}`);
 }
 
-// The World page's prices and server status, as the app's Rust side hands them over.
+// The Verse page's prices and server status, as the app's Rust side hands them over.
 // Wrapped text keeps the console whole: no text over other text, none out of its button or
 // screen, and no word split across lines. Runs in the page, on the Edge and on devices.
 const TEXT_CHECK = () => {
@@ -262,7 +262,7 @@ for (const id of ['mining', 'cargo', 'salvage']) {
   if (pct) problems.push(`${id} shows a percentage the game never reported`);
 }
 
-// World: every view of the market fits; the hangar shows no time until synced, then the right lights;
+// Verse: every view of the market fits; the hangar shows no time until synced, then the right lights;
 // a timer starts with a tap. Nothing animates while it shows.
 {
   const at = new Date().toISOString();

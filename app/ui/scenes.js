@@ -253,10 +253,10 @@ function logPage() {
   add(list, screen(24, 46, 1018, 96, stats, 'stats'), screen(24, 154, 1018, 526, '<ol id="lg-list"></ol>', 'list'))];
 }
 
-// ================= world =================
+// ================= verse =================
 /** Executive hangars, your timers and servers on one plate; the commodity market where you are on the other. The content is painted by world.js. */
 function worldPage() {
-  const a = plate(382, 1100, 'World', { cls: 'worldp' });
+  const a = plate(382, 1100, 'Verse', { cls: 'worldp' });
   const named = (el, id) => { el.id = id; return el; };
   add(a, named(screen(24, 46, 1052, 334, '', 'card xh'), 'wd-xh'), named(screen(24, 392, 640, 292, '', 'tm-wrap'), 'wd-tm'), named(screen(676, 392, 400, 292, '', 'sv'), 'wd-sv'));
   const b = plate(1488, 1066, 'Commodities', { cls: 'worldp' });

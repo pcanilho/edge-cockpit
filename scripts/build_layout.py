@@ -366,8 +366,8 @@ EVENT_PAGES = {
         ('Map', ['Local map', 'Go to selection', 'Step back', 'Plan route', 'Clear route', 'Starmap', 'QT actions', 'Advanced HUD']),
         ('Comms & screens', ['Reply 1', 'Reply 2', 'Reply 3', 'Reply 4', 'Scoreboard', 'Scan tab ▶', 'Contact ▼', 'MFD ▶']),
     ]},
-    # The World page shows timers, servers and the market; its keys are the Log page's.
-    'world': {'name': 'World', 'glyph': 'globe', 'tab': 'map', 'rows': [
+    # The Verse page shows timers, servers and the market; its keys are the Log page's.
+    'world': {'name': 'Verse', 'glyph': 'globe', 'tab': 'map', 'rows': [
         ('Map', ['Local map', 'Go to selection', 'Step back', 'Plan route', 'Clear route', 'Starmap', 'QT actions', 'Advanced HUD']),
         ('Comms & screens', ['Reply 1', 'Reply 2', 'Reply 3', 'Reply 4', 'Scoreboard', 'Scan tab ▶', 'Contact ▼', 'MFD ▶']),
     ]},
