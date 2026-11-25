@@ -3970,6 +3970,423 @@
      ]
     },
     {
+     "id": "chart",
+     "name": "System chart",
+     "theme": {
+      "accent": "#9fb4ff",
+      "code": "NAV",
+      "glyph": "map"
+     },
+     "profile": "main",
+     "tab": "map",
+     "event": true,
+     "groups": [
+      {
+       "label": "Map",
+       "row": 0,
+       "col": 0,
+       "w": 8,
+       "h": 1
+      },
+      {
+       "label": "Comms & screens",
+       "row": 1,
+       "col": 0,
+       "w": 8,
+       "h": 1
+      },
+      {
+       "label": "Flight",
+       "row": 2,
+       "col": 0,
+       "w": 4,
+       "h": 1
+      },
+      {
+       "label": "Panic",
+       "row": 2,
+       "col": 4,
+       "w": 4,
+       "h": 1
+      }
+     ],
+     "rows": [
+      [
+       {
+        "label": "Local map",
+        "action": "mapui_action_goto_localmap",
+        "actionmap": "mapui",
+        "defaultKey": "1",
+        "activation": "",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "map",
+        "role": "menu",
+        "more": {
+         "hold": {
+          "label": "My location",
+          "action": "mapui_action_mylocation",
+          "actionmap": "mapui",
+          "defaultKey": "2",
+          "activation": "",
+          "press": "tap",
+          "needsKeyboardBind": false,
+          "icon": "locate",
+          "role": "menu"
+         }
+        }
+       },
+       {
+        "label": "Go to selection",
+        "action": "mapui_action_goto_selection",
+        "actionmap": "mapui",
+        "defaultKey": "3",
+        "activation": "",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "pin",
+        "role": "menu"
+       },
+       {
+        "label": "Step back",
+        "action": "mapui_action_step_back",
+        "actionmap": "mapui",
+        "defaultKey": "4",
+        "activation": "",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "back",
+        "role": "menu"
+       },
+       {
+        "label": "Plan route",
+        "action": "mapui_action_planroute",
+        "actionmap": "mapui",
+        "defaultKey": "r",
+        "activation": "",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "route",
+        "role": "menu"
+       },
+       {
+        "label": "Clear route",
+        "action": "mapui_action_clearroute",
+        "actionmap": "mapui",
+        "defaultKey": "c",
+        "activation": "",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "x",
+        "role": "menu"
+       },
+       {
+        "label": "Starmap",
+        "action": "v_starmap",
+        "actionmap": "spaceship_hud",
+        "defaultKey": "f2",
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "compass",
+        "role": "menu"
+       },
+       {
+        "label": "QT actions",
+        "action": "mapui_action_toggleQTActions",
+        "actionmap": "mapui",
+        "defaultKey": "lshift",
+        "activation": "hold",
+        "press": "hold",
+        "needsKeyboardBind": false,
+        "icon": "quantum",
+        "role": "hold"
+       },
+       {
+        "label": "Advanced HUD",
+        "action": "v_flight_advanced_hud_toggle",
+        "actionmap": "spaceship_movement",
+        "defaultKey": null,
+        "activation": "tap",
+        "press": "tap",
+        "needsKeyboardBind": true,
+        "icon": "layers",
+        "state": {
+         "key": "advhud",
+         "kind": "toggle",
+         "labels": [
+          "ON",
+          "OFF"
+         ]
+        },
+        "role": "toggle"
+       }
+      ],
+      [
+       {
+        "label": "Reply 1",
+        "action": "pc_conversation_option1",
+        "actionmap": "spaceship_general",
+        "defaultKey": "1",
+        "activation": "all",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "chat",
+        "role": "menu"
+       },
+       {
+        "label": "Reply 2",
+        "action": "pc_conversation_option2",
+        "actionmap": "spaceship_general",
+        "defaultKey": "2",
+        "activation": "all",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "chat",
+        "role": "menu"
+       },
+       {
+        "label": "Reply 3",
+        "action": "pc_conversation_option3",
+        "actionmap": "spaceship_general",
+        "defaultKey": "3",
+        "activation": "all",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "chat",
+        "role": "menu"
+       },
+       {
+        "label": "Reply 4",
+        "action": "pc_conversation_option4",
+        "actionmap": "spaceship_general",
+        "defaultKey": "4",
+        "activation": "all",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "chat",
+        "role": "menu",
+        "more": {
+         "hold": {
+          "label": "Reply 5",
+          "action": "pc_conversation_option5",
+          "actionmap": "spaceship_general",
+          "defaultKey": "5",
+          "activation": "all",
+          "press": "tap",
+          "needsKeyboardBind": false,
+          "icon": "chat",
+          "role": "menu"
+         }
+        }
+       },
+       {
+        "label": "Scoreboard",
+        "action": "v_hud_open_scoreboard",
+        "actionmap": "spaceship_hud",
+        "defaultKey": "f1",
+        "activation": "all",
+        "press": "hold",
+        "needsKeyboardBind": false,
+        "icon": "list",
+        "role": "hold"
+       },
+       {
+        "label": "Scan tab ▶",
+        "action": "v_ui_next_scan_tab",
+        "actionmap": "spaceship_scanning",
+        "defaultKey": "right",
+        "activation": "tap",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "right",
+        "role": "menu",
+        "more": {
+         "hold": {
+          "label": "Scan tab ◀",
+          "action": "v_ui_prev_scan_tab",
+          "actionmap": "spaceship_scanning",
+          "defaultKey": "left",
+          "activation": "tap",
+          "press": "tap",
+          "needsKeyboardBind": false,
+          "icon": "left",
+          "role": "menu"
+         }
+        }
+       },
+       {
+        "label": "Contact ▼",
+        "action": "v_ui_next_contact",
+        "actionmap": "spaceship_scanning",
+        "defaultKey": "rctrl+down",
+        "activation": "tap",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "down",
+        "role": "menu",
+        "more": {
+         "hold": {
+          "label": "Contact ▲",
+          "action": "v_ui_prev_contact",
+          "actionmap": "spaceship_scanning",
+          "defaultKey": "rctrl+up",
+          "activation": "tap",
+          "press": "tap",
+          "needsKeyboardBind": false,
+          "icon": "up",
+          "role": "menu"
+         }
+        }
+       },
+       {
+        "label": "MFD ▶",
+        "action": "v_mfd_interact_cycle_forwards_short",
+        "actionmap": "vehicle_mfd",
+        "defaultKey": "lalt+e",
+        "activation": "tap",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "right",
+        "role": "menu",
+        "more": {
+         "hold": {
+          "label": "MFD ◀",
+          "action": "v_mfd_interact_cycle_backwards_short",
+          "actionmap": "vehicle_mfd",
+          "defaultKey": "lalt+q",
+          "activation": "tap",
+          "press": "tap",
+          "needsKeyboardBind": false,
+          "icon": "left",
+          "role": "menu"
+         }
+        }
+       }
+      ],
+      [
+       {
+        "label": "Flight ready",
+        "action": "v_flightready",
+        "actionmap": "spaceship_general",
+        "defaultKey": "ralt+r",
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "ready",
+        "role": "action"
+       },
+       {
+        "label": "Landing gear",
+        "action": "v_toggle_landing_system",
+        "actionmap": "spaceship_movement",
+        "defaultKey": "n",
+        "activation": "tap",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "gear",
+        "state": {
+         "key": "gear",
+         "kind": "toggle",
+         "labels": [
+          "DOWN",
+          "UP"
+         ]
+        },
+        "role": "toggle"
+       },
+       {
+        "label": "Quantum",
+        "action": "v_toggle_qdrive_engagement",
+        "actionmap": "spaceship_quantum",
+        "defaultKey": null,
+        "activation": "delayed_press",
+        "press": "hold",
+        "needsKeyboardBind": true,
+        "icon": "quantum",
+        "anim": "spool",
+        "role": "hold"
+       },
+       {
+        "label": "Decoupled",
+        "action": "v_ifcs_vector_decoupling_toggle",
+        "actionmap": "spaceship_movement",
+        "defaultKey": "c",
+        "activation": "tap",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "split",
+        "state": {
+         "key": "decoupled",
+         "kind": "toggle",
+         "labels": [
+          "DECOUPLED",
+          "COUPLED"
+         ]
+        },
+        "role": "toggle"
+       },
+       {
+        "label": "Space brake",
+        "action": "v_space_brake",
+        "actionmap": "spaceship_movement",
+        "defaultKey": "x",
+        "activation": "",
+        "press": "hold",
+        "needsKeyboardBind": false,
+        "icon": "stop",
+        "role": "hold"
+       },
+       {
+        "label": "Decoy",
+        "action": "v_weapon_countermeasure_decoy_launch",
+        "actionmap": "spaceship_defensive",
+        "defaultKey": "h",
+        "activation": "",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "flare",
+        "role": "action",
+        "more": {
+         "hold": {
+          "label": "Panic decoy",
+          "action": "v_weapon_countermeasure_decoy_launch_panic",
+          "actionmap": "spaceship_defensive",
+          "defaultKey": null,
+          "activation": "press",
+          "press": "tap",
+          "needsKeyboardBind": true,
+          "icon": "flare",
+          "role": "action"
+         }
+        }
+       },
+       {
+        "label": "Noise",
+        "action": "v_weapon_countermeasure_noise_launch",
+        "actionmap": "spaceship_defensive",
+        "defaultKey": "j",
+        "activation": "press",
+        "press": "tap",
+        "needsKeyboardBind": false,
+        "icon": "noise",
+        "role": "action"
+       },
+       {
+        "label": "Eject",
+        "action": "v_eject",
+        "actionmap": "seat_general",
+        "defaultKey": "ralt+y",
+        "activation": "press",
+        "press": "danger",
+        "needsKeyboardBind": false,
+        "icon": "eject",
+        "role": "critical"
+       }
+      ]
+     ]
+    },
+    {
      "id": "emotes",
      "name": "Emotes",
      "theme": {

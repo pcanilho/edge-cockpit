@@ -223,7 +223,7 @@ function paintFind(body, foot, sys, now) {
     }).join('') : `<li class="empty">${empty}</li>`;
     body.innerHTML = `<div class="cm-at"><b>${esc(cm.pick)}</b><span>${esc(sys)} · ${esc(market.kinds?.[cm.pick] || '')}</span></div>
       <div class="wt"><div><small>Cheapest to buy</small><ol>${list(t.buy, 'Nobody sells it here this week')}</ol></div><div><small>Best price to sell</small><ol>${list(t.sell, 'Nobody buys it here this week')}</ol></div></div>`;
-    foot.innerHTML = '<div class="lab">aUEC per SCU, best report per place this week.<br>Older than 2 days in grey.</div><button class="wbtn" data-back="1">All commodities</button>';
+    foot.innerHTML = '<div class="lab">aUEC per SCU, best report per place this week.<br>Older than 2 days in grey.</div><button class="wbtn" data-chart="1">Show on chart</button><button class="wbtn" data-back="1">All commodities</button>';
     return;
   }
   const names = W.findList(market, sys, { chip: cm.chip, letter: cm.letter });
@@ -248,6 +248,7 @@ function marketTap(e) {
   else if (d.chip !== undefined) { cm = { ...cm, chip: d.chip || null, letter: null, page: 0 }; }
   else if (d.l) { cm = { ...cm, letter: cm.letter === d.l ? null : d.l, page: 0 }; }
   else if (d.back) { cm.pick = null; }
+  else if (d.chart) { K.showOnChart?.(cm.pick); return; }
   else if (d.inv) { locate(b); return; }
   else if (d.c) { if (cm.mode !== 'find') cm = { ...cm, mode: 'find', sys: where().sys }; cm.pick = d.c; }
   else return;

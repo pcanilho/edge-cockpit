@@ -126,8 +126,9 @@ const TEXT_CHECK = () => {
   };
 };
 const MARKET = JSON.parse(await readFile(join(UI, '..', 'test', 'fixtures', 'world-market.json'), 'utf8'));
+const CHART = JSON.parse(await readFile(join(UI, '..', 'test', 'fixtures', 'world-chart.json'), 'utf8'));
 await page.addInitScript(TEXT_CHECK);
-await page.addInitScript(m => { window.xfdTestWorld = { prices: m, status: { fetched: Date.now(), summary: 'disrupted', services: [{ name: 'Platform', status: 'operational' }, { name: 'Persistent Universe', status: 'disrupted' }, { name: 'Arena Commander', status: 'operational' }] } }; }, MARKET);
+await page.addInitScript(([m, c]) => { window.xfdTestWorld = { chart: c, prices: m, status: { fetched: Date.now(), summary: 'disrupted', services: [{ name: 'Platform', status: 'operational' }, { name: 'Persistent Universe', status: 'disrupted' }, { name: 'Arena Commander', status: 'operational' }] } }; }, [MARKET, CHART]);
 
 // Every page, then each mood of the demo.
 await page.goto(base + '?demo=ship');
@@ -300,6 +301,39 @@ for (const id of ['mining', 'cargo', 'salvage']) {
   if (await page.evaluate(() => window.__raf) !== raf0) problems.push('world: asks for animation frames while idle');
   if (shots) await page.screenshot({ path: join(shots, 'world-synced.png') });
   await page.evaluate(() => { for (const k of ['xfd-world-hangar', 'xfd-world-timers']) localStorage.removeItem(k); window.xfd.show('mining'); });
+}
+
+// System chart: the Map softkey again opens it; it draws on opening and never while idle, marks only
+// the place Game.log named, lights a commodity Verse sends it, and gives its graphics back when closed.
+{
+  await page.evaluate(() => window.xfd.show('map'));
+  await page.click('#softkeys .well:has-text("Map")');
+  await page.waitForTimeout(800);
+  if (await page.evaluate(() => window.xfd.current()) !== 'chart') problems.push('chart: Map again does not open the chart');
+  const s = await page.evaluate(() => window.xfd.chart());
+  if (!s.view || !(await page.$('#sc-host canvas'))) problems.push('chart: no 3D view');
+  if (s.where?.body !== 'ArcCorp' || s.where?.place !== 'Area 18') problems.push(`chart: the marker is not Area 18 on ArcCorp: ${JSON.stringify(s.where)}`);
+  if (!(await page.$eval('#sc-card', e => e.textContent)).includes('Area 18')) problems.push('chart: the card does not say Area 18');
+  await checkLabels('chart');
+  const raf0 = await page.evaluate(() => window.__raf);
+  await page.waitForTimeout(1500);
+  if (await page.evaluate(() => window.__raf) !== raf0) problems.push('chart: asks for animation frames while idle');
+  if (shots) await page.screenshot({ path: join(shots, 'chart.png') });
+  // A tap on a body picks it; Verse's Show on chart lights where a commodity sells.
+  const you = await page.$eval('.sc-l.you', e => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top - 36 }; });
+  await page.mouse.click(you.x, you.y);
+  await page.waitForTimeout(300);
+  if (await page.evaluate(() => window.xfd.chart().pick) !== 'ArcCorp') problems.push(`chart: a tap on ArcCorp picked ${await page.evaluate(() => window.xfd.chart().pick)}`);
+  await checkLabels('chart picked');
+  await page.evaluate(() => window.xfd.chartGoods('Gold'));
+  await page.waitForTimeout(300);
+  const gold = await page.$eval('#sc-card', e => e.textContent);
+  if (!gold.includes('Gold') || !gold.includes('Sells for 31,000')) problems.push(`chart: Gold on the chart reads ${gold.slice(0, 120)}`);
+  await checkLabels('chart gold');
+  if (shots) await page.screenshot({ path: join(shots, 'chart-gold.png') });
+  await page.click('#sc-card [data-clear]');
+  await page.evaluate(() => window.xfd.show('mining'));
+  if (await page.evaluate(() => window.xfd.chart().view) || await page.$('canvas.sc-canvas')) problems.push('chart: the 3D view stays after leaving the page');
 }
 
 // A rearranged console: plates in reverse order still fit, labels and all.
@@ -596,7 +630,7 @@ for (const [W, H, tag] of [[393, 852, 'portrait'], [852, 393, 'landscape']]) {
   const ph = await ctx.newPage();
   ph.on('pageerror', e => errors.push(`phone ${tag}: ${e.message}`));
   await ph.addInitScript(TEXT_CHECK);
-  await ph.addInitScript(m => { window.xfdTestWorld = { prices: m, status: { fetched: Date.now(), summary: 'ok', services: [] } }; }, MARKET);
+  await ph.addInitScript(([m, c]) => { window.xfdTestWorld = { chart: c, prices: m, status: { fetched: Date.now(), summary: 'ok', services: [] } }; }, [MARKET, CHART]);
   await ph.route(/fleetyards|fltyrd/, r => r.abort());
   await ph.goto(base + '?phone&demo=ship');
   await ph.waitForSelector('body[data-ready]');

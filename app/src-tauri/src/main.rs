@@ -949,6 +949,13 @@ async fn world_prices(handle: AppHandle, app: State<'_, App>) -> Result<world::M
     world::prices(&app.world, file).await
 }
 
+/// The Map page chart's bodies and places, fetched once a week and kept for offline use.
+#[tauri::command]
+async fn world_chart(handle: AppHandle, app: State<'_, App>) -> Result<world::Chart, String> {
+    let file = handle.path().app_local_data_dir().ok().map(|d| d.join("world-chart.json"));
+    world::chart_data(&app.world, file).await
+}
+
 /// RSI's server status for the Verse page, at most every 5 minutes.
 #[tauri::command]
 async fn world_status(app: State<'_, App>) -> Result<world::Status, String> {
@@ -1374,6 +1381,7 @@ impl phone::Host for PhoneHost {
                 "get_prefs" => to_value(get_prefs(h.clone(), app)).map_err(|e| e.to_string()),
                 "world_prices" => to_value(world_prices(h.clone(), app).await?).map_err(|e| e.to_string()),
                 "world_status" => to_value(world_status(app).await?).map_err(|e| e.to_string()),
+                "world_chart" => to_value(world_chart(h.clone(), app).await?).map_err(|e| e.to_string()),
                 "wake_screen" => {
                     let h2 = h.clone();
                     let _ = h.run_on_main_thread(move || wake(&h2));
@@ -1451,7 +1459,7 @@ fn main() {
             key, wheel, ui_ready, user_ships, past_logs, release_keys, game_info, read_binds, install_binds, run_as_admin, quit,
             save_profile, load_profile, save_user_ships, install_profile_binds, binds_backups, read_binds_backup, dismiss_binds_loss, save_page, page_files,
             get_prefs, set_pref, wake_screen, sleep_screen, check_update, install_update, perf,
-            displays, set_display, fix_touch, refit, identify_screens, night_backlight, report_issue, report_info, save_report, world_prices, world_status,
+            displays, set_display, fix_touch, refit, identify_screens, night_backlight, report_issue, report_info, save_report, world_prices, world_status, world_chart,
             phones_view, phones_enable, phones_set, phones_forget, share,
             telemetry_now, game_action, telemetry_setup, telemetry_enable, telemetry_record
         ])

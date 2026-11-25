@@ -14,6 +14,7 @@ import * as arrange from './arrange.js';
 import * as editor from './editor.js';
 import * as perf from './perf.js';
 import * as world from './world.js';
+import * as chart from './starchart.js';
 import * as phone from './phone.js';
 import { keepAwake } from './awake.js';
 import * as haptics from './haptics.js';
@@ -823,7 +824,7 @@ const family = k => !k ? 'sys' : k.role === 'critical' || /eject|self_destruct|p
 const theme = page => page.theme || pageById(layout, page.role?.tab || page.tab || 'flight')?.theme || { accent: '#5cc8e6', glyph: 'ship' };
 // The Log page's rows, newest first, and the server-lag chip's last stall.
 const LOG_MAX = 50, LAG_MS = 45000;
-let logRows = [], lagSeen = null, lagTimer = null, liveLog = false;
+let logRows = [], lagSeen = null, lagTimer = null, liveLog = false, chartFix = null, lastMap = 'map';
 let current = 'flight', rolePage = null, lastShip = 'flight', pageAccent = '#5cc8e6', makerAccent = null;
 const applyAccent = () => stage.style.setProperty('--accent', makerAccent || pageAccent);
 
@@ -1146,6 +1147,7 @@ function render() {
   paintQuantum();
   paintLog();
   world.paint();
+  chart.showing(current === 'chart');
   if (tp.isTele(current)) paintGauges();
   paintSoftkeys();
   // A phone folds the plates as painted.
@@ -1157,6 +1159,7 @@ function show(id, remote) {
   if (!remote && id !== current) bridge.share({ page: id });
   if (moduleOf(id)) lastShip = id;
   if (tp.isTele(id)) lastGauges = id;
+  if (id === 'map' || id === 'chart') lastMap = id;
   // A page picked during an automatic approach: stay there, nothing to hand back.
   if (id !== 'tl-approach') approachBack = null;
   const changed = id !== current;
@@ -1169,7 +1172,8 @@ function show(id, remote) {
 const SOFT = [
   { label: 'Ship', icon: 'ship', go: () => rolePage || lastShip, is: id => !!moduleOf(id) },
   { label: 'On foot', icon: 'helmet', go: () => 'onfoot', is: id => id === 'onfoot' || id === 'emotes' },
-  { label: 'Map', icon: 'map', go: () => 'map', is: id => id === 'map' },
+  // Again on the Map page, the Map softkey opens the system chart, and back.
+  { label: 'Map', icon: 'map', go: () => current === 'map' ? 'chart' : current === 'chart' ? 'map' : lastMap, is: id => id === 'map' || id === 'chart' },
   { label: 'Downed', icon: 'medical', go: () => 'downed', is: id => id === 'downed' },
   { label: 'Log', icon: 'list', go: () => 'log', is: id => id === 'log' },
   { label: 'Verse', icon: 'globe', go: () => 'world', is: id => id === 'world' },
@@ -2029,12 +2033,13 @@ function onLog({ lines, live, reset }) {
   if (reset) recent = [];
   recent = recent.concat(lines).slice(-RECENT_MAX);
   // A new Game.log means a new channel or a restart: its binds may differ too.
-  if (reset) { past = null; placeSeen = { at: 0, moved: false }; game = { ...EMPTY }; session = { ...NEW_TALLY }; lastSeq = 0; logRows = []; watch = newWatch(); if (bridge.inApp) { reloadBinds(); loadUserShips(); } }
+  if (reset) { past = null; placeSeen = { at: 0, moved: false }; chartFix = null; game = { ...EMPTY }; session = { ...NEW_TALLY }; lastSeq = 0; logRows = []; watch = newWatch(); if (bridge.inApp) { reloadBinds(); loadUserShips(); } }
   for (const line of lines) {
     const ev = parseLine(line);
     const was = game;
     if (ev && (ev.type === 'qt-arrived' || ev.type === 'jump') && placeSeen.at) placeSeen.moved = true;
     if (ev) { game = reduce(game, ev);
+      chartFix = fixFor(chartFix, ev, was, game, line);
       if (ev.type === 'lift' && ev.place) placeSeen = { at: Date.parse(stamp(line) || '') || Date.now(), moved: false, id: ev.place, sys: game.system };
       if (ev.type === 'location' && game.location === ev.place && (!game.me || ev.who === game.me.name)) placeSeen = { at: Date.parse(stamp(line) || '') || Date.now(), moved: false, id: ev.place, sys: game.system }; watch.kinds.add(ev.type); if (ev.type === 'loaded') watch.loadedAt = (live ? 0 : Date.parse(stamp(line) || '')) || Date.now(); }
     session = tally(session, was, game, stamp(line));
@@ -2050,8 +2055,24 @@ function onLog({ lines, live, reset }) {
   paintStatus();
   paintChannel();
   world.onLog();
+  chart.onLog();
 }
 bridge.onGameLog(onLog);
+
+/** The system chart's marker: the last place Game.log named in this system, how, when, and the route there. */
+function fixFor(fix, ev, was, now, line) {
+  const at = Date.parse(stamp(line) || '') || Date.now(), sys = now.system;
+  // A route stays with the place it led to.
+  if (ev.type === 'qt-route' && now.qtRoute) return { ...(fix || {}), pending: { from: now.qtRoute.from, to: now.qtRoute.to } };
+  if (ev.type === 'qt-arrived' && now.qtArrived && now !== was)
+    return { id: now.qtArrived, how: 'arrived', at, sys, route: fix?.pending?.to === now.qtArrived ? fix.pending : null };
+  if (ev.type === 'location' && now.location === ev.place && (!now.me || ev.who === now.me.name)) return { id: ev.place, how: 'inventory', at, sys };
+  // Only the lift of your own hangar call: lifts in other hangars log too.
+  if (ev.type === 'lift' && ev.place && now !== was) return { id: ev.place, how: 'hangar', at, sys };
+  // Another system, or back at the menu: nothing known about where you are in it.
+  if ((ev.type === 'jump' || ev.type === 'session') && fix) return null;
+  return fix;
+}
 
 let info = { running: false, focused: false, elevated: false, channel: null };
 function paintChannel() {
@@ -2333,7 +2354,8 @@ editor.init({
   },
   remove: id => window.xfd.deletePage(id),
 });
-world.init({ fire, keyHint: k => bindOf(k), game: () => game, location: () => ({ id: placeSeen.id || game.location, ...placeSeen }), store, bridge, raise, tick, hhmm, current: () => current, painted: els => { if (onPhone) phone.repainted(els); } });
+chart.init({ game: () => game, fix: () => chartFix, bridge, current: () => current });
+world.init({ showOnChart: name => { chart.show(name); show('chart'); }, fire, keyHint: k => bindOf(k), game: () => game, location: () => ({ id: placeSeen.id || game.location, ...placeSeen }), store, bridge, raise, tick, hhmm, current: () => current, painted: els => { if (onPhone) phone.repainted(els); } });
 perf.init({ hold: document.querySelector('#mfd .brand'), parent: $('mfd'), perf: bridge.perf, tick });
 bridge.onKeySent(perf.keySent);
 const prefs = await bridge.getPrefs().catch(() => ({ autostart: false, screen_off: false, backlight: null, version: '' }));
@@ -2385,5 +2407,5 @@ window.xfd = {
   },
   deletePage: id => { putPage(id, null); pageGone(id); },
   telemetry: applyTelemetry,
-  show, current: () => current, raise, setup: showSetup, legend: showLegend, feed: (lines, live = true) => onLog({ lines, live }), recap: t => { session = { ...NEW_TALLY, ...t }; showRecap(); }, perf: perf.toggle, showSection, bindHealth, reloadBinds, bindsProfile, reportProblem, backupProfile, paintBackups, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id) };
+  show, current: () => current, raise, setup: showSetup, legend: showLegend, feed: (lines, live = true) => onLog({ lines, live }), recap: t => { session = { ...NEW_TALLY, ...t }; showRecap(); }, perf: perf.toggle, showSection, bindHealth, reloadBinds, bindsProfile, reportProblem, backupProfile, paintBackups, pages: () => layout.decks.find(d => d.id === 'main').pages.map(p => p.id), chart: chart.state, chartGoods: name => { chart.show(name); show('chart'); } };
 document.body.dataset.ready = '1';

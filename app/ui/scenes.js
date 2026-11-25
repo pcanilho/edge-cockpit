@@ -367,9 +367,21 @@ function emotes() {
   return [a, b];
 }
 
+/** The Map softkey's two pages: the map keys and the system chart, with arrows between them. */
+function mapPager(i) {
+  const el = h(`<div class="pager"><button class="pg prev" aria-label="Map keys">${icon('left', 18)}</button>
+    <span><b>${i + 1}</b> / 2</span><button class="pg next" aria-label="System chart">${icon('right', 18)}</button></div>`);
+  for (const b of el.querySelectorAll('.pg')) {
+    pressable(b, { up: () => K.go(i ? 'map' : 'chart') });
+    b.addEventListener('pointerdown', e => e.stopPropagation());
+  }
+  return el;
+}
+
 function mapPage() {
   const a = plate(382, 760, 'Map');
-  add(a,
+  a.querySelector('.title').classList.add('fit');
+  add(a, mapPager(0),
     dial(380, 380, {
       bezel: 270, centreR: 96, centre: 'Go to selection',
       rings: [{ r0: 110, r1: 250, keys: [{ label: 'Local map', a0: -44, a1: 44 }, { label: 'My location', a0: 46, a1: 134 }, { label: 'Plan route', a0: 136, a1: 224 }, { label: 'Step back', a0: 226, a1: 314 }] }],
@@ -392,6 +404,21 @@ function mapPage() {
     keycap(410, 434, half, 120, 'Hail target', { fs: 16 }),
     keycap(410, 562, half / 2 - 4, 116, 'Accept', { fs: 15 }), keycap(414 + half / 2, 562, half / 2 - 4, 116, 'Ignore', { fs: 15 }));
   return [a, b, c];
+}
+
+// The system chart: drawn by chartview.js, filled by starchart.js while the page shows.
+function chartPage() {
+  const a = plate(382, 1366, 'System chart', { cls: 'chartp' });
+  a.querySelector('.title').classList.add('fit');
+  add(a, mapPager(1), h(`<div class="sc" id="sc-host"><div class="sc-msg" id="sc-msg"></div>
+    <div class="sc-note">Not to scale: rings show the order of planets, not distance. Places from UEX.</div>
+    <div class="sc-hint"><span>↻</span>Drag to turn · pinch to zoom · tap a place</div></div>`));
+  const b = plate(1754, 800, 'Location', { cls: 'chartp' });
+  const kw = 248, kh = 160;
+  add(b, screen(20, 44, 760, 286, '', 'sc-card'), ...['Starmap', 'Plan route', 'Go to selection', 'Clear route', 'Local map', 'My location']
+    .map((k, i) => keycap(20 + (i % 3) * (kw + 8), 346 + Math.floor(i / 3) * (kh + 10), kw, kh, k, { fs: 15, is: 26 })));
+  b.querySelector('.sc-card').id = 'sc-card';
+  return [a, b];
 }
 
 function downed() {
@@ -507,6 +534,7 @@ export function scene(page) {
   if (CUSTOM.has(page.id)) return customScene(page);
   if (page.id === 'onfoot') return onFoot();
   if (page.id === 'map') return mapPage();
+  if (page.id === 'chart') return chartPage();
   if (page.id === 'emotes') return emotes();
   if (page.id === 'downed') return downed();
   if (page.id === 'log') return logPage();
