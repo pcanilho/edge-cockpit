@@ -376,6 +376,7 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: ro
 .softkeys .cap svg { width: 20px; height: 20px; }
 .softkeys .led { top: 5px; }
 .softkeys .lg { --fs: 11px; letter-spacing: .05em; white-space: nowrap; }
+.softkeys .lg.long { --fs: 10px; letter-spacing: .02em; } /* Telemetry: the one nine-letter name, whole in a quarter-width key */
 .softkeys .cur .cap .led { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
 .softkeys .cur .lg, .softkeys .cur svg { color: var(--accent); }
 

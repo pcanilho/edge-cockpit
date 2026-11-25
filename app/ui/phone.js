@@ -161,7 +161,7 @@ export function plan(plate, aw, ah) {
   // Text screens (log, prices, timers) flow: a wide one narrows to the phone and grows taller.
   const tw = Math.floor(aw / FLOW - PAD.x * 2), th = Math.floor(ah / FLOW - PAD.top - PAD.bottom);
   for (const it of list) {
-    // A gauge (the Gauges pages draw to scale) shrinks whole to the phone's width: nothing in it
+    // A gauge (the Telemetry pages draw to scale) shrinks whole to the phone's width: nothing in it
     // is cut, and its words stay words.
     if (it.els.length === 1 && it.els[0].classList.contains('tl-slot') && it.w > tw) {
       const z = tw / it.w, nh = Math.round(it.h * z), dw = it.w - tw, dh = nh - it.h, right = it.x + it.w, bottom = it.y + it.h;

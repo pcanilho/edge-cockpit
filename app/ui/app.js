@@ -67,7 +67,7 @@ const KIT_KEYS = { missiles: ['Missiles +', 'Missiles reset', 'Missile mode'], e
 // Kept in this console's storage; each one joins the main deck after the curated pages, so
 // showing, swiping and the soft keys treat it like any page. The curated pages are not touched.
 const mainPages = layout.decks.find(d => d.id === 'main').pages;
-// The Telemetry pages join the deck too; only the Gauges soft key reaches them, and only while
+// The Telemetry pages join the deck too; only the Telemetry soft key reaches them, and only while
 // the game link is live with the Telemetry layout on.
 for (const t of tp.TELE_PAGES) mainPages.push({ id: t.id, name: t.name, theme: { accent: '#58d2f0', code: 'TLM', glyph: t.glyph }, groups: [], rows: [] });
 const CURATED = mainPages.length;
@@ -749,7 +749,7 @@ async function paintLink(fresh) {
   $('rec-act').textContent = recording ? 'Stop and save the recording' : 'Record telemetry';
   $('rec-note').textContent = recording ? 'Recording what the game sends. Saves to Documents\\Edge Cockpit' : live ? 'Saves up to ten minutes of what the game sends, for a bug report' : 'Works while the game shares telemetry';
 }
-/** Settings > Game link > Gauge pages: lit = in the swipe; dim = waiting for something the game hasn't sent. */
+/** Settings > Game link > Telemetry pages: lit = in the swipe; dim = waiting for something the game hasn't sent. */
 function paintGaugePages() {
   const seg = $('tlpages-seg');
   if (!seg.childElementCount) for (const p of tp.TELE_PAGES) {
@@ -1154,13 +1154,13 @@ const SOFT = [
   { label: 'Downed', icon: 'medical', go: () => 'downed', is: id => id === 'downed' },
   { label: 'Log', icon: 'list', go: () => 'log', is: id => id === 'log' },
   { label: 'World', icon: 'globe', go: () => 'world', is: id => id === 'world' },
-  { label: 'Gauges', icon: 'gauge', go: () => { const list = tp.pages(link.live); return list.some(p => p.id === lastGauges) ? lastGauges : list[0].id; }, is: tp.isTele, tele: true },
+  { label: 'Telemetry', icon: 'gauge', go: () => { const list = tp.pages(link.live); return list.some(p => p.id === lastGauges) ? lastGauges : list[0].id; }, is: tp.isTele, tele: true },
   { label: 'Settings', icon: 'cog', go: null },
 ];
 function buildSoftkeys() {
   const nav = $('softkeys');
   nav.replaceChildren(...SOFT.map(s => {
-    const node = controls.h(`<div class="well"><div class="cap"><span class="led"></span>${controls.icon(s.icon, 18)}<span class="lg">${s.label}</span></div></div>`);
+    const node = controls.h(`<div class="well"><div class="cap"><span class="led"></span>${controls.icon(s.icon, 18)}<span class="lg${s.label.length > 8 ? ' long' : ''}">${s.label}</span></div></div>`);
     controls.pressable(node, { up: () => { tick('page'); if (s.go) { openSheet(false); show(s.go()); } else openSheet(true); } });
     s.node = node;
     return node;

@@ -39,7 +39,7 @@ It starts with Windows, wakes when Star Citizen starts and goes dark when you qu
 | ![Mining](docs/panel-mining.png) | ![On foot](docs/panel-onfoot.png) |
 | ![Armistice](docs/panel-armistice.png) | ![Red alert](docs/panel-alert.png) |
 | ![Log](docs/panel-log.png) | ![World](docs/panel-world.png) |
-| ![Page editor](docs/panel-editor.png) | ![Gauges](docs/panel-gauges.png) |
+| ![Page editor](docs/panel-editor.png) | ![Telemetry pages](docs/panel-gauges.png) |
 
 | Control | How it works |
 | --- | --- |
@@ -69,7 +69,7 @@ Star Citizen can share your ship's state with apps on your PC. **Settings > Game
 - Switches show the game's own state: power, thrusters, shields, weapons, gear, VTOL, lights, decoupled, speed limiter, G-safe, ESP, proximity assist, stability, gravity and wind compensation, advanced HUD, light amplification, SCM or NAV, gimbals, staggered fire. Toggles get a lamp.
 - The status display shows the ten warning lights, shields, hull, boost, speed, radar altitude and vertical speed, as far as your game version sends them (4.10 leaves out shields, hull and the altitudes); decoy and noise keys show what's left, the gun placard how many guns are ready. On foot or in EVA: your vitals.
 - On 5.0, a tap goes to the game directly when it takes the action. Anything it refuses goes out as your key. Keys you haven't bound still work this way, marked GAME. 4.10 only shares state.
-- **Gauges** (a softkey shown only while telemetry is live) opens eight instrument pages: Ship, Instruments, Approach, Systems, Combat, Suit, Quantum and Turret. Tapes, dials and lamps draw only what the game sends; anything else reads Not sent or No reading. Approach waits until the game sends radar altitude or vertical speed, and Turret appears in a gunner seat, where it opens by itself. **Settings > Game link > Gauge pages** hides any page. On 5.0, shields show their rate and time to empty or full, and hull the last hit.
+- **Telemetry** (a softkey shown only while telemetry is live) opens eight instrument pages: Ship, Instruments, Approach, Systems, Combat, Suit, Quantum and Turret. Tapes, dials and lamps draw only what the game sends; anything else reads Not sent or No reading. Approach waits until the game sends radar altitude or vertical speed, and Turret appears in a gunner seat, where it opens by itself. **Settings > Game link > Telemetry pages** hides any page. On 5.0, shields show their rate and time to empty or full, and hull the last hit.
 - **Ship** turns your ship's 3D model from FleetYards with a finger: a shield bubble that glows with the shield level, the hull tinted as it drops, dark with the power plant off, landed or flight model by the gear; if the model can't load, it says why and offers Retry. Paint is your pick (the game doesn't say which you fly). Guns the game names get a card with their rated stats from the [Star Citizen Wiki](https://api.star-citizen.wiki), marked Rated and the game version they're for.
 - Page builder: a status screen can show a live value (speed, radar altitude, heading, shields, hull, hydrogen, boost, G, decoys and more) as a gauge.
 
@@ -77,7 +77,7 @@ What the game doesn't send (door state, port locks, flashlight, the gun group) s
 
 If a patch changes the log lines it reads, an amber **Log lines missing** chip says so, with a button to report it.
 
-Nothing is sent about you. Network calls: FleetYards for ship images (once per ship) and, on the Gauges Ship page, its 3D model and paints (kept in the app's cache), the Star Citizen Wiki for the stats of guns the game names (every 12 h), GitHub for updates, and while the World page is open, UEX for prices (every 30 min) and RSI's status page (every 5 min).
+Nothing is sent about you. Network calls: FleetYards for ship images (once per ship) and, on the Telemetry Ship page, its 3D model and paints (kept in the app's cache), the Star Citizen Wiki for the stats of guns the game names (every 12 h), GitHub for updates, and while the World page is open, UEX for prices (every 30 min) and RSI's status page (every 5 min).
 
 ## If keys do nothing
 
