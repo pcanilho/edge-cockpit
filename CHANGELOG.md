@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- The Gauges softkey is now **Telemetry**, and Settings > Game link > Gauge pages is **Telemetry pages**.
+- **Approach opens by itself for landing and takeoff (5.0).** With Follow game on in the pilot seat, Approach opens when the gear starts down or radar altitude drops under 300 m while descending, and when you lift off. It hands back your page 5 s after touchdown, or once you've been above 400 m with the gear up for 5 s. A page you pick in between stays. Not on 4.10, which sends no radar altitude.
+
 ## 0.11.3
 
 - **3D Ship loads in the app.** The app's security settings stopped the 3D model from loading for every ship ("The 3D model didn't load"). It now loads. If it can't, the message says what went wrong (FleetYards didn't send it, the download stopped, you're offline, the file couldn't be read, or the graphics can't draw 3D), with a Retry button. A model that fails is no longer read again on every telemetry update.
