@@ -245,6 +245,11 @@ fn telemetry_enable(app: State<'_, App>, on: bool) -> Result<TelemetrySetup, Str
         }
     }
     #[cfg(windows)]
+    if !win::user_env_shared() {
+        let cmd = if on { "setx GRPC_CLIENT_SERVER_ENABLED true" } else { r"reg delete HKCU\Environment /v GRPC_CLIENT_SERVER_ENABLED /f" };
+        return Err(format!("On Windows 10 the Store copy can't set this for the game. Run \"{cmd}\" in a command prompt, then restart the RSI Launcher"));
+    }
+    #[cfg(windows)]
     if !win::set_user_env("GRPC_CLIENT_SERVER_ENABLED", on.then_some("true")) {
         return Err("Windows didn't take the setting".into());
     }
@@ -932,6 +937,11 @@ struct UpdateInfo {
 #[tauri::command]
 async fn check_update(handle: AppHandle, app: State<'_, App>) -> Result<Option<UpdateInfo>, String> {
     use tauri_plugin_updater::UpdaterExt;
+    // The Microsoft Store updates its own copy.
+    #[cfg(windows)]
+    if win::packaged() {
+        return Ok(None);
+    }
     let found = handle.updater().map_err(|e| e.to_string())?.check().await.map_err(|e| e.to_string())?;
     let info = found.as_ref().map(|u| UpdateInfo {
         version: u.version.clone(),
@@ -1415,8 +1425,14 @@ fn tray(handle: &AppHandle) -> tauri::Result<()> {
     let update = MenuItem::with_id(handle, "update", "Check for updates", true, None::<&str>)?;
     let quit_item = MenuItem::with_id(handle, "quit", "Quit", true, None::<&str>)?;
     let sep = || PredefinedMenuItem::separator(handle);
-    let items: [&dyn tauri::menu::IsMenuItem<tauri::Wry>; 10] =
-        [&version, &sep()?, &toggle, &settings, &setup, &sep()?, &autostart, &update, &sep()?, &quit_item];
+    let (s1, s2, s3) = (sep()?, sep()?, sep()?);
+    let mut items: Vec<&dyn tauri::menu::IsMenuItem<tauri::Wry>> =
+        vec![&version, &s1, &toggle, &settings, &setup, &s2, &autostart, &update, &s3, &quit_item];
+    // The Microsoft Store updates its own copy.
+    #[cfg(windows)]
+    if win::packaged() {
+        items.retain(|i| i.id() != update.id());
+    }
     let menu = Menu::with_items(handle, &items)?;
     handle.manage(TrayToggle(toggle));
     handle.manage(TrayAutostart(autostart));
@@ -1505,7 +1521,11 @@ fn main() {
                 }
             }
             if handle.state::<App>().game.load(Ordering::SeqCst) == 0 {
-                if std::env::args().any(|a| a == "--background") {
+                #[cfg(windows)]
+                let background = std::env::args().any(|a| a == "--background") || win::started_at_signin();
+                #[cfg(not(windows))]
+                let background = std::env::args().any(|a| a == "--background");
+                if background {
                     idle(&handle);
                 } else {
                     wake(&handle);
