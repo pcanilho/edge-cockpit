@@ -1378,6 +1378,10 @@ svg.gx { display: block; overflow: visible; }
 .s3 > .s3-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .s3 > div { position: absolute; }
 .s3-msg { left: 0; right: 0; top: 46%; text-align: center; font: 700 14px/1 var(--hud); letter-spacing: .24em; text-transform: uppercase; color: var(--dim); pointer-events: none; }
+.s3[data-fail] > .s3-msg { color: var(--hold); }
+.s3 > .s3-retry { display: none; position: absolute; left: 50%; top: calc(46% + 34px); transform: translateX(-50%); min-width: 180px; padding: 17px 30px; border-radius: 8px; background: #0a141b; box-shadow: inset 0 0 0 1px #ffffff2a, 0 3px 0 #000; font: 700 14px/1 var(--hud); letter-spacing: .24em; text-transform: uppercase; color: var(--ink); }
+.s3 > .s3-retry:active { transform: translate(-50%, 2px); box-shadow: inset 0 0 0 1px #ffffff2a; }
+.s3[data-fail] > .s3-retry { display: block; }
 .s3-l { left: 24px; top: 40px; width: 200px; display: flex; flex-direction: column; gap: 12px; pointer-events: none; }
 .s3-co { padding: 12px 16px; border-radius: 8px; background: #02080ccc; box-shadow: inset 0 0 0 1px #ffffff16; }
 .s3-co small { display: block; font: 700 11px/1 var(--hud); letter-spacing: .24em; text-transform: uppercase; color: var(--muted); }

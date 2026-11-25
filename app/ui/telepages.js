@@ -571,7 +571,7 @@ let view3d = null;
 function ship3d(el, live) {
   const v = live?.vehicle, cls = v?.class_name;
   if (!view3d || view3d.host !== el) view3d = { host: el, v: shipView(el) };
-  if (!cls) { el.dataset.state = 'Not in a ship'; el.querySelector('.s3-msg').textContent = 'Not in a ship'; return; }
+  if (!cls) { el.dataset.state = 'Not in a ship'; el.removeAttribute('data-fail'); el.querySelector('.s3-msg').textContent = 'Not in a ship'; return; }
   const m = once(models, cls, () => fyModel(cls));
   if (m === undefined) { el.querySelector('.s3-msg').textContent = 'Finding the 3D model…'; return; }
   const d = flightOf(live), landed = d.gear === 3 || (d.gear == null && d.landed === true);

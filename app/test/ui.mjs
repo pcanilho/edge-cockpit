@@ -1154,6 +1154,64 @@ for (const [W, H] of [[1920, 1080], [1180, 820]]) {
   await ctx.close();
 }
 
+// The Ship page's 3D model loads under the app's own content policy (the one Tauri serves), says
+// what went wrong when it can't, asks FleetYards once rather than on every telemetry update, and
+// loads after Retry.
+{
+  const here = dirname(fileURLToPath(import.meta.url));
+  const G = JSON.parse(await readFile(join(here, 'fixtures', 'telemetry-galaxy-410.json'), 'utf8'));
+  const csp = JSON.parse(await readFile(join(here, '..', 'src-tauri', 'tauri.conf.json'), 'utf8')).app.security.csp;
+  const ctx = await browser.newContext({ viewport: { width: 2560, height: 720 } });
+  const pg = await ctx.newPage();
+  pg.on('pageerror', e => errors.push('3D ship: ' + e.message));
+  await pg.addInitScript(() => { window.__csp = []; addEventListener('securitypolicyviolation', e => window.__csp.push(e.blockedURI + ' ' + e.violatedDirective)); });
+  await pg.route(base.replace('index.html', '**'), async r => {
+    const res = await r.fetch();
+    r.fulfill({ response: res, headers: { ...res.headers(), 'content-security-policy': csp } });
+  });
+  // A one-triangle model with an embedded texture: the same path as FleetYards' files (a binary glTF
+  // whose images live inside it), without the network.
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+  const pos = Buffer.from(new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]).buffer), uv = Buffer.from(new Float32Array([0, 0, 1, 0, 0, 1]).buffer);
+  const pad = (b, f) => Buffer.concat([b, Buffer.alloc((4 - b.length % 4) % 4, f)]);
+  const bin = pad(Buffer.concat([pos, uv, png]), 0);
+  const gltf = pad(Buffer.from(JSON.stringify({
+    asset: { version: '2.0' }, scene: 0, scenes: [{ nodes: [0] }], nodes: [{ mesh: 0 }],
+    meshes: [{ primitives: [{ attributes: { POSITION: 0, TEXCOORD_0: 1 }, material: 0 }] }],
+    materials: [{ pbrMetallicRoughness: { baseColorTexture: { index: 0 } } }], textures: [{ source: 0 }],
+    images: [{ bufferView: 2, mimeType: 'image/png' }], buffers: [{ byteLength: bin.length }],
+    bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: 36 }, { buffer: 0, byteOffset: 36, byteLength: 24 }, { buffer: 0, byteOffset: 60, byteLength: png.length }],
+    accessors: [{ bufferView: 0, componentType: 5126, count: 3, type: 'VEC3', min: [0, 0, 0], max: [1, 1, 0] }, { bufferView: 1, componentType: 5126, count: 3, type: 'VEC2' }],
+  })), 0x20);
+  const head = Buffer.alloc(20); head.writeUInt32LE(0x46546c67, 0); head.writeUInt32LE(2, 4); head.writeUInt32LE(12 + 8 + gltf.length + 8 + bin.length, 8); head.writeUInt32LE(gltf.length, 12); head.writeUInt32LE(0x4e4f534a, 16);
+  const binHead = Buffer.alloc(8); binHead.writeUInt32LE(bin.length, 0); binHead.writeUInt32LE(0x004e4942, 4);
+  const glb = Buffer.concat([head, gltf, binHead, bin]);
+  let answer = 404, asked = 0;
+  const cors = { 'access-control-allow-origin': '*' };
+  await pg.route(/fleetyards|fltyrd/, r => {
+    const u = r.request().url();
+    if (/\/v1\/models\/[^/?]+$/.test(u)) return r.fulfill({ contentType: 'application/json', headers: cors, body: JSON.stringify({ slug: 'test', name: 'Galaxy', manufacturer: { name: 'Roberts Space Industries' }, media: { holoTexturedLite: { url: 'https://storage.fltyrd.net/test.glb' } } }) });
+    if (u.endsWith('/test.glb')) { asked++; return answer === 200 ? r.fulfill({ contentType: 'model/gltf-binary', headers: cors, body: glb }) : r.fulfill({ status: answer, headers: cors, body: '' }); }
+    return r.abort();
+  });
+  await pg.goto(base + '?demo=ship');
+  await pg.waitForSelector('body[data-ready]');
+  await pg.evaluate(() => window.xfd.feed(["CVehicleMovementBase::SetDriver: Local client node [1] granted control token for 'RSI_Galaxy_929237689784' [929237689784]"]));
+  const feed = async n => { for (let i = 0; i < n; i++) { await pg.evaluate(u => window.xfd.telemetry(u), G); await pg.waitForTimeout(150); } };
+  await feed(2);
+  await pg.evaluate(() => window.xfd.show('tl-ship'));
+  await feed(12);
+  const failed = await pg.$eval('.s3', e => ({ msg: e.querySelector('.s3-msg').textContent, retry: getComputedStyle(e.querySelector('.s3-retry') || e).display }));
+  if (!/error 404/.test(failed.msg) || failed.retry !== 'block') problems.push(`3D ship: a missing model says ${JSON.stringify(failed)}`);
+  if (asked !== 1) problems.push(`3D ship: a failed model was asked for ${asked} times, not once`);
+  answer = 200;
+  await pg.click('.s3-retry', { timeout: 2000 }).catch(() => problems.push('3D ship: no Retry to press'));
+  await feed(12);
+  const ok = await pg.$eval('.s3', e => ({ state: e.dataset.state, fail: e.hasAttribute('data-fail'), csp: window.__csp }));
+  if (ok.state || ok.fail || ok.csp.length) problems.push(`3D ship: after Retry under the app's content policy: ${JSON.stringify(ok)}`);
+  await ctx.close();
+}
+
 const heap = await page.evaluate(() => performance.memory?.usedJSHeapSize || 0);
 
 report.push(`pages checked: ${ids.length}`, `slowest first build: ${worstBuild.toFixed(1)} ms (budget ${BUDGET.firstBuildMs})`,

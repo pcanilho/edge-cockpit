@@ -16,16 +16,31 @@ async function three() {
   return lib;
 }
 
+/** A failure that says which step went wrong: 'net', 'http' (with the status), 'file' or 'gpu'. */
+const oops = (kind, cause, status) => Object.assign(new Error(kind), { kind, cause, status });
+
 /** A file from FleetYards, from the cache when it was fetched before. */
 async function cached(url) {
   let c = null;
   try { c = await caches.open(CACHE); } catch { /* no Cache API: straight from the network */ }
   const hit = c && await c.match(url).catch(() => null);
   if (hit) return hit.blob();
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`FleetYards answered ${res.status}`);
+  let res;
+  try { res = await fetch(url); } catch (e) { throw oops('net', e); }
+  if (!res.ok) throw oops('http', null, res.status);
   if (c) await c.put(url, res.clone()).catch(() => {});
-  return res.blob();
+  try { return await res.blob(); } catch (e) { throw oops('net', e); }
+}
+/** Drops a cached file that turned out unreadable, so a retry downloads it again. */
+const forget = url => caches.open(CACHE).then(c => c.delete(url)).catch(() => {});
+
+/** What the view says when the model can't be shown. Every line fits the Edge in full. */
+function why(e) {
+  if (e.kind === 'http') return `FleetYards didn't send the 3D model (error ${e.status})`;
+  if (e.kind === 'file') return 'The 3D model file from FleetYards couldn\'t be read';
+  if (e.kind === 'gpu') return 'This screen\'s graphics can\'t draw 3D';
+  if (e.kind === 'lost') return 'The graphics driver reset the 3D view';
+  return navigator.onLine ? 'The 3D model download from FleetYards stopped' : 'Offline: the 3D model loads once you\'re online';
 }
 
 const VERT = 'varying vec3 n;varying vec3 v;void main(){vec4 p=modelViewMatrix*vec4(position,1.);n=normalize(normalMatrix*normal);v=normalize(-p.xyz);gl_Position=projectionMatrix*p;}';
@@ -36,13 +51,31 @@ export function view(host) {
   const canvas = document.createElement('canvas');
   canvas.className = 's3-canvas';
   host.prepend(canvas);
+  const retry = document.createElement('button');
+  retry.className = 's3-retry'; retry.type = 'button'; retry.textContent = 'Retry';
+  host.append(retry);
   const st = { yaw: 40, pitch: 22, zoom: 1.9 };
-  let ctx = null, want = {}, shown = {}, frame = 0, loading = null;
-  const status = msg => { host.dataset.state = msg || ''; const n = host.querySelector('.s3-msg'); if (n) n.textContent = msg || ''; };
+  let ctx = null, want = {}, shown = {}, frame = 0, failed = null;
+  /** A message over the view; `again` also shows Retry. */
+  const status = (msg, again = false) => {
+    host.dataset.state = msg || ''; host.toggleAttribute('data-fail', again);
+    const n = host.querySelector('.s3-msg'); if (n) n.textContent = msg || '';
+  };
+  /** Tries the model again: after Retry, or when the connection comes back after a download failed. */
+  const again = () => {
+    if (ctx?.lost) { status('Restoring the graphics…'); ctx.r.forceContextRestore(); return; }
+    failed = null; set({});
+  };
+  retry.addEventListener('click', again);
+  addEventListener('online', () => { if (failed?.kind === 'net') again(); });
 
   async function setup() {
     const { T } = await three();
-    const r = new T.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'low-power' });
+    let r;
+    try { r = new T.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'low-power' }); } catch (e) { throw oops('gpu', e); }
+    // A driver reset drops the GPU copy of the model; three.js uploads it again once the context is back.
+    canvas.addEventListener('webglcontextlost', e => { e.preventDefault(); ctx.lost = true; status(why({ kind: 'lost' }), true); });
+    canvas.addEventListener('webglcontextrestored', () => { ctx.lost = false; status(''); draw(); });
     r.setClearColor(0, 0); r.outputColorSpace = T.SRGBColorSpace; r.toneMapping = T.ACESFilmicToneMapping;
     const scene = new T.Scene(), group = new T.Group();
     const hemi = new T.HemisphereLight(0xcfe8ff, 0x1a2028, 2), sun = new T.DirectionalLight(0xffffff, 3), rim = new T.DirectionalLight(0x58d2f0, 1.6);
@@ -58,7 +91,7 @@ export function view(host) {
   const draw = () => { if (!frame) frame = requestAnimationFrame(paint); };
   function paint() {
     frame = 0;
-    if (!ctx?.ship) return;
+    if (!ctx?.ship || ctx.lost) return;
     const { T, r, cam, size } = ctx, w = host.clientWidth, h = host.clientHeight;
     if (!w || !h) return;
     const px = Math.min(devicePixelRatio || 1, 2);
@@ -73,13 +106,14 @@ export function view(host) {
 
   async function load(url) {
     const { T, loader } = await three();
-    const blob = await cached(url), obj = URL.createObjectURL(blob);
-    try {
-      const g = await loader.loadAsync(obj);
-      const ship = g.scene, box = new T.Box3().setFromObject(ship), size = box.getSize(new T.Vector3());
-      ship.position.sub(box.getCenter(new T.Vector3()));
-      return { ship, size };
-    } finally { URL.revokeObjectURL(obj); }
+    // Parsed straight from memory: no blob: URL to fetch (the app's content policy allows none for
+    // whole files), and no second copy of a model that can run past 30 MB.
+    const buf = await (await cached(url)).arrayBuffer();
+    let g;
+    try { g = await loader.parseAsync(buf, ''); } catch (e) { forget(url); throw oops('file', e); }
+    const ship = g.scene, box = new T.Box3().setFromObject(ship), size = box.getSize(new T.Vector3());
+    ship.position.sub(box.getCenter(new T.Vector3()));
+    return { ship, size };
   }
   async function texture(url) {
     if (ctx.paints.has(url)) return ctx.paints.get(url);
@@ -134,16 +168,19 @@ export function view(host) {
     if (Object.keys(next).every(k => want[k] === next[k]) && shown.url === want.url && ctx?.ship) return;
     want = { ...want, ...next };
     if (!want.url) { status('No 3D model for this ship on FleetYards'); return; }
+    // A model that failed waits for Retry (or the connection coming back): the live stream calls
+    // this many times a second, and each call must not download or parse it again.
+    if (failed && failed.url === want.url) return;
+    let trying = null;
     try {
       if (!ctx) await setup();
       if (want.url !== shown.url) {
         // Already on its way: that load applies the latest values when it lands.
         if (want.url === shown.loading) return;
-        const url = want.url;
+        const url = trying = want.url;
         shown.loading = url;
-        status('Loading the model…');
-        loading = load(url);
-        const m = await loading;
+        status('Loading the 3D model…');
+        const m = await load(url);
         if (want.url !== url) { if (shown.loading === url) shown.loading = null; return; }
         if (ctx.ship) { ctx.group.remove(ctx.ship); ctx.ship.traverse(o => { o.geometry?.dispose(); }); }
         ctx.base.clear();
@@ -159,9 +196,11 @@ export function view(host) {
       }
       await apply();
     } catch (e) {
-      shown.loading = null;
-      status(navigator.onLine ? 'The 3D model didn\'t load' : 'Offline: the 3D model loads once you\'re online');
-      console.warn('ship3d', e);
+      const kind = e.kind || 'file', url = trying || want.url;
+      if (shown.loading === url) shown.loading = null;
+      failed = { url, kind };
+      if (url === want.url) status(why({ ...e, kind }), true);
+      console.warn('ship3d', e.cause || e);
     }
   }
 
