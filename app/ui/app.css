@@ -321,6 +321,7 @@ svg.i { fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: ro
 #mfd.tight .hero { transform: scale(.68); transform-origin: 50% 0; }
 #mfd.tight .name { top: 166px; } #mfd.tight .role { top: 202px; } #mfd.tight .facts { top: calc(228px + var(--role-x, 0px)); }
 #mfd.tighter .hero { display: none; }
+#mfd.no-orrery .orrery, #mfd.no-mtext #mission-text { display: none; }
 #mfd.tighter .name { top: 52px; } #mfd.tighter .role { top: 88px; } #mfd.tighter .facts { top: calc(114px + var(--role-x, 0px)); }
 .where[hidden] { display: none; }
 .where small { display: block; font: 700 10px/1 var(--hud); letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
@@ -1251,12 +1252,12 @@ body.calm .tlm .ann b.fl { animation: none; }
 .tlm .rd { display: flex; gap: 14px; font: 700 10px/1 var(--hud); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
 .tlm .rd b { display: block; margin-top: 4px; font: 600 15px/1 var(--mono); letter-spacing: 0; color: var(--ink); white-space: nowrap; }
 .tlm .rd small, .tlm .vit small { font-size: 11px; color: var(--muted); text-transform: none; }
-.tlm .vit { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.tlm .vit div { padding: 8px 10px; border-radius: 6px; background: #0a1117; box-shadow: inset 0 0 0 1px #ffffff12; font: 700 9px/1 var(--hud); letter-spacing: .16em; color: var(--muted); text-transform: uppercase; }
-.tlm .vit b { display: block; margin-top: 6px; font: 600 18px/1 var(--mono); letter-spacing: 0; color: var(--ink); white-space: nowrap; }
-.tlm .vit small { margin-left: 3px; }
-.tlm .vit i { display: block; margin-top: 7px; height: 5px; border-radius: 2px; background: #ffffff10; position: relative; overflow: hidden; }
-.tlm .vit i::after { content: ""; position: absolute; inset: 0; width: var(--v); background: var(--c); }
+.tlm .vit { display: flex; flex-direction: column; gap: 10px; }
+.tlm .vit .bars { gap: 7px 10px; font-size: 10px; }
+.tlm .vit .bars i { height: 7px; }
+.tlm .vit em { font: 600 15px/1 var(--mono); font-style: normal; color: var(--ink); letter-spacing: 0; text-align: right; white-space: nowrap; }
+.tlm .vit em small { margin-left: 3px; font-size: 11px; color: var(--muted); }
+.tlm .vit .vn { display: grid; grid-template-columns: 1fr auto; gap: 7px 10px; align-items: baseline; padding-top: 9px; border-top: 1px solid #ffffff12; font: 700 10px/1 var(--hud); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
 /* A push-button the game reports: a lamp on top, its state under the label. */
 .cap.glamp .kb { display: none; }
 .cap > .lv { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); width: 18px; height: 5px; border-radius: 3px; background: #0b0e11; box-shadow: inset 0 0 0 1px #ffffff14; }

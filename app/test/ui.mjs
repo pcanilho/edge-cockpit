@@ -1102,8 +1102,13 @@ for (const [W, H] of [[1920, 1080], [1180, 820]]) {
   const foot = structuredClone(U); foot.live.vehicle = null; foot.live.weapons = null; foot.live.actor.state.locomotion = 1;
   await pg.evaluate(u => { window.xfd.feed(['<Context Establisher Done>', 'Entering Armistice Zone']); window.xfd.telemetry(u); window.xfd.show('onfoot'); }, foot);
   await pg.waitForTimeout(100);
-  const vit = await pg.evaluate(() => [...document.querySelectorAll('#tlm .vit > div')].map(d => d.textContent.replace(/\s+/g, ' ').trim()));
+  const vit = await pg.evaluate(() => [...document.querySelectorAll('#tlm .vit span')].map(s => { let e = s.nextElementSibling; while (e && e.tagName !== 'EM') e = e.nextElementSibling; return s.textContent + (e?.textContent || '').replace(/\s+/g, ''); }));
   if (vit.length !== 8 || !vit.includes('Hunger73%')) problems.push(`telemetry vitals: ${JSON.stringify(vit)}`);
+  // With a mission, a location with its system map and an injury, the card still ends above its edge.
+  await pg.evaluate(() => window.xfd.feed(['<RequestLocationInventory> Player[Argoneth] requested inventory for Location[Stanton4_NewBabbage]']));
+  await pg.waitForTimeout(150);
+  const card = await pg.evaluate(() => { const m = document.getElementById('mfd').getBoundingClientRect(); return { over: [...document.querySelectorAll('#mfd .facts *')].filter(e => { const b = e.getBoundingClientRect(); return b.height && b.bottom > m.bottom; }).map(e => e.id || e.className), follow: !document.getElementById('auto').hidden }; });
+  if (card.over.length || !card.follow) problems.push(`telemetry on foot: the status card runs past its edge: ${JSON.stringify(card)}`);
   await checkLabels('telemetry on foot', false, pg);
   if (shots) await pg.screenshot({ path: join(shots, 'telemetry-onfoot.png') });
   // Classic, then a dropped link: back to the console without telemetry.

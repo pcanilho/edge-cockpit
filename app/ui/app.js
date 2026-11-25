@@ -694,13 +694,13 @@ function paintTele() {
       + (bars ? `<div class="bars">${bars}</div>` : '') + (nums ? `<div class="rd">${nums}</div>` : '');
   } else if (body) {
     if (body.breathable != null) role = `${body.eva ? 'EVA' : 'On foot'} · ${body.breathable ? 'Breathable air outside' : 'No breathable air'}`;
-    const g = (n, val, unit, p, c) => `<div>${n}<b>${val == null ? '—' : esc(String(val))}${val == null ? '' : `<small>${unit}</small>`}</b>${p != null ? `<i style="--v:${p}%;--c:${c}"></i>` : ''}</div>`;
+    // Two lists, label then value, so all eight fit with the mission and location under them.
     const level = p => p < 25 ? 'var(--danger)' : p < 50 ? 'var(--hold)' : 'var(--ok)';
-    const gauge = (n, x, unit, fmt) => g(n, x ? fmt(x) : null, unit, x?.pct, x ? level(x.pct) : '');
-    html = `<div class="vit">${gauge('Health', body.health, '%', x => x.pct)}${gauge('Oxygen', body.oxygen, '%', x => x.pct)}`
-      + `${gauge('Hunger', body.hunger, '%', x => x.pct)}${gauge('Thirst', body.thirst, '%', x => x.pct)}`
-      + `${g('Body temperature', body.body == null ? null : body.body.toFixed(1), '°C')}${g('Heart rate', body.heart, 'a minute')}`
-      + `${g('Outside', body.outside == null ? null : Math.round(body.outside), '°C')}${g('Gravity', body.gravity == null ? null : body.gravity.toFixed(2), 'g')}</div>`;
+    const bar = (n, x) => `<span>${n}</span><i style="--v:${x ? x.pct : 0}%;--c:${x ? level(x.pct) : 'transparent'}"></i><em>${x ? `${x.pct}<small>%</small>` : '—'}</em>`;
+    const num = (n, val, unit) => `<span>${n}</span><em>${val == null ? '—' : `${esc(String(val))}<small>${unit}</small>`}</em>`;
+    html = `<div class="vit"><div class="bars">${bar('Health', body.health)}${bar('Oxygen', body.oxygen)}${bar('Hunger', body.hunger)}${bar('Thirst', body.thirst)}</div>`
+      + `<div class="vn">${num('Body temperature', body.body == null ? null : body.body.toFixed(1), '°C')}${num('Heart rate', body.heart, 'beats a minute')}`
+      + `${num('Outside', body.outside == null ? null : Math.round(body.outside), '°C')}${num('Gravity', body.gravity == null ? null : body.gravity.toFixed(2), 'g')}</div></div>`;
   }
   // A role line or a row of warning lights that wraps differently moves what's under it.
   const shape = role + '|' + (html.match(/<div class="ann">.*?<\/div>/)?.[0] || '');
@@ -1835,10 +1835,16 @@ function fitChips() {
     if ($('auto').getBoundingClientRect().bottom <= r.bottom - 10) break;
   }
   CHIP_ORDER.forEach(id => $(id).classList.remove('squeezed'));
+  // Still too tall (on foot with vitals, a mission and a location): the system map goes first, it
+  // only repeats the location in pictures; then the chips; then the mission's second line.
+  const fits = () => $('auto').getBoundingClientRect().bottom <= r.bottom - 10;
+  screen.classList.remove('no-orrery', 'no-mtext');
+  if (!fits()) screen.classList.add('no-orrery');
   for (const id of CHIP_ORDER) {
-    if ($('auto').getBoundingClientRect().bottom <= r.bottom - 10) break;
+    if (fits()) break;
     if (!$(id).hidden) $(id).classList.add('squeezed');
   }
+  if (!fits()) screen.classList.add('no-mtext');
 }
 // The maker's name only shows where the status text leaves room for it.
 function fitMakerName() {
