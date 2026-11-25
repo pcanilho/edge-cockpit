@@ -85,7 +85,7 @@
   <article class="feat">
     <div class="feat-text">
       <h3>Live telemetry</h3>
-      <p>Turn on the game's telemetry in Settings and the switches show the ship's real state: power, shields, gear, lights, flight assists, SCM or NAV. The status display adds the ten warning lights, boost and speed, and on 5.0 shields, hull and radar altitude. What the game doesn't send stays blank. Telemetry off, it runs from <code>Game.log</code>.</p>
+      <p>Turn on the game's telemetry in Settings (by hand: <code>setx GRPC_CLIENT_SERVER_ENABLED true</code> on 4.10, <code>server.game.telemetry.enabled=1</code> in <code>user.cfg</code> on 5.0, then restart the RSI Launcher and the game) and the switches show the ship's real state: power, shields, gear, lights, flight assists, SCM or NAV. The status display adds the ten warning lights, boost and speed, and on 5.0 shields, hull and radar altitude. What the game doesn't send stays blank. Telemetry off, it runs from <code>Game.log</code>.</p>
     </div>
     <a class="shot" href="img/panel-telemetry.png"><img src="img/panel-telemetry.png" width="2560" height="720" loading="lazy" alt="Prospector with live telemetry: warning lights, shields, hull, real switch positions"></a>
   </article>
@@ -223,7 +223,7 @@
   </details>
   <details>
     <summary>Is it safe to use with the game?</summary>
-    <p>It sends key presses like a second keyboard and reads the game's own log and telemetry. It doesn't read game memory, inject code or change game files, apart from adding its keybind profile and, if you turn telemetry on, one line in <code>user.cfg</code>.</p>
+    <p>It sends key presses like a second keyboard and reads the game's own log and telemetry. It doesn't read game memory, inject code or change game files, apart from adding its keybind profile and, if you turn telemetry on, one line in <code>user.cfg</code> (5.0) or one user variable (4.10).</p>
   </details>
   <details>
     <summary>Does it take focus from the game?</summary>

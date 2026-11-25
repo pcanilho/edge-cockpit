@@ -1256,6 +1256,14 @@ body.calm .tlm .ann b.fl { animation: none; }
 .tlm .vit { display: flex; flex-direction: column; gap: 10px; }
 .tlm .vit .bars { gap: 7px 10px; font-size: 10px; }
 .tlm .vit .bars i { height: 7px; }
+/* Vitals step, not fade: a flat grey fill while fine, amber or red past the marks on the track. */
+.tlm .vit .bars i::after { background: #8f9ba7; }
+.tlm .vit .bars i.caution::after { background: var(--hold); }
+.tlm .vit .bars i.warning::after { background: var(--danger); }
+.tlm .vit .bars i::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(90deg, transparent calc(var(--c2) - 1px), #ffffff47 var(--c2) calc(var(--c2) + 1px), transparent 0),
+    linear-gradient(90deg, transparent calc(var(--c1) - 1px), #ffffff47 var(--c1) calc(var(--c1) + 1px), transparent 0); }
+.tlm .vit em.caution { color: var(--hold); } .tlm .vit em.warning { color: var(--danger); }
 .tlm .vit em { font: 600 15px/1 var(--mono); font-style: normal; color: var(--ink); letter-spacing: 0; text-align: right; white-space: nowrap; }
 .tlm .vit em small { margin-left: 3px; font-size: 11px; color: var(--muted); }
 .tlm .vit .vn { display: grid; grid-template-columns: 1fr auto; gap: 7px 10px; align-items: baseline; padding-top: 9px; border-top: 1px solid #ffffff12; font: 700 10px/1 var(--hud); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }

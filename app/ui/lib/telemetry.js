@@ -100,6 +100,23 @@ export function shipLine(live) {
   return parts.join(' · ');
 }
 
+/**
+ * Steps for the vitals, so a bar or a number takes a colour only when it needs attention:
+ * '' fine, 'caution' (amber) or 'warning' (red). The game publishes no thresholds, so these are
+ * ours: percentages of what the game calls full, and body temperature in °C both ways.
+ */
+export const VITAL_STEPS = { health: [50, 25], oxygen: [40, 15], hunger: [30, 10], thirst: [30, 10] };
+export const BODY_STEPS = { cold: [35, 32], hot: [38.5, 40] };
+export function vitalStep(kind, p) {
+  const s = VITAL_STEPS[kind];
+  return !s || p == null ? '' : p < s[1] ? 'warning' : p < s[0] ? 'caution' : '';
+}
+export function bodyStep(t) {
+  if (t == null) return '';
+  const { cold, hot } = BODY_STEPS;
+  return t < cold[1] || t > hot[1] ? 'warning' : t < cold[0] || t > hot[0] ? 'caution' : '';
+}
+
 /** On foot or in EVA: the vitals for the status display, or null when seated or unknown. */
 export function vitals(live) {
   const a = live?.actor, loc = a?.state?.locomotion;

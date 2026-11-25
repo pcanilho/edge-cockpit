@@ -710,11 +710,14 @@ function paintTele() {
   } else if (body) {
     if (body.breathable != null) role = `${body.eva ? 'EVA' : 'On foot'} · ${body.breathable ? 'Breathable air outside' : 'No breathable air'}`;
     // Two lists, label then value, so all eight fit with the mission and location under them.
-    const level = p => p < 25 ? 'var(--danger)' : p < 50 ? 'var(--hold)' : 'var(--ok)';
-    const bar = (n, x) => `<span>${n}</span><i style="--v:${x ? x.pct : 0}%;--c:${x ? level(x.pct) : 'transparent'}"></i><em>${x ? `${x.pct}<small>%</small>` : '—'}</em>`;
-    const num = (n, val, unit) => `<span>${n}</span><em>${val == null ? '—' : `${esc(String(val))}<small>${unit}</small>`}</em>`;
-    html = `<div class="vit"><div class="bars">${bar('Health', body.health)}${bar('Oxygen', body.oxygen)}${bar('Hunger', body.hunger)}${bar('Thirst', body.thirst)}</div>`
-      + `<div class="vn">${num('Body temperature', body.body == null ? null : body.body.toFixed(1), '°C')}${num('Heart rate', body.heart, 'beats a minute')}`
+    // A flat fill in steps, not a gradient: grey while fine, amber then red past the marks on the track.
+    const bar = (k, n, x) => {
+      const st = x ? tele.vitalStep(k, x.pct) : '', [c1, c2] = tele.VITAL_STEPS[k];
+      return `<span>${n}</span><i class="${st}" style="--v:${x ? x.pct : 0}%;--c1:${c1}%;--c2:${c2}%"></i><em class="${st}">${x ? `${x.pct}<small>%</small>` : '—'}</em>`;
+    };
+    const num = (n, val, unit, st = '') => `<span>${n}</span><em class="${st}">${val == null ? '—' : `${esc(String(val))}<small>${unit}</small>`}</em>`;
+    html = `<div class="vit"><div class="bars">${bar('health', 'Health', body.health)}${bar('oxygen', 'Oxygen', body.oxygen)}${bar('hunger', 'Hunger', body.hunger)}${bar('thirst', 'Thirst', body.thirst)}</div>`
+      + `<div class="vn">${num('Body temperature', body.body == null ? null : body.body.toFixed(1), '°C', tele.bodyStep(body.body))}${num('Heart rate', body.heart, 'beats a minute')}`
       + `${num('Outside', body.outside == null ? null : Math.round(body.outside), '°C')}${num('Gravity', body.gravity == null ? null : body.gravity.toFixed(2), 'g')}</div></div>`;
   }
   // A role line or a row of warning lights that wraps differently moves what's under it.

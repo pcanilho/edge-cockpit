@@ -64,7 +64,7 @@ The game doesn't report most switch states, so nothing is guessed: ON/OFF switch
 
 ## Game telemetry
 
-Star Citizen can share your ship's state with apps on your PC. **Settings > Game link > Turn telemetry on**, then restart the RSI Launcher and the game. While it's live:
+Star Citizen can share your ship's state with apps on your PC. **Settings > Game link > Turn telemetry on** (by hand: on 4.10 `setx GRPC_CLIENT_SERVER_ENABLED true`, a user variable; on 5.0 `server.game.telemetry.enabled=1` in the channel's `user.cfg`), then restart the RSI Launcher and the game. While it's live:
 
 - Switches show the game's own state: power, thrusters, shields, weapons, gear, VTOL, lights, decoupled, speed limiter, G-safe, ESP, proximity assist, stability, gravity and wind compensation, advanced HUD, light amplification, SCM or NAV, gimbals, staggered fire. Toggles get a lamp.
 - The status display shows the ten warning lights, shields, hull, boost, speed, radar altitude and vertical speed, as far as your game version sends them (4.10 leaves out shields, hull and the altitudes); decoy and noise keys show what's left, the gun placard how many guns are ready. On foot or in EVA: your vitals.

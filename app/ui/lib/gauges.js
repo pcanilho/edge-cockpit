@@ -128,6 +128,8 @@ export function ring(cx, cy, r, pct, o) {
   const segs = 40, A0 = -135, A1 = 135, step = (A1 - A0) / segs, lit = Math.round(pct / 100 * segs);
   let s = `<g><circle cx="${cx}" cy="${cy}" r="${r + 16}" fill="#040b10" stroke="#ffffff10" stroke-width="2"/>`;
   for (let i = 0; i < segs; i++) { const on = i < lit; s += `<path d="${arc(cx, cy, r - 6, A0 + i * step + .8, A0 + (i + 1) * step - .8)}" stroke="${on ? o.c : '#13212b'}" stroke-width="${o.sw || 18}" fill="none" ${on && o.glow ? 'filter="url(#gx-gl)"' : ''}/>`; }
+  // Where a reading changes colour: short marks just outside the scale.
+  for (const m of o.marks || []) { const a = A0 + m / 100 * (A1 - A0), [x0, y0] = P(cx, cy, r + 5, a), [x1, y1] = P(cx, cy, r + 14, a); s += `<line x1="${f1(x0)}" y1="${f1(y0)}" x2="${f1(x1)}" y2="${f1(y1)}" stroke="${C.paint}" stroke-width="3" opacity=".75"/>`; }
   if (o.halo) s += `<circle cx="${cx}" cy="${cy}" r="${r + 10}" fill="none" stroke="${o.c}" stroke-width="2" opacity=".8" filter="url(#gx-gl2)"/>`;
   if (!o.noNum) s += mono(cx, cy - 2, o.fs || 46, Math.floor(pct), { c: o.c }) + T(cx + (o.fs || 46) * .02, cy + (o.fs || 46) * .62, 12, '%', { c: o.c });
   s += T(cx, cy + r * .78, 13, o.title, { c: C.paint, ls: 3 });
@@ -145,6 +147,7 @@ export function hbar(x, y, w, h, pct, o) {
   }
   const lit = Math.round(pct / 100 * n);
   for (let i = 0; i < n; i++) s += `<rect x="${f1(x + i * (sw + gap))}" y="${y}" width="${f1(sw)}" height="${h}" rx="2" fill="${i < lit ? o.c : '#13212b'}" ${i < lit ? 'filter="url(#gx-gl)"' : ''}/>`;
+  for (const m of o.marks || []) { const mx = f1(x + m / 100 * (w - 120) - gap / 2); s += `<line x1="${mx}" x2="${mx}" y1="${y + h + 4}" y2="${y + h + 14}" stroke="${C.paint}" stroke-width="2" opacity=".75"/>`; }
   return s + mono(x + w - 4, y + h / 2, 30, Math.floor(pct) + '<tspan font-size="15" fill="' + C.muted + '"> %</tspan>', { c: o.c, a: 'end' }) + '</g>';
 }
 
@@ -175,6 +178,7 @@ export function thermo(x, y, h, v, o) {
   let s = `<rect x="${x - 14}" y="${y - 10}" width="28" height="${h + 20}" rx="14" fill="#0a141b" stroke="#ffffff18"/><circle cx="${x}" cy="${y + h + 30}" r="26" fill="${o.c}" filter="url(#gx-gl)"/>`;
   s += `<rect x="${x - 7}" y="${f1(fy)}" width="14" height="${f1(y + h + 20 - fy)}" rx="7" fill="${o.c}" filter="url(#gx-gl)"/>`;
   for (let t = lo; t <= hi; t += o.step) { const ty = y + h - (t - lo) / (hi - lo) * h; s += `<line x1="${x + 18}" x2="${x + 30}" y1="${f1(ty)}" y2="${f1(ty)}" stroke="${C.paint}" stroke-width="2" opacity=".7"/>` + mono(x + 38, ty, 14, t, { c: C.muted, a: 'start' }); }
+  for (const m of o.marks || []) { if (m < lo || m > hi) continue; const my = f1(y + h - (m - lo) / (hi - lo) * h); s += `<line x1="${x - 30}" x2="${x - 18}" y1="${my}" y2="${my}" stroke="${C.paint}" stroke-width="2" opacity=".75"/>`; }
   return s + mono(x, y - 52, 34, v.toFixed(o.dp) + `<tspan font-size="15" fill="${C.muted}"> °C</tspan>`, { c: o.c }) + T(x, y - 22, 12, o.title, { c: C.paint, ls: 3 });
 }
 
