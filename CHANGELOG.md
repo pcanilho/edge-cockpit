@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.11.4
 
 - The Gauges softkey is now **Telemetry**, and Settings > Game link > Gauge pages is **Telemetry pages**.
 - **Approach opens by itself for landing and takeoff (5.0).** With Follow game on in the pilot seat, Approach opens when the gear starts down or radar altitude drops under 300 m while descending, and when you lift off. It hands back your page 5 s after touchdown, or once you've been above 400 m with the gear up for 5 s. A page you pick in between stays. Not on 4.10, which sends no radar altitude.
