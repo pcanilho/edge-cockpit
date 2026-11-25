@@ -1176,7 +1176,7 @@ const SOFT = [
   { label: 'Map', icon: 'map', go: () => current === 'map' ? 'chart' : current === 'chart' ? 'map' : lastMap, is: id => id === 'map' || id === 'chart' },
   { label: 'Downed', icon: 'medical', go: () => 'downed', is: id => id === 'downed' },
   { label: 'Log', icon: 'list', go: () => 'log', is: id => id === 'log' },
-  { label: 'World', icon: 'globe', go: () => 'world', is: id => id === 'world' },
+  { label: 'Verse', icon: 'globe', go: () => 'world', is: id => id === 'world' },
   { label: 'Telemetry', icon: 'gauge', go: () => { const list = tp.pages(link.live); return list.some(p => p.id === lastGauges) ? lastGauges : list[0].id; }, is: tp.isTele, tele: true },
   { label: 'Settings', icon: 'cog', go: null },
 ];

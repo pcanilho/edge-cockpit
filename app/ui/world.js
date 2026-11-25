@@ -1,4 +1,4 @@
-// The World page: the executive hangar cycle, your own timers, server status, and the
+// The Verse page: the executive hangar cycle, your own timers, server status, and the
 // commodity market where you are. Painted once a minute while it shows; prices and status
 // come from the Rust side, which fetches them at most every 30 and 5 minutes.
 import * as W from './lib/world.js';

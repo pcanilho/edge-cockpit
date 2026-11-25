@@ -107,7 +107,7 @@ export function resolve(sys, id) {
   return null;
 }
 
-/** The chart body a trade place from World belongs to: its moon, else its orbit, else its planet. */
+/** The chart body a trade place from Verse belongs to: its moon, else its orbit, else its planet. */
 export function bodyOf(sys, p) {
   if (!sys || !p || p.system !== sys.name) return null;
   const find = n => n && sys.bodies.find(b => flat(b.name) === flat(n) || flat(b.name) === flat(String(n).split(' (')[0]))?.name;

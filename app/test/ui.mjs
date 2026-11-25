@@ -91,7 +91,7 @@ async function checkLabels(where, sheet = false, pg = page) {
   for (const f of new Set(found)) problems.push(`${where}: ${f}`);
 }
 
-// The World page's prices and server status, as the app's Rust side hands them over.
+// The Verse page's prices and server status, as the app's Rust side hands them over.
 // Wrapped text keeps the console whole: no text over other text, none out of its button or
 // screen, and no word split across lines. Runs in the page, on the Edge and on devices.
 const TEXT_CHECK = () => {
@@ -263,7 +263,7 @@ for (const id of ['mining', 'cargo', 'salvage']) {
   if (pct) problems.push(`${id} shows a percentage the game never reported`);
 }
 
-// World: every view of the market fits; the hangar shows no time until synced, then the right lights;
+// Verse: every view of the market fits; the hangar shows no time until synced, then the right lights;
 // a timer starts with a tap. Nothing animates while it shows.
 {
   const at = new Date().toISOString();
@@ -304,7 +304,7 @@ for (const id of ['mining', 'cargo', 'salvage']) {
 }
 
 // System chart: the Map softkey again opens it; it draws on opening and never while idle, marks only
-// the place Game.log named, lights a commodity World sends it, and gives its graphics back when closed.
+// the place Game.log named, lights a commodity Verse sends it, and gives its graphics back when closed.
 {
   await page.evaluate(() => window.xfd.show('map'));
   await page.click('#softkeys .well:has-text("Map")');
@@ -319,7 +319,7 @@ for (const id of ['mining', 'cargo', 'salvage']) {
   await page.waitForTimeout(1500);
   if (await page.evaluate(() => window.__raf) !== raf0) problems.push('chart: asks for animation frames while idle');
   if (shots) await page.screenshot({ path: join(shots, 'chart.png') });
-  // A tap on a body picks it; World's Show on chart lights where a commodity sells.
+  // A tap on a body picks it; Verse's Show on chart lights where a commodity sells.
   const you = await page.$eval('.sc-l.you', e => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top - 36 }; });
   await page.mouse.click(you.x, you.y);
   await page.waitForTimeout(300);

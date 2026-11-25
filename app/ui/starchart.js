@@ -7,8 +7,8 @@ import * as W from './lib/world.js';
 
 let K; // app: game(), fix(), bridge, current()
 let data = null, err = null, loading = null, view = null, making = null, pick = null, open = false, clock = null, failed = null;
-// World's prices (the Rust side keeps them 30 minutes), asked for only once a body is tapped or a
-// commodity shown; goods is the commodity World sent to the chart.
+// Verse's prices (the Rust side keeps them 30 minutes), asked for only once a body is tapped or a
+// commodity shown; goods is the commodity Verse sent to the chart.
 let market = null, marketAsked = false, goods = null;
 const fmt = n => Math.round(n).toLocaleString('en-US');
 const $ = id => document.getElementById(id);
@@ -26,7 +26,7 @@ function loadMarket() {
   marketAsked = true;
   K.bridge.worldPrices().then(m => { market = m; paint(); }, () => { marketAsked = false; });
 }
-/** World's Show on chart: where a commodity sells best, lit on the chart. */
+/** Verse's Show on chart: where a commodity sells best, lit on the chart. */
 export function show(name) { goods = name ? { name } : null; pick = null; if (name) loadMarket(); paint(); }
 
 /** The page opened or closed. Closed: the view and the minute clock go. */
@@ -74,7 +74,7 @@ function routeOf(w) {
   return a && b ? [a, b] : null;
 }
 
-/** Market places at a body of this system, by their index in World's prices. */
+/** Market places at a body of this system, by their index in Verse's prices. */
 const marketAt = (w, body) => market ? market.places.map((p, i) => [p, i]).filter(([p]) => C.bodyOf(w.sys, p) === body).map(([, i]) => i) : [];
 /** Where the shown commodity sells best: up to three bodies, each with its best price. */
 function goodsBest(w) {

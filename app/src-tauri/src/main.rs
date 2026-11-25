@@ -47,7 +47,7 @@ struct App {
     /// Whether the Edge answered DDC/CI, once we have tried.
     ddc: Mutex<Option<bool>>,
     update: Mutex<Option<tauri_plugin_updater::Update>>,
-    /// Prices and server status for the World page.
+    /// Prices and server status for the Verse page.
     world: world::Cache,
     /// Phones paired as extra screens, and their links.
     phones: phone::Phones,
@@ -942,7 +942,7 @@ async fn check_update(handle: AppHandle, app: State<'_, App>) -> Result<Option<U
     Ok(info)
 }
 
-/// Commodity prices for the World page: fresh every 30 minutes, else the last ones saved, marked offline.
+/// Commodity prices for the Verse page: fresh every 30 minutes, else the last ones saved, marked offline.
 #[tauri::command]
 async fn world_prices(handle: AppHandle, app: State<'_, App>) -> Result<world::Market, String> {
     let file = handle.path().app_local_data_dir().ok().map(|d| d.join("world-prices.json"));
@@ -956,7 +956,7 @@ async fn world_chart(handle: AppHandle, app: State<'_, App>) -> Result<world::Ch
     world::chart_data(&app.world, file).await
 }
 
-/// RSI's server status for the World page, at most every 5 minutes.
+/// RSI's server status for the Verse page, at most every 5 minutes.
 #[tauri::command]
 async fn world_status(app: State<'_, App>) -> Result<world::Status, String> {
     world::status(&app.world).await
