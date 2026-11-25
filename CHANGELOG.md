@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11.3
+
+- **3D Ship loads in the app.** The app's security settings stopped the 3D model from loading for every ship ("The 3D model didn't load"). It now loads. If it can't, the message says what went wrong (FleetYards didn't send it, the download stopped, you're offline, the file couldn't be read, or the graphics can't draw 3D), with a Retry button. A model that fails is no longer read again on every telemetry update.
+- **On-foot status card fits.** Your vitals are two compact lists, so the mission, the location and Follow game fit under them on the Edge. Heart rate reads "beats a minute". When the card is still full, the system map gives way first.
+
 ## 0.11.2
 
 - Gauge pages: colour only where it needs attention. Flight control shows On and Off as outlines, gear and VTOL stowed in flight are dark, a normal heart rate is no longer red, breathable air turns red only when it isn't, and the current master mode is a green rim. Vertical speed, speed and radar altitude keep their units inside the readout, clear of the scale. Combat shows decoys and noise left in big numbers on the keys.
