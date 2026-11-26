@@ -7,7 +7,7 @@ function run(frames) {
   let s = idle();
   const acts = [];
   for (const f of frames) {
-    const r = step(s, { landed: f.landed ?? null, gear: f.gear ?? null, ralt: f.ralt ?? null, vsi: f.vsi ?? null }, f.t);
+    const r = step(s, { landed: f.landed ?? null, gear: f.gear ?? null, ralt: f.ralt ?? null, vsi: f.vsi ?? null, speed: f.speed ?? null }, f.t);
     s = r.state;
     if (r.act) acts.push(`${r.act}@${f.t}`);
   }
@@ -53,4 +53,24 @@ test('after a close, the next takeoff opens it again', () => {
 test('a value the game does not send triggers nothing', () => {
   assert.deepEqual(run([{ t: 0 }, { t: 1000 }, { t: 9000 }]).acts, []);
   assert.deepEqual(run([fly(0, null, null, null), fly(1000, null, null, null)]).acts, []);
+});
+
+// 4.10 sends no radar altitude (the largest float, read as not sent).
+test('without radar altitude: gear up after takeoff closes it 5 s later', () => {
+  const { acts } = run([{ t: 0, landed: true, gear: 3 }, { t: 1000, landed: false, gear: 3, speed: 5 },
+    { t: 3000, landed: false, gear: 1, speed: 40 }, { t: 7000, landed: false, gear: 1, speed: 80 }, { t: 8000, landed: false, gear: 1, speed: 90 }]);
+  assert.deepEqual(acts, ['open@1000', 'close@8000']);
+});
+
+test('without radar altitude: gear left down after takeoff, speed clears it', () => {
+  const { acts } = run([{ t: 0, landed: true, gear: 3 }, { t: 1000, landed: false, gear: 3, speed: 5 },
+    { t: 4000, landed: false, gear: 3, speed: 120 }, { t: 5000, landed: false, gear: 3, speed: 160 },
+    { t: 9000, landed: false, gear: 3, speed: 170 }, { t: 10000, landed: false, gear: 3, speed: 180 }]);
+  assert.deepEqual(acts, ['open@1000', 'close@10000']);
+});
+
+test('without radar altitude: a landing stays open until touchdown, however fast', () => {
+  const { acts } = run([{ t: 0, landed: false, gear: 1, speed: 200 }, { t: 1000, landed: false, gear: 2, speed: 200 },
+    { t: 9000, landed: false, gear: 3, speed: 180 }, { t: 20000, landed: false, gear: 3, speed: 20 }]);
+  assert.deepEqual(acts, ['open@1000']);
 });

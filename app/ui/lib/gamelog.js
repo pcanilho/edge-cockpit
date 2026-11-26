@@ -354,13 +354,25 @@ const SEVERITY = ['minor', 'moderate', 'major', 'severe'];
 /** The injury that needs the most care: the lowest tier (tier 1 is a hospital), then the worst severity. */
 export const worstInjury = list => [...(list || [])].sort((a, b) => a.tier - b.tier || SEVERITY.indexOf(b.severity) - SEVERITY.indexOf(a.severity))[0] || null;
 
+// The crew channel names a ship by its display name ('Argo MPUV Tractor' -> ARGO_MPUV_Tractor)
+// while its seat lines use the class (ARGO_MPUV_1T): same maker and model counts as the same
+// ship, unless both entity ids are known and differ.
+const modelOf = cls => (cls || '').toLowerCase().split('_').slice(0, 2).join('_');
+function ourShip(state, ev) {
+  if (state.ship === ev.ship) return true;
+  if (state.shipId && ev.id) return state.shipId === ev.id;
+  return !!state.ship && modelOf(state.ship) === modelOf(ev.ship);
+}
+
 function step(state, ev) {
   const live = state.menu ? { ...state, menu: false } : state;  // anything in the world means we're in it
   switch (ev.type) {
     case 'seat':
       // Boarding (the crew channel) names the ship less exactly than its pilot seat does.
-      if (ev.board && ev.seated && state.seated) return live;
-      if (ev.board && !ev.seated) return state.seated ? { ...live, seated: false, qtTarget: null, hangar: null } : live;
+      // Walking from one ship into another (an MPUV in the Polaris hangar) takes you into that one.
+      if (ev.board && ev.seated && state.seated && ourShip(state, ev)) return live;
+      // Leaving the channel of another ship (the Polaris, from the MPUV in its hangar) is not getting out.
+      if (ev.board && !ev.seated) return state.seated && ourShip(state, ev) ? { ...live, seated: false, qtTarget: null, hangar: null } : live;
       if (ev.seated && state.seated && state.ship === ev.ship) {
         // The navigation line names the ship's entity id, which the crew channel doesn't.
         if (ev.id && state.shipId !== ev.id) return { ...live, shipId: ev.id, lastShip: { ship: ev.ship, id: ev.id } };
@@ -371,7 +383,7 @@ function step(state, ev) {
         hangar: state.hangar?.status === 'granted' ? state.hangar : null, qtArrived: null,
         shipId: ev.id || (state.ship === ev.ship ? state.shipId : null), lastShip: { ship: ev.ship, id: ev.id || (state.lastShip?.ship === ev.ship ? state.lastShip.id : null) } };
       // Leaving another seat than ours (a turret, a second ship) changes nothing.
-      return state.ship === ev.ship ? { ...live, seated: false, qtTarget: null, hangar: null } : state;
+      return ourShip(state, ev) ? { ...live, seated: false, qtTarget: null, hangar: null } : state;
     case 'armistice': return { ...live, armistice: ev.inside };
     case 'qt': return { ...live, qtTarget: ev.target, qtArrived: null };
     case 'qt-route': return state.seated ? { ...live, qtRoute: { from: ev.from, to: ev.to } } : state;

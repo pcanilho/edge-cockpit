@@ -1222,6 +1222,53 @@ for (const [W, H] of [[1920, 1080], [1180, 820]]) {
   await send(at(true, 3, 4.4, 0)); await pg.waitForTimeout(5300); await send(at(true, 3, 4.4, 0));
   const kept = await pg.evaluate(() => window.xfd.current());
   if (down !== 'tl-approach' || kept !== 'tl-systems') problems.push(`auto Approach: landing went ${down}, then a picked page became ${kept}`);
+  // Landing, then out of the seat before the 5 s are up: the vehicle stops coming and Approach
+  // goes at once; Game.log's getting out then opens On foot.
+  const onFoot = structuredClone(P); delete onFoot.live.vehicle; if (onFoot.live.actor?.state) onFoot.live.actor.state.crew_role = 0;
+  await pg.evaluate(() => window.xfd.show('flight'));
+  await send(at(false, 1, 350, -6)); await send(at(false, 2, 250, -6)); await send(at(true, 3, 4.4, 0));
+  const landed = await pg.evaluate(() => window.xfd.current());
+  await send(onFoot);
+  const left = await pg.evaluate(() => window.xfd.current());
+  await pg.evaluate(() => window.xfd.feed(["CVehicleMovementBase::ClearDriver: Local client node [1] releasing control token for 'MISC_Prospector_877602860529' [877602860529]"]));
+  const walked = await pg.evaluate(() => window.xfd.current());
+  if (landed !== 'tl-approach' || left === 'tl-approach' || walked !== 'onfoot') problems.push(`auto Approach: landed on ${landed}, out of the seat ${left}, then ${walked}`);
+  // Game.log first: On foot right away, and the last vehicle updates don't bring Approach back.
+  await pg.evaluate(() => window.xfd.feed(["CVehicleMovementBase::SetDriver: Local client node [1] granted control token for 'MISC_Prospector_877602860529' [877602860529]"]));
+  await send(at(false, 1, 350, -6)); await send(at(false, 2, 250, -6)); await send(at(true, 3, 4.4, 0));
+  await pg.evaluate(() => window.xfd.feed(["CVehicleMovementBase::ClearDriver: Local client node [1] releasing control token for 'MISC_Prospector_877602860529' [877602860529]"]));
+  await send(at(false, 3, 4.4, 0)); await send(at(true, 3, 4.4, 0)); await send(onFoot);
+  const stayed = await pg.evaluate(() => window.xfd.current());
+  if (stayed !== 'onfoot') problems.push(`auto Approach: got out first, then ${stayed}`);
+  await ctx.close();
+}
+
+// 4.10 sends no radar altitude, and often no log line when you sit back down (Paulo's Polaris,
+// 2026-11-26): Follow game takes the pilot seat from the game link, and Approach closes after
+// takeoff once the gear is up, back to the ship's page.
+{
+  const G = JSON.parse(await readFile(join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'telemetry-galaxy-410.json'), 'utf8'));
+  const ctx = await browser.newContext({ viewport: { width: 2560, height: 720 } });
+  const pg = await ctx.newPage();
+  pg.on('pageerror', e => errors.push('auto Approach 4.10: ' + e.message));
+  await pg.route(/fleetyards|fltyrd/, r => r.abort());
+  await pg.goto(base + '?demo=ship');
+  await pg.waitForSelector('body[data-ready]');
+  // Boarded, then got out: the log says On foot.
+  await pg.evaluate(() => window.xfd.feed(["<2026-11-26T19:45:06.737Z> [Notice] <SHUDEvent_OnNotification> Added notification \"You have joined channel 'RSI Galaxy : Argoneth'.",
+    "CVehicleMovementBase::ClearDriver: Local client node [1] releasing control token for 'RSI_Galaxy_929237689784' [929237689784]"]));
+  await pg.waitForTimeout(5100);
+  const walking = await pg.evaluate(() => window.xfd.current());
+  const at = (landed, gear, speed) => { const u = structuredClone(G); Object.assign(u.live.vehicle.flight.state, { is_landed: landed, gear }); Object.assign(u.live.vehicle.flight.instruments, { speed, vertical_speed_indicator: landed ? 0 : 3 }); return u; };
+  const send = u => pg.evaluate(u => window.xfd.telemetry(u), u);
+  await send(at(true, 3, 0));
+  const seated = await pg.evaluate(() => window.xfd.current());
+  await send(at(false, 3, 4));
+  const up = await pg.evaluate(() => window.xfd.current());
+  await send(at(false, 1, 60)); await pg.waitForTimeout(5300); await send(at(false, 1, 90));
+  const back = await pg.evaluate(() => window.xfd.current());
+  if (walking !== 'onfoot' || seated === 'onfoot' || up !== 'tl-approach' || back !== seated)
+    problems.push(`auto Approach 4.10: on foot ${walking}, seated ${seated}, takeoff ${up}, gear up ${back}`);
   await ctx.close();
 }
 
