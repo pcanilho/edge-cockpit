@@ -618,6 +618,14 @@ function paintGauges() {
       seatSeen = seat;
       if (tp.isGunner(link.live)) { if (current !== 'tl-turret' && !opts.tlHidden.includes('tl-turret')) show('tl-turret'); }
       else if (current === 'tl-turret' && seat) show(rolePage || lastShip);
+      // Into the pilot seat. 4.10 often logs nothing when you sit back down, so Follow game
+      // would stay on On foot: the game link says which ship.
+      const cls = link.live?.vehicle?.class_name;
+      if (st?.crew_role === 1 && cls && !game.seated) {
+        game = reduce(game, { type: 'seat', seated: true, ship: cls, id: /_(\d+)$/.exec(link.live.vehicle.name || '')?.[1] || null });
+        follow(false);
+        paintStatus();
+      }
     }
     autoApproach(st);
   } else { seatSeen = ''; tp.forget(); leaveApproach(); }
@@ -632,14 +640,15 @@ function paintGauges() {
 // to the page you were on. A page you pick meanwhile wins until the next landing or takeoff.
 // Out of the pilot seat (on foot, another seat, the link gone) it hands the page back at once, to
 // what Follow game shows now: On foot after you get out, rather than the ship page you left.
-let approachState = approach.idle(), approachBack = null, approachFollow = null;
+let approachState = approach.idle(), approachBack = null, approachFollow = null, seatLeftAt = -Infinity;
 function autoApproach(st) {
   const d = tp.flightOf(link.live);
   if (!d.v || st?.crew_role !== 1) { leaveApproach(); return; }
   const r = approach.step(approachState, d, performance.now());
   approachState = r.state;
-  // Game.log already says you got out: the last vehicle updates can't open it again.
-  const can = opts.auto && !(liveLog && !game.seated) && tp.pages(link.live).some(p => p.id === 'tl-approach');
+  // Game.log just said you got out: the last vehicle updates can't open it again. Only for a
+  // moment: 4.10 often logs no line when you sit back down, so the log can't gate it for good.
+  const can = opts.auto && performance.now() - seatLeftAt > approach.HOLD_MS && tp.pages(link.live).some(p => p.id === 'tl-approach');
   if (r.act === 'open' && can && current !== 'tl-approach') { const back = current; show('tl-approach'); approachBack = back; approachFollow = lastAuto; }
   else if (r.act === 'close') handBack();
 }
@@ -2060,6 +2069,7 @@ function onLog({ lines, live, reset }) {
     if (ev) for (const e of logFor(was, game)) logRows.unshift({ ...e, ts: stamp(line) });
     if (live && !was.menu && game.menu) showRecap();
     if (live && ev) for (const a of alertsFor(was, game)) raise(a);
+    if (live && was.seated && !game.seated) seatLeftAt = performance.now();
     if (!game.menu) $('recap').hidden = true;
   }
   if (logRows.length > LOG_MAX) logRows.length = LOG_MAX;

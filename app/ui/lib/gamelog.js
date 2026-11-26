@@ -369,8 +369,10 @@ function step(state, ev) {
   switch (ev.type) {
     case 'seat':
       // Boarding (the crew channel) names the ship less exactly than its pilot seat does.
-      if (ev.board && ev.seated && state.seated) return live;
-      if (ev.board && !ev.seated) return state.seated ? { ...live, seated: false, qtTarget: null, hangar: null } : live;
+      // Walking from one ship into another (an MPUV in the Polaris hangar) takes you into that one.
+      if (ev.board && ev.seated && state.seated && ourShip(state, ev)) return live;
+      // Leaving the channel of another ship (the Polaris, from the MPUV in its hangar) is not getting out.
+      if (ev.board && !ev.seated) return state.seated && ourShip(state, ev) ? { ...live, seated: false, qtTarget: null, hangar: null } : live;
       if (ev.seated && state.seated && state.ship === ev.ship) {
         // The navigation line names the ship's entity id, which the crew channel doesn't.
         if (ev.id && state.shipId !== ev.id) return { ...live, shipId: ev.id, lastShip: { ship: ev.ship, id: ev.id } };

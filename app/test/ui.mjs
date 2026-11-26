@@ -1243,6 +1243,35 @@ for (const [W, H] of [[1920, 1080], [1180, 820]]) {
   await ctx.close();
 }
 
+// 4.10 sends no radar altitude, and often no log line when you sit back down (Paulo's Polaris,
+// 2026-11-26): Follow game takes the pilot seat from the game link, and Approach closes after
+// takeoff once the gear is up, back to the ship's page.
+{
+  const G = JSON.parse(await readFile(join(dirname(fileURLToPath(import.meta.url)), 'fixtures', 'telemetry-galaxy-410.json'), 'utf8'));
+  const ctx = await browser.newContext({ viewport: { width: 2560, height: 720 } });
+  const pg = await ctx.newPage();
+  pg.on('pageerror', e => errors.push('auto Approach 4.10: ' + e.message));
+  await pg.route(/fleetyards|fltyrd/, r => r.abort());
+  await pg.goto(base + '?demo=ship');
+  await pg.waitForSelector('body[data-ready]');
+  // Boarded, then got out: the log says On foot.
+  await pg.evaluate(() => window.xfd.feed(["<2026-11-26T19:45:06.737Z> [Notice] <SHUDEvent_OnNotification> Added notification \"You have joined channel 'RSI Galaxy : Argoneth'.",
+    "CVehicleMovementBase::ClearDriver: Local client node [1] releasing control token for 'RSI_Galaxy_929237689784' [929237689784]"]));
+  await pg.waitForTimeout(5100);
+  const walking = await pg.evaluate(() => window.xfd.current());
+  const at = (landed, gear, speed) => { const u = structuredClone(G); Object.assign(u.live.vehicle.flight.state, { is_landed: landed, gear }); Object.assign(u.live.vehicle.flight.instruments, { speed, vertical_speed_indicator: landed ? 0 : 3 }); return u; };
+  const send = u => pg.evaluate(u => window.xfd.telemetry(u), u);
+  await send(at(true, 3, 0));
+  const seated = await pg.evaluate(() => window.xfd.current());
+  await send(at(false, 3, 4));
+  const up = await pg.evaluate(() => window.xfd.current());
+  await send(at(false, 1, 60)); await pg.waitForTimeout(5300); await send(at(false, 1, 90));
+  const back = await pg.evaluate(() => window.xfd.current());
+  if (walking !== 'onfoot' || seated === 'onfoot' || up !== 'tl-approach' || back !== seated)
+    problems.push(`auto Approach 4.10: on foot ${walking}, seated ${seated}, takeoff ${up}, gear up ${back}`);
+  await ctx.close();
+}
+
 // The Ship page's 3D model loads under the app's own content policy (the one Tauri serves), says
 // what went wrong when it can't, asks FleetYards once rather than on every telemetry update, and
 // loads after Retry.

@@ -573,3 +573,24 @@ test('getting out of a ship the crew channel named differently', () => {
   assert.equal(reduce(g, parseLine("CVehicleMovementBase::ClearDriver: Local client node [1] releasing control token for 'ARGO_MPUV_1P_333' [333]")).seated, true);
   assert.equal(reduce(g, parseLine("CVehicleMovementBase::ClearDriver: Local client node [1] releasing control token for 'ARGO_MPUV_1T_222' [222]")).seated, false);
 });
+
+// 4.10, Paulo's session 2026-11-26: an MPUV parked in a Polaris hangar. The real seat lines in
+// order: the log never says SetDriver, only crew channels and getting out.
+test('MPUV in a Polaris hangar: seat follows the ship you are in', () => {
+  const N = t => `<2026-11-26T19:44:01.703Z> [Notice] <SHUDEvent_OnNotification> Added notification "${t}`;
+  const out = s => `CVehicleMovementBase::ClearDriver: Local client node [204717092667] releasing control token for '${s}' [1]`;
+  const steps = [
+    [N("You have joined channel 'RSI Polaris : Argoneth'."), true, 'RSI_Polaris'],
+    [N("You have joined channel 'Argo MPUV Tractor : Argoneth'."), true, 'ARGO_MPUV_Tractor'],
+    [N("You have left the channel 'RSI Polaris : Argoneth'."), true, 'ARGO_MPUV_Tractor'],
+    [out('ARGO_MPUV_1T_955210585713'), false, 'ARGO_MPUV_Tractor'],
+    [N("You have joined channel 'RSI Polaris : Argoneth'."), true, 'RSI_Polaris'],
+    [N("You have left the channel 'Argo MPUV Tractor : Argoneth'."), true, 'RSI_Polaris'],
+    [out('RSI_Polaris_956375430482'), false, 'RSI_Polaris'],
+  ];
+  let g = { ...EMPTY };
+  for (const [line, seated, ship] of steps) {
+    g = reduce(g, parseLine(line));
+    assert.deepEqual([g.seated, g.ship], [seated, ship], line);
+  }
+});
