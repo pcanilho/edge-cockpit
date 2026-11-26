@@ -558,3 +558,18 @@ test('injuries, the med bed, hangar queue, restricted areas, low fuel, drops and
   assert.equal(p2.party, null);
   assert.deepEqual(alertsFor(p, p2).map(e => e.text), ['Party jump calibrated']);
 });
+
+// 4.x, boarding an MPUV: the crew channel names it 'Argo MPUV Tractor', getting out names its
+// class ARGO_MPUV_1T. Getting out is getting out; a different ship's seat is not.
+test('getting out of a ship the crew channel named differently', () => {
+  const join = "<2026-11-26T19:25:21.074Z> [Notice] <SHUDEvent_OnNotification> Added notification \"You have joined channel 'Argo MPUV Tractor : Argoneth'.";
+  const out = "<2026-11-26T19:25:52.041Z> [Notice] <Vehicle Control Flow> CVehicleMovementBase::ClearDriver: Local client node [204717092667] releasing control token for 'ARGO_MPUV_1T_955210585713' [955210585713] [Team_CGP4][Vehicle]";
+  let g = reduce({ ...EMPTY }, parseLine(join));
+  assert.equal(g.seated, true);
+  assert.equal(reduce(g, parseLine(out)).seated, false);
+  assert.equal(reduce(g, parseLine("CVehicleMovementBase::ClearDriver: Local client node [1] releasing control token for 'AEGS_Gladius_111' [111]")).seated, true);
+  // Two ships of one model: the entity ids tell them apart.
+  g = reduce({ ...EMPTY }, parseLine("CVehicleMovementBase::SetDriver: Local client node [1] granted control token for 'ARGO_MPUV_1T_222' [222]"));
+  assert.equal(reduce(g, parseLine("CVehicleMovementBase::ClearDriver: Local client node [1] releasing control token for 'ARGO_MPUV_1P_333' [333]")).seated, true);
+  assert.equal(reduce(g, parseLine("CVehicleMovementBase::ClearDriver: Local client node [1] releasing control token for 'ARGO_MPUV_1T_222' [222]")).seated, false);
+});

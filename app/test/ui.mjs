@@ -1222,6 +1222,24 @@ for (const [W, H] of [[1920, 1080], [1180, 820]]) {
   await send(at(true, 3, 4.4, 0)); await pg.waitForTimeout(5300); await send(at(true, 3, 4.4, 0));
   const kept = await pg.evaluate(() => window.xfd.current());
   if (down !== 'tl-approach' || kept !== 'tl-systems') problems.push(`auto Approach: landing went ${down}, then a picked page became ${kept}`);
+  // Landing, then out of the seat before the 5 s are up: the vehicle stops coming and Approach
+  // goes at once; Game.log's getting out then opens On foot.
+  const onFoot = structuredClone(P); delete onFoot.live.vehicle; if (onFoot.live.actor?.state) onFoot.live.actor.state.crew_role = 0;
+  await pg.evaluate(() => window.xfd.show('flight'));
+  await send(at(false, 1, 350, -6)); await send(at(false, 2, 250, -6)); await send(at(true, 3, 4.4, 0));
+  const landed = await pg.evaluate(() => window.xfd.current());
+  await send(onFoot);
+  const left = await pg.evaluate(() => window.xfd.current());
+  await pg.evaluate(() => window.xfd.feed(["CVehicleMovementBase::ClearDriver: Local client node [1] releasing control token for 'MISC_Prospector_877602860529' [877602860529]"]));
+  const walked = await pg.evaluate(() => window.xfd.current());
+  if (landed !== 'tl-approach' || left === 'tl-approach' || walked !== 'onfoot') problems.push(`auto Approach: landed on ${landed}, out of the seat ${left}, then ${walked}`);
+  // Game.log first: On foot right away, and the last vehicle updates don't bring Approach back.
+  await pg.evaluate(() => window.xfd.feed(["CVehicleMovementBase::SetDriver: Local client node [1] granted control token for 'MISC_Prospector_877602860529' [877602860529]"]));
+  await send(at(false, 1, 350, -6)); await send(at(false, 2, 250, -6)); await send(at(true, 3, 4.4, 0));
+  await pg.evaluate(() => window.xfd.feed(["CVehicleMovementBase::ClearDriver: Local client node [1] releasing control token for 'MISC_Prospector_877602860529' [877602860529]"]));
+  await send(at(false, 3, 4.4, 0)); await send(at(true, 3, 4.4, 0)); await send(onFoot);
+  const stayed = await pg.evaluate(() => window.xfd.current());
+  if (stayed !== 'onfoot') problems.push(`auto Approach: got out first, then ${stayed}`);
   await ctx.close();
 }
 
