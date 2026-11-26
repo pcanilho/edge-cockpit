@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.11.6
+
+- **Approach hands your page back when you get out.** Leave the pilot seat after landing and Follow game moves on straight away, to On foot or wherever it would go now, instead of staying on Approach.
+- **Approach closes after takeoff on 4.10.** 4.10 sends no radar altitude, so the page waited forever for 400 m. It now closes 5 s after the gear is up, or above 150 m/s with the gear left down.
+- **Getting out on 4.10 is seen.** Boarding is logged under the ship's display name (Argo MPUV Tractor) and getting out under its class (ARGO_MPUV_1T): both now count as the same ship.
+- **Ships in ships.** Leaving the Polaris's crew channel while flying the MPUV from its hangar no longer counts as getting out, and walking into another ship takes you into that one.
+- **Sitting back down on 4.10.** The game often logs nothing when you take the pilot seat again; with the game link on, the console now sees it and Follow game shows your ship.
+
 ## 0.11.5
 
 - The World page is now **Verse**: its key, its title, Settings and the page builder. Your settings and pages carry over.
