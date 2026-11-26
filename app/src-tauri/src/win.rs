@@ -449,8 +449,62 @@ pub fn backlight(x: i32, y: i32, w: i32, h: i32, level: Option<u32>) -> Option<u
     }
 }
 
-/// Starts the app hidden at sign-in (HKCU Run), or stops doing so.
+/// Whether the app runs from its MSIX package (the Microsoft Store copy). Windows then keeps
+/// HKCU writes inside the package and the Store does the updates.
+pub fn packaged() -> bool {
+    static PACKAGED: OnceLock<bool> = OnceLock::new();
+    *PACKAGED.get_or_init(|| {
+        use windows::Win32::Foundation::APPMODEL_ERROR_NO_PACKAGE;
+        use windows::Win32::Storage::Packaging::Appx::GetCurrentPackageFullName;
+        let mut len = 0u32;
+        unsafe { GetCurrentPackageFullName(&mut len, None) != APPMODEL_ERROR_NO_PACKAGE }
+    })
+}
+
+/// The startup task the package declares (msix/AppxManifest.xml).
+const STARTUP_TASK: &str = "EdgeCockpit";
+
+/// Whether Windows started the packaged app at sign-in. A startup task passes no arguments,
+/// so this stands in for --background.
+pub fn started_at_signin() -> bool {
+    use windows::ApplicationModel::Activation::ActivationKind;
+    use windows::ApplicationModel::AppInstance;
+    packaged()
+        && in_winrt(|| AppInstance::GetActivatedEventArgs().and_then(|a| a.Kind()).is_ok_and(|k| k == ActivationKind::StartupTask))
+}
+
+/// Runs WinRT calls on their own multithreaded thread, so blocking on them never stalls the UI thread.
+fn in_winrt<T: Send + Default + 'static>(f: impl FnOnce() -> T + Send + 'static) -> T {
+    std::thread::spawn(move || {
+        use windows::Win32::System::WinRT::{RoInitialize, RO_INIT_MULTITHREADED};
+        let _ = unsafe { RoInitialize(RO_INIT_MULTITHREADED) };
+        f()
+    })
+    .join()
+    .unwrap_or_default()
+}
+
+/// The packaged app's startup task on or off. Off in Settings > Apps > Startup stays off.
+fn set_startup_task(on: bool) -> bool {
+    use windows::core::HSTRING;
+    use windows::ApplicationModel::{StartupTask, StartupTaskState};
+    in_winrt(move || {
+        let Ok(task) = StartupTask::GetAsync(&HSTRING::from(STARTUP_TASK)).and_then(|op| op.join()) else { return false };
+        if on {
+            task.RequestEnableAsync()
+                .and_then(|op| op.join())
+                .is_ok_and(|s| s == StartupTaskState::Enabled || s == StartupTaskState::EnabledByPolicy)
+        } else {
+            task.Disable().is_ok()
+        }
+    })
+}
+
+/// Starts the app hidden at sign-in (HKCU Run, or the package's startup task), or stops doing so.
 pub fn set_autostart(on: bool) -> bool {
+    if packaged() {
+        return set_startup_task(on);
+    }
     use windows::Win32::Foundation::ERROR_FILE_NOT_FOUND;
     use windows::Win32::System::Registry::{RegDeleteKeyValueW, RegSetKeyValueW, HKEY_CURRENT_USER, REG_SZ};
     let key = wide(r"Software\Microsoft\Windows\CurrentVersion\Run");
@@ -515,6 +569,12 @@ pub fn set_user_env(name: &str, value: Option<&str>) -> bool {
         }
     }
     ok
+}
+
+/// Whether the user environment can be written for other programs: a packaged app on
+/// Windows 10 writes it into its own copy (the manifest's exception needs Windows 11).
+pub fn user_env_shared() -> bool {
+    !packaged() || nt_version_value("CurrentBuildNumber").and_then(|b| b.parse::<u32>().ok()).is_some_and(|b| b >= 22000)
 }
 
 /// The exe name of the window in front, e.g. "StarCitizen.exe".

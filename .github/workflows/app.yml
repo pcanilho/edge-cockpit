@@ -95,6 +95,28 @@ jobs:
           name: edge-cockpit
           path: out/
           if-no-files-found: error
+      # Microsoft Store package, kept with the run (not the release): unsigned, as the Store
+      # signs it. Set MSIX_NAME, MSIX_PUBLISHER and MSIX_PUBLISHER_NAME (repository variables)
+      # to the identity Partner Center shows once the name is reserved.
+      - name: Microsoft Store package (pack, install, start)
+        working-directory: .
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.out.outputs.version }}
+          MSIX_NAME: ${{ vars.MSIX_NAME }}
+          MSIX_PUBLISHER: ${{ vars.MSIX_PUBLISHER }}
+          MSIX_PUBLISHER_NAME: ${{ vars.MSIX_PUBLISHER_NAME }}
+        run: |
+          $id = @{}
+          if ($env:MSIX_NAME) { $id.Name = $env:MSIX_NAME }
+          if ($env:MSIX_PUBLISHER) { $id.Publisher = $env:MSIX_PUBLISHER }
+          if ($env:MSIX_PUBLISHER_NAME) { $id.PublisherName = $env:MSIX_PUBLISHER_NAME }
+          ./.github/scripts/msix.ps1 -Exe app/src-tauri/target/release/edge-cockpit.exe -Version $env:VERSION -Out out-msix -Test @id
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: edge-cockpit-msix
+          path: out-msix/
+          if-no-files-found: error
 
   release:
     name: release
