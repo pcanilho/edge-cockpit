@@ -3,7 +3,9 @@
 // when Landed turns to Flying. It hands the page back 5 s after touchdown, or once radar altitude
 // has stayed above 400 m with the gear up for 5 s. The 300 to 400 m gap and the 5 s hold keep it
 // from flapping; the altitude rule re-arms only after the ship has been above 400 m.
-export const OPEN_BELOW = 300, CLOSE_ABOVE = 400, HOLD_MS = 5000, SINKING = -1;
+// 4.10 sends no radar altitude: there, gear up with the ship flying ends it, and after a takeoff
+// with the gear left down, flying faster than 150 m/s does.
+export const OPEN_BELOW = 300, CLOSE_ABOVE = 400, HOLD_MS = 5000, SINKING = -1, CLEAR_SPEED = 150;
 const DOWN = new Set([2, 3]); // gear lowering or down
 const UP = 1;
 
@@ -11,7 +13,7 @@ const UP = 1;
 export const idle = () => ({ open: null, landed: null, gear: null, armed: false, since: 0 });
 
 /**
- * One telemetry update. `d` holds { landed, gear, ralt, vsi } (null when not sent).
+ * One telemetry update. `d` holds { landed, gear, ralt, vsi, speed } (null when not sent).
  * Returns { state, act } where act is 'open', 'close' or null.
  */
 export function step(s, d, now) {
@@ -26,7 +28,9 @@ export function step(s, d, now) {
     if (tookOff || gearDown || sinking) { next.open = tookOff ? 'takeoff' : 'landing'; next.since = 0; act = 'open'; }
   } else {
     // What ends it: on the ground, or clear of it with the gear up.
-    const done = d.landed === true || (d.landed === false && high && (d.gear == null || d.gear === UP));
+    const blind = d.ralt == null && d.landed === false;
+    const done = d.landed === true || (d.landed === false && high && (d.gear == null || d.gear === UP))
+      || (blind && d.gear === UP) || (blind && s.open === 'takeoff' && d.speed != null && d.speed > CLEAR_SPEED);
     if (!done) next.since = 0;
     else if (!s.since) next.since = now;
     else if (now - s.since >= HOLD_MS) { next.open = null; next.since = 0; next.armed = false; act = 'close'; }
