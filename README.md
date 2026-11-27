@@ -19,6 +19,8 @@ Unofficial fan project, not affiliated with Cloud Imperium Games.
 
 ## Install
 
+Get it from the [Microsoft Store](https://apps.microsoft.com/detail/9N40T11TSHC1) (updates itself), or:
+
 1. Run `Edge-Cockpit-<version>-setup.exe` from the [latest release](../../releases/latest). SmartScreen warns because the exe isn't code signed: **More info** > **Run anyway**. [How to verify a download](SECURITY.md#verifying-a-download).
 2. In game: **Options > Keybindings > Advanced Controls Customization > Control Profiles**, pick **edge-cockpit**, tick **Keyboard** and **Mouse**. It only adds keys for actions you have not bound, and keeps your mouse buttons (quantum engage on the left button included). On first start a setup check shows what's ready, with a **Test a key** button.
 

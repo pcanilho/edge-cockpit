@@ -23,6 +23,8 @@ REPO = "https://github.com/pcanilho/edge-cockpit"
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
 FONTS = {"chakra-petch": [600, 700], "inter": [400, 500, 600], "jetbrains-mono": [500]}
+# Microsoft Store product ID (Partner Center > Product identity > Store ID). Empty hides the Store badge.
+STORE_ID = "9N40T11TSHC1"
 IMAGES = ["panel", "panel-telemetry", "panel-armistice", "panel-mining", "panel-alert", "panel-settings", "panel-log", "panel-world", "panel-chart", "panel-editor", "panel-gauges", "phone-flight", "phone-power", "phone-role", "social-preview"]
 
 
@@ -92,6 +94,12 @@ def main():
     for name in IMAGES:
         tag = hashlib.sha256((ROOT / "docs" / f"{name}.png").read_bytes()).hexdigest()[:10]
         page = page.replace(f'img/{name}.png"', f'img/{name}.png?v={tag}"')
+    # The Store badge shows once the app is listed.
+    if STORE_ID:
+        fields["STORE_URL"] = f"https://apps.microsoft.com/detail/{STORE_ID}"
+        page = re.sub(r"<!--store-->|<!--/store-->", "", page)
+    else:
+        page = re.sub(r"<!--store-->.*?<!--/store-->", "", page, flags=re.S)
     page = page.replace('<html lang="en">', f'<html lang="en" data-version="{html.escape(fields["VERSION"])}">', 1)
     for k, v in fields.items():
         page = page.replace("{{" + k + "}}", html.escape(v))
@@ -107,6 +115,7 @@ def main():
     for name in IMAGES:
         shutil.copy(ROOT / "docs" / f"{name}.png", out / "img" / f"{name}.png")
     shutil.copy(ROOT / "docs" / "logo.svg", out / "img" / "logo.svg")
+    shutil.copy(ROOT / "docs" / "ms-store-badge.svg", out / "img" / "ms-store-badge.svg")
     icons = ROOT / "app" / "src-tauri" / "icons"
     shutil.copy(icons / "32x32.png", out / "img" / "favicon-32.png")
     shutil.copy(icons / "128x128@2x.png", out / "img" / "apple-touch-icon.png")
