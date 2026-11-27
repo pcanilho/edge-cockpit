@@ -102,6 +102,8 @@ def main():
         shutil.copy(SITE / name, out / name)
     missing = (SITE / "404.html").read_text(encoding="utf-8").replace("{{BASE_URL}}", html.escape(fields["BASE_URL"]))
     (out / "404.html").write_text(missing, encoding="utf-8")
+    privacy = (SITE / "privacy.html").read_text(encoding="utf-8").replace("{{BASE_URL}}", html.escape(fields["BASE_URL"]))
+    (out / "privacy.html").write_text(privacy, encoding="utf-8")
     for name in IMAGES:
         shutil.copy(ROOT / "docs" / f"{name}.png", out / "img" / f"{name}.png")
     shutil.copy(ROOT / "docs" / "logo.svg", out / "img" / "logo.svg")
