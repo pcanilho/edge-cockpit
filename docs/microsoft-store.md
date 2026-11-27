@@ -11,7 +11,7 @@ The package is unsigned: the Store signs MSIX packages itself, so no certificate
 3. Run the App workflow, download `edge-cockpit-msix` and upload the `.msix` to a new submission (product type MSIX).
 4. Justify the restricted capabilities: `runFullTrust` (desktop app: sends keys to the game, reads Game.log) and `unvirtualizedResources` (writes `GRPC_CLIENT_SERVER_ENABLED` to the user environment so the game turns on its telemetry API).
 
-Listing rules: no "Star Citizen" in the title or search terms, no ship art in screenshots, a privacy policy URL, and a note that this is an unofficial fan app.
+Listing rules: no "Star Citizen" in the title or search terms, no ship art in screenshots, privacy policy URL `https://pcanilho.github.io/edge-cockpit/privacy.html`, and a note that this is an unofficial fan app.
 
 ## What differs in the Store copy
 
